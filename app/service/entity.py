@@ -1,3 +1,4 @@
+from typing import Sequence
 from uuid import UUID
 
 from fastapi import Depends
@@ -24,9 +25,8 @@ class EntityService:
     async def get_by_id(self, id: UUID) -> Entity | None:
         return await self.repo.find_by_id(id)
 
-    async def get_all(self, offset: int = 0, limit: int = 25) -> list[Entity]:
-        entities = await self.repo.find_all_paginated(offset=offset, limit=limit)
-        return list(entities)
+    async def get_all(self, offset: int = 0, limit: int = 25) -> Sequence[Entity]:
+        return await self.repo.find_all_paginated(offset=offset, limit=limit)
 
     async def update(self, id: UUID, data: EntityUpdate) -> Entity | None:
         entity = await self.repo.find_by_id(id)
