@@ -55,5 +55,9 @@ def error(msg: str, *args, **kwargs) -> None:
     logger.error(msg, *args, **kwargs)
 
 
+def warning(msg: str, *args, **kwargs) -> None:
+    logger.warning(msg, *args, **kwargs)
+
+
 def debug(msg: str, *args, **kwargs) -> None:
     logger.debug(msg, *args, **kwargs)

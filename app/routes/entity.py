@@ -50,6 +50,4 @@ async def update_entity(
 async def delete_entity(
     id: UUID, service: EntityService = Depends(get_entity_service)
 ) -> None:
-    deleted = await service.delete(id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail="Entity not found")
+    await service.delete(id)

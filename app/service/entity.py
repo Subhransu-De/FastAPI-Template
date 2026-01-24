@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.io.entity import EntityCreate, EntityUpdate
+from app.logger import logger
 from app.model.entity import Entity
 from app.repository.entity import EntityRepository
 
@@ -41,13 +42,9 @@ class EntityService:
         await self.session.commit()
         return entity
 
-    async def delete(self, id: UUID) -> bool:
-        exists = await self.repo.exists_by_id(id)
-        if not exists:
-            return False
+    async def delete(self, id: UUID) -> None:
         await self.repo.delete_by_id(id)
         await self.session.commit()
-        return True
 
 
 async def get_entity_service(
