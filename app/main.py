@@ -1,19 +1,23 @@
 from contextlib import asynccontextmanager
 
 import uvicorn
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
+from alembic import command
 from app import logger
 from app.exceptions import BaseException, base_exception_handler
 from app.routes import entity_route, health_route
 from app.settings import settings
 
-logger.setup_logging()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.setup_logging()
+    alembic_cfg = Config("alembic.ini")
+    alembic_cfg.set_main_option("script_location", "alembic")
+    command.upgrade(alembic_cfg, "head")
     logger.info(f"Starting up {settings.app_name} on port {settings.port}")
     yield
     logger.info("Application shutdown")
