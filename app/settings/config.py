@@ -14,4 +14,4 @@ class Settings(BaseSettings):
     database_pool_pre_ping: bool = True
 
 
-settings = Settings()  # pyright: ignore[reportCallIssue]
+settings = Settings()  # ty: ignore[missing-argument]

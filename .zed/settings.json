@@ -1,0 +1,22 @@
+{
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.venv",
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.ruff_cache",
+  ],
+  "languages": {
+    "Python": {
+      "language_servers": ["ty", "!basedpyright"],
+    },
+  },
+  "lsp": {
+    "ty": {
+      "binary": {
+        "path": "/home/user/.local/bin/ty",
+        "arguments": ["server"],
+      },
+    },
+  },
+}
