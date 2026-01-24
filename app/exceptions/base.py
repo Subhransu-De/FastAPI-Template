@@ -2,6 +2,8 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.logger import logger
+
 
 class BaseException(Exception):
     def __init__(
@@ -41,13 +43,14 @@ async def base_exception_handler(request: Request, exc: Exception):
                 content=exc.get_error(request),
             )
         case _:
+            logger.error(str(exec))
             return JSONResponse(
                 status_code=500,
                 content={
                     "type": "about:blank",
                     "title": "Internal Server Error",
                     "status": 500,
-                    "detail": str(exc),
+                    "detail": None,
                     "instance": str(request.url),
                 },
             )
