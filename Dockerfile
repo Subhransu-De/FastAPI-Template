@@ -16,6 +16,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM python:3.13-slim-bookworm
 
+LABEL org.opencontainers.image.title="FastAPI Template"
+LABEL org.opencontainers.image.description="FastAPI template"
+LABEL org.opencontainers.image.vendor="Subhransu-De"
+LABEL org.opencontainers.image.source="https://github.com/Subhransu-De/fastapi-template"
+LABEL org.opencontainers.image.base.name="python:3.13-slim-bookworm"
+
 WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
