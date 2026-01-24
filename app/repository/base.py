@@ -18,13 +18,15 @@ class BaseRepository(Generic[ModelType]):
         return await self.session.get(self.model, id)
 
     async def find_all(self) -> Sequence[ModelType]:
-        result: Result[Any] = await self.session.execute(select(self.model))
+        result: Result[tuple[ModelType]] = await self.session.execute(
+            select(self.model)
+        )
         return result.scalars().all()
 
     async def find_all_by_id(self, ids: list[UUID]) -> Sequence[ModelType]:
         if not ids:
             return []
-        result: Result[Any] = await self.session.execute(
+        result: Result[tuple[ModelType]] = await self.session.execute(
             select(self.model).where(self.model.id.in_(ids))
         )
         return result.scalars().all()
@@ -38,14 +40,14 @@ class BaseRepository(Generic[ModelType]):
             query = query.order_by(order_by)
 
         query = query.offset(offset).limit(limit)
-        result: Result[Any] = await self.session.execute(query)
+        result: Result[tuple[ModelType]] = await self.session.execute(query)
         return result.scalars().all()
 
     async def find_by(self, **kwargs: Any) -> Sequence[ModelType]:
         query = select(self.model)
         for key, value in kwargs.items():
             query = query.where(getattr(self.model, key) == value)
-        result: Result[Any] = await self.session.execute(query)
+        result: Result[tuple[ModelType]] = await self.session.execute(query)
         return result.scalars().all()
 
     async def save(self, entity: ModelType) -> ModelType:
@@ -67,13 +69,13 @@ class BaseRepository(Generic[ModelType]):
         return updated
 
     async def exists_by_id(self, id: UUID) -> bool:
-        result: Result[Any] = await self.session.execute(
+        result: Result[tuple[int]] = await self.session.execute(
             select(func.count()).select_from(self.model).where(self.model.id == id)
         )
         return result.scalar_one() > 0
 
     async def delete_by_id(self, id: UUID) -> bool:
-        result: Result[Any] = await self.session.execute(
+        result: Result[tuple[ModelType]] = await self.session.execute(
             delete(self.model).where(self.model.id == id)
         )
         await self.session.flush()
@@ -82,7 +84,7 @@ class BaseRepository(Generic[ModelType]):
     async def delete_all_by_id(self, ids: list[UUID]) -> int:
         if not ids:
             return 0
-        result: Result[Any] = await self.session.execute(
+        result: Result[tuple[ModelType]] = await self.session.execute(
             delete(self.model).where(self.model.id.in_(ids))
         )
         await self.session.flush()
