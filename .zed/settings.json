@@ -9,13 +9,10 @@
   "languages": {
     "Python": {
       "language_servers": ["ty", "!basedpyright"],
-    },
-  },
-  "lsp": {
-    "ty": {
-      "binary": {
-        "path": "/home/user/.local/bin/ty",
-        "arguments": ["server"],
+      "format_on_save": "off",
+      "code_actions_on_format": {
+        "source.organizeImports.ruff": true,
+        "source.fixAll.ruff": true,
       },
     },
   },
