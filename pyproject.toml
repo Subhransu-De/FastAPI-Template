@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic[tz]>=1.18.1",
     "fastapi>=0.128.0",
     "psycopg[binary]>=3.3.2",
     "pydantic>=2.12.5",
@@ -13,3 +14,24 @@ dependencies = [
     "uvicorn>=0.40.0",
 ]
 
+[dependency-groups]
+lint = [
+    "ruff>=0.14.14",
+    "ty>=0.0.13",
+]
+
+[tool.alembic]
+script_location = "%(here)s/alembic"
+timezone = "UTC"
+file_template = "%%(year)d_%%(month).2d_%%(day).2d_%%(hour).2d%%(minute).2d-%%(rev)s_%%(slug)s"
+prepend_sys_path = ["."]
+version_locations = [
+   "%(here)s/alembic/versions"
+]
+output_encoding = "utf-8"
+
+[[tool.alembic.post_write_hooks]]
+name = "ruff"
+type = "exec"
+executable = "ruff"
+options = "check --fix REVISION_SCRIPT_FILENAME"
