@@ -7,6 +7,8 @@ from .base import Base
 
 
 class Entity(Base):
+    __tablename__ = "entities"
+
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
