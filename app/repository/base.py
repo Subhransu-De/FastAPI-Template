@@ -1,7 +1,7 @@
-from typing import Any, Generic, Optional, Sequence, Type, TypeVar
+from typing import Any, Generic, Optional, Sequence, Type, TypeVar, cast
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, Result, delete, func, select
+from sqlalchemy import ColumnElement, CursorResult, Result, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.model.base import Base
@@ -66,6 +66,7 @@ class BaseRepository(Generic[ModelType]):
     async def update(self, entity: ModelType) -> ModelType:
         updated: ModelType = await self.session.merge(entity)
         await self.session.flush()
+        await self.session.refresh(updated)
         return updated
 
     async def exists_by_id(self, id: UUID) -> bool:
@@ -75,17 +76,17 @@ class BaseRepository(Generic[ModelType]):
         return result.scalar_one() > 0
 
     async def delete_by_id(self, id: UUID) -> bool:
-        result: Result[tuple[ModelType]] = await self.session.execute(
+        result: Result = await self.session.execute(
             delete(self.model).where(self.model.id == id)
         )
         await self.session.flush()
-        return len(result.scalars().all()) > 0
+        return cast(CursorResult, result).rowcount > 0
 
     async def delete_all_by_id(self, ids: list[UUID]) -> int:
         if not ids:
             return 0
-        result: Result[tuple[ModelType]] = await self.session.execute(
+        result: Result = await self.session.execute(
             delete(self.model).where(self.model.id.in_(ids))
         )
         await self.session.flush()
-        return len(result.scalars().all())
+        return cast(CursorResult, result).rowcount > 0
