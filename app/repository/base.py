@@ -89,4 +89,4 @@ class BaseRepository(Generic[ModelType]):
             delete(self.model).where(self.model.id.in_(ids))
         )
         await self.session.flush()
-        return cast(CursorResult, result).rowcount > 0
+        return cast(CursorResult, result).rowcount

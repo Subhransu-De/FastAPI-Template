@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
 from app.service import EntityService, get_entity_service
@@ -28,7 +28,9 @@ async def get_entity(
 
 @route.get("/", response_model=list[EntityResponse])
 async def list_entities(
-    offset: int = 0, limit: int = 25, service: EntityService = Depends(get_entity_service)
+    offset: int = Query(0, ge=0),
+    limit: int = Query(25, ge=1, le=100),
+    service: EntityService = Depends(get_entity_service),
 ) -> list[EntityResponse]:
     entities = await service.get_all(offset=offset, limit=limit)
     return [EntityResponse.model_validate(e) for e in entities]

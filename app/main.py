@@ -13,13 +13,13 @@ logger.setup_logging()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info(f"Starting up {settings.app_name} on port {settings.port}")
-    app.include_router(health_route)
-    app.include_router(entity_route)
     yield
     logger.info("Application shutdown")
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app.include_router(health_route)
+app.include_router(entity_route)
 
 
 def main():
