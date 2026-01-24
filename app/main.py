@@ -2,8 +2,10 @@ from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 
 from app import logger
+from app.exceptions import BaseException, base_exception_handler
 from app.routes import entity_route, health_route
 from app.settings import settings
 
@@ -18,6 +20,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, lifespan=lifespan)
+
+app.add_exception_handler(BaseException, base_exception_handler)
+app.add_exception_handler(RequestValidationError, base_exception_handler)
+
 app.include_router(health_route)
 app.include_router(entity_route)
 

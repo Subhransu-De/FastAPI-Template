@@ -2,6 +2,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.exceptions import NoEntityFoundException
 from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
 from app.service import EntityService, get_entity_service
 
@@ -22,7 +23,7 @@ async def get_entity(
 ) -> EntityResponse:
     entity = await service.get_by_id(id)
     if entity is None:
-        raise HTTPException(status_code=404, detail="Entity not found")
+        raise NoEntityFoundException(id)
     return EntityResponse.model_validate(entity)
 
 
@@ -42,7 +43,7 @@ async def update_entity(
 ) -> EntityResponse:
     entity = await service.update(id, data)
     if entity is None:
-        raise HTTPException(status_code=404, detail="Entity not found")
+        raise NoEntityFoundException(id)
     return EntityResponse.model_validate(entity)
 
 
