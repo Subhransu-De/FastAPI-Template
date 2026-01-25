@@ -5,24 +5,38 @@ on:
     branches:
       - main
     paths:
-      - '**.py'
-      - '**.ini'
-      - '**.toml'
-      - '**.lock'
+      - "**.py"
+      - "**.ini"
+      - "**.toml"
+      - "**.lock"
   pull_request:
     branches:
       - main
     paths:
-      - '**.py'
-      - '**.ini'
-      - '**.toml'
-      - '**.lock'
+      - "**.py"
+      - "**.ini"
+      - "**.toml"
+      - "**.lock"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --group test
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+
   build:
     runs-on: ubuntu-latest
     permissions:
