@@ -10,7 +10,7 @@ if sys.platform == "win32":
 
 
 class TestSettings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env.test", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict()
 
     app_name: str = "FastAPI Template Test"
     port: int = 8000
