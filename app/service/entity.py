@@ -6,7 +6,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.io.entity import EntityCreate, EntityUpdate
-from app.logger import logger
 from app.model.entity import Entity
 from app.repository.entity import EntityRepository
 

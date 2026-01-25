@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from app.exceptions import NoEntityFoundException
 from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
