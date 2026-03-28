@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
@@ -20,7 +20,7 @@ pytestmark = pytest.mark.unit
 
 
 def make_entity(name: str = "Entity", description: str | None = None) -> Entity:
-    now = datetime.now()
+    now = datetime.now(UTC)
     return Entity(
         id=uuid4(),
         name=name,

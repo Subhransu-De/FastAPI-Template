@@ -10,6 +10,11 @@ import app.logger.logger as logger_module
 pytestmark = pytest.mark.unit
 
 
+def _raise_value_error() -> None:
+    message = "boom"
+    raise ValueError(message)
+
+
 def test_json_formatter_formats_record_without_exception():
     formatter = logger_module.JsonFormatter()
     record = logging.LogRecord(
@@ -35,7 +40,7 @@ def test_json_formatter_formats_record_with_exception():
     formatter = logger_module.JsonFormatter()
 
     try:
-        raise ValueError("boom")
+        _raise_value_error()
     except ValueError:
         exc_info = sys.exc_info()
 

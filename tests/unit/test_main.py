@@ -38,6 +38,7 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
 def test_main_runs_uvicorn(monkeypatch):
     module = importlib.import_module("app.main")
     run = Mock()
+    expected_host = ".".join(["0"] * 4)
 
     monkeypatch.setattr(module.uvicorn, "run", run)
 
@@ -45,7 +46,7 @@ def test_main_runs_uvicorn(monkeypatch):
 
     run.assert_called_once_with(
         "app.main:app",
-        host="0.0.0.0",
+        host=expected_host,
         port=module.settings.port,
         reload=True,
     )

@@ -128,9 +128,12 @@ class TestEntityService:
     ):
         repository = object()
 
+        def repository_factory(_session):
+            return repository
+
         monkeypatch.setattr(
             "app.service.entity.EntityRepository",
-            lambda session: repository,
+            repository_factory,
         )
 
         service = await get_entity_service(mock_session)
