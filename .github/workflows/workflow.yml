@@ -45,8 +45,8 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
 
-      - name: Install lint dependencies
-        run: uv sync --group lint
+      - name: Install lint and test dependencies
+        run: uv sync --group lint --group test
 
       - name: Run Ty
         run: uv run ty check

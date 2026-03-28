@@ -9,5 +9,7 @@ route = APIRouter()
 
 
 @route.get("/health/db")
-async def health_db(_session: Annotated[AsyncSession, Depends(get_session)]) -> dict[str, str]:
+async def health_db(
+    _session: Annotated[AsyncSession, Depends(get_session)],
+) -> dict[str, str]:
     return {"status": "healthy"}

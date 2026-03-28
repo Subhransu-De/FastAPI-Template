@@ -72,7 +72,9 @@ class BaseRepository[ModelType: Base]:
 
     async def exists_by_id(self, entity_id: UUID) -> bool:
         result: Result[tuple[int]] = await self.session.execute(
-            select(func.count()).select_from(self.model).where(self.model.id == entity_id)
+            select(func.count())
+            .select_from(self.model)
+            .where(self.model.id == entity_id)
         )
         return result.scalar_one() > 0
 

@@ -40,7 +40,9 @@ async def list_entities(
 
 @route.put("/{entity_id}")
 async def update_entity(
-    entity_id: UUID, data: EntityUpdate, service: Annotated[EntityService, Depends(get_entity_service)]
+    entity_id: UUID,
+    data: EntityUpdate,
+    service: Annotated[EntityService, Depends(get_entity_service)],
 ) -> EntityResponse:
     entity = await service.update(entity_id, data)
     if entity is None:
