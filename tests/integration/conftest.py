@@ -3,14 +3,15 @@ import os
 from typing import AsyncGenerator, Generator
 
 import pytest
-from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import inspect, text
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 from testcontainers.core.container import Reaper
 from testcontainers.postgres import PostgresContainer
+
+from alembic import command
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -70,9 +71,9 @@ def app_instance(
 
 @pytest.fixture(scope="session")
 def engine(database_url: str) -> AsyncEngine:
-    from app.database.engine import engine
+    from app.database.engine import get_engine
 
-    return engine
+    return get_engine()
 
 
 @pytest.fixture(scope="session", autouse=True)

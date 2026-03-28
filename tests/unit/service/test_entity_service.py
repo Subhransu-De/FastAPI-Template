@@ -1,4 +1,3 @@
-from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -9,6 +8,14 @@ from app.service.entity import EntityService
 
 
 pytestmark = pytest.mark.unit
+
+
+@pytest.fixture(autouse=True)
+def _mock_get_session(monkeypatch):
+    async def _dummy_get_session():
+        yield None
+
+    monkeypatch.setattr("app.database.get_session", _dummy_get_session)
 
 
 class TestEntityService:
@@ -70,7 +77,9 @@ class TestEntityService:
         mock_session.commit.assert_called_once()
         assert result.name == "New"
 
-    async def test_delete_calls_commit(self, service, mock_session, mock_entity_repository):
+    async def test_delete_calls_commit(
+        self, service, mock_session, mock_entity_repository
+    ):
         entity_id = uuid4()
 
         await service.delete(entity_id)
@@ -79,10 +88,14 @@ class TestEntityService:
         mock_session.commit.assert_called_once()
 
     async def test_get_all_paginated(self, service, mock_entity_repository):
-        entities = [Entity(id=uuid4(), name=f"Entity {i}", description=None) for i in range(3)]
+        entities = [
+            Entity(id=uuid4(), name=f"Entity {i}", description=None) for i in range(3)
+        ]
         mock_entity_repository.find_all_paginated.return_value = entities
 
         result = await service.get_all(offset=0, limit=10)
 
-        mock_entity_repository.find_all_paginated.assert_called_once_with(offset=0, limit=10)
+        mock_entity_repository.find_all_paginated.assert_called_once_with(
+            offset=0, limit=10
+        )
         assert len(result) == 3
