@@ -67,6 +67,9 @@ ban-relative-imports = "all"
 
 [lint.flake8-tidy-imports.banned-api]
 "__future__.annotations".msg = "Python 3.13+ does not need `from __future__ import annotations`."
+"builtins.getattr".msg = "Do not use getattr(). Use direct attribute access or try/except AttributeError."
+"builtins.setattr".msg = "Do not use setattr(). Use direct attribute assignment."
+"builtins.hasattr".msg = "Do not use hasattr(). Use direct attribute access or try/except AttributeError."
 
 [lint.flake8-quotes]
 inline-quotes = "double"

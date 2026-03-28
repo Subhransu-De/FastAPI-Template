@@ -30,9 +30,9 @@ async def get_entity(
 
 @route.get("/")
 async def list_entities(
+    service: Annotated[EntityService, Depends(get_entity_service)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
-    service: Annotated[EntityService, Depends(get_entity_service)] = ...,
 ) -> list[EntityResponse]:
     entities = await service.get_all(offset=offset, limit=limit)
     return [EntityResponse.model_validate(e) for e in entities]

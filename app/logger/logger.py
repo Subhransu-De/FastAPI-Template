@@ -47,17 +47,17 @@ def setup_logging() -> None:
         log.propagate = False
 
 
-def info(msg: str, *args: object, **kwargs: object) -> None:
-    logger.info(msg, *args, **kwargs)
+def info(msg: str, *args: object) -> None:
+    logger.info(msg, *args)
 
 
-def error(msg: str, *args: object, **kwargs: object) -> None:
-    logger.error(msg, *args, **kwargs)
+def error(msg: str, *args: object) -> None:
+    logger.error(msg, *args)
 
 
-def warning(msg: str, *args: object, **kwargs: object) -> None:
-    logger.warning(msg, *args, **kwargs)
+def warning(msg: str, *args: object) -> None:
+    logger.warning(msg, *args)
 
 
-def debug(msg: str, *args: object, **kwargs: object) -> None:
-    logger.debug(msg, *args, **kwargs)
+def debug(msg: str, *args: object) -> None:
+    logger.debug(msg, *args)

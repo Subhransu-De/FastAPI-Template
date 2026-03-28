@@ -20,7 +20,7 @@ class TestSettings:
             "app.settings.config.Settings.model_config", {"env_file": None}
         )
 
-        settings = Settings(_env_file=None)
+        settings = Settings(_env_file=None)  # ty: ignore[unknown-argument]
 
         assert settings.database_url == "dummy://"
 
@@ -29,7 +29,7 @@ class TestSettings:
             "DATABASE_URL", "postgresql+psycopg://user:pass@localhost/db"
         )
 
-        settings = Settings(_env_file=None)
+        settings = Settings(_env_file=None)  # ty: ignore[unknown-argument]
 
         assert settings.app_name == "FastAPI Template"
         assert settings.port == 80
