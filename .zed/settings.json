@@ -2,9 +2,10 @@
   "file_scan_exclusions": [
     "**/.git",
     "**/.venv",
+    "**/.coverage",
     "**/__pycache__",
     "**/.pytest_cache",
-    "**/.ruff_cache",
+    "**/.ruff_cache"
   ],
   "languages": {
     "Python": {
@@ -12,8 +13,8 @@
       "format_on_save": "on",
       "code_actions_on_format": {
         "source.organizeImports.ruff": true,
-        "source.fixAll.ruff": true,
-      },
-    },
-  },
+        "source.fixAll.ruff": true
+      }
+    }
+  }
 }
