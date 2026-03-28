@@ -1,4 +1,4 @@
-from .base import Base
-from .entity import Entity
+from app.model.base import Base
+from app.model.entity import Entity
 
 __all__ = ["Base", "Entity"]

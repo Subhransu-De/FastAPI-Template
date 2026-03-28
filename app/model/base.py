@@ -1,13 +1,13 @@
-from sqlalchemy import MetaData
-from uuid import UUID as PyUUID
+from uuid import UUID as PYUUID
 from uuid import uuid4
 
+from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import UUID
 
 
 class Base(DeclarativeBase):
-    id: Mapped[PyUUID] = mapped_column(UUID(), primary_key=True, default=uuid4)
+    id: Mapped[PYUUID] = mapped_column(UUID(), primary_key=True, default=uuid4)
 
     metadata = MetaData(
         naming_convention={

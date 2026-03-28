@@ -5,5 +5,5 @@ from app.repository.base import BaseRepository
 
 
 class EntityRepository(BaseRepository[Entity]):
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         super().__init__(Entity, session)

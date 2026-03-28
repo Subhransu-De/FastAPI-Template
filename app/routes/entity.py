@@ -1,54 +1,57 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from app.exceptions import NoEntityFoundException
+from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
 from app.service import EntityService, get_entity_service
 
 route = APIRouter(prefix="/entities", tags=["entities"])
 
 
-@route.post("/", response_model=EntityResponse, status_code=201)
+@route.post("/", status_code=201)
 async def create_entity(
-    data: EntityCreate, service: EntityService = Depends(get_entity_service)
+    data: EntityCreate, service: Annotated[EntityService, Depends(get_entity_service)]
 ) -> EntityResponse:
     entity = await service.create(data)
     return EntityResponse.model_validate(entity)
 
 
-@route.get("/{id}", response_model=EntityResponse)
+@route.get("/{entity_id}")
 async def get_entity(
-    id: UUID, service: EntityService = Depends(get_entity_service)
+    entity_id: UUID, service: Annotated[EntityService, Depends(get_entity_service)]
 ) -> EntityResponse:
-    entity = await service.get_by_id(id)
+    entity = await service.get_by_id(entity_id)
     if entity is None:
-        raise NoEntityFoundException(id)
+        raise NoEntityFoundError(entity_id)
     return EntityResponse.model_validate(entity)
 
 
-@route.get("/", response_model=list[EntityResponse])
+@route.get("/")
 async def list_entities(
-    offset: int = Query(0, ge=0),
-    limit: int = Query(25, ge=1, le=100),
-    service: EntityService = Depends(get_entity_service),
+    service: Annotated[EntityService, Depends(get_entity_service)],
+    offset: Annotated[int, Query(ge=0)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
 ) -> list[EntityResponse]:
     entities = await service.get_all(offset=offset, limit=limit)
     return [EntityResponse.model_validate(e) for e in entities]
 
 
-@route.put("/{id}", response_model=EntityResponse)
+@route.put("/{entity_id}")
 async def update_entity(
-    id: UUID, data: EntityUpdate, service: EntityService = Depends(get_entity_service)
+    entity_id: UUID,
+    data: EntityUpdate,
+    service: Annotated[EntityService, Depends(get_entity_service)],
 ) -> EntityResponse:
-    entity = await service.update(id, data)
+    entity = await service.update(entity_id, data)
     if entity is None:
-        raise NoEntityFoundException(id)
+        raise NoEntityFoundError(entity_id)
     return EntityResponse.model_validate(entity)
 
 
-@route.delete("/{id}", status_code=204)
+@route.delete("/{entity_id}", status_code=204)
 async def delete_entity(
-    id: UUID, service: EntityService = Depends(get_entity_service)
+    entity_id: UUID, service: Annotated[EntityService, Depends(get_entity_service)]
 ) -> None:
-    await service.delete(id)
+    await service.delete(entity_id)

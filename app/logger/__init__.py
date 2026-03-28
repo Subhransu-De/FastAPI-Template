@@ -1,3 +1,3 @@
-from .logger import debug, error, info, setup_logging
+from app.logger.logger import debug, error, info, setup_logging
 
-__all__ = ["info", "error", "debug", "setup_logging"]
+__all__ = ["debug", "error", "info", "setup_logging"]

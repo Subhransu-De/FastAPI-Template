@@ -1,0 +1,12 @@
+[environment]
+python-version = "3.13"
+
+[rules]
+division-by-zero = "warn"
+deprecated = "error"
+undefined-reveal = "error"
+unused-awaitable = "error"
+redundant-cast = "error"
+redundant-final-classvar = "error"
+possibly-missing-implicit-call = "error"
+possibly-missing-submodule = "error"

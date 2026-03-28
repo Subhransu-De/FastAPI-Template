@@ -5,10 +5,10 @@ from fastapi.responses import JSONResponse
 from app.logger import logger
 
 
-class BaseException(Exception):
+class BaseError(Exception):
     def __init__(
         self, message: str, status_code: int = 500, title: str = "Internal Server Error"
-    ):
+    ) -> None:
         self.message = message
         self.status_code = status_code
         self.title = title
@@ -24,7 +24,7 @@ class BaseException(Exception):
         }
 
 
-async def base_exception_handler(request: Request, exc: Exception):
+async def base_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     match exc:
         case RequestValidationError():
             return JSONResponse(
@@ -37,13 +37,13 @@ async def base_exception_handler(request: Request, exc: Exception):
                     "instance": str(request.url),
                 },
             )
-        case BaseException():
+        case BaseError():
             return JSONResponse(
                 status_code=exc.status_code,
                 content=exc.get_error(request),
             )
         case _:
-            logger.error(str(exec))
+            logger.error(str(exc))
             return JSONResponse(
                 status_code=500,
                 content={
