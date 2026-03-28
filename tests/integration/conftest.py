@@ -1,6 +1,6 @@
 import importlib
 import os
-from typing import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator
 
 import pytest
 from alembic.config import Config
@@ -15,13 +15,13 @@ from alembic import command
 
 
 @pytest.fixture(scope="session", autouse=True)
-def reaper_cleanup() -> Generator[None, None, None]:
+def reaper_cleanup() -> Generator[None]:
     yield
     Reaper.delete_instance()
 
 
 @pytest.fixture(scope="session")
-def database_url(reaper_cleanup: None) -> Generator[str, None, None]:
+def database_url(reaper_cleanup: None) -> Generator[str]:
     previous = os.environ.get("DATABASE_URL")
     container = PostgresContainer("postgres:16")
     container.start()
@@ -48,13 +48,13 @@ def migrated_db(database_url: str) -> None:
 @pytest.fixture(scope="session")
 def app_instance(
     database_url: str, migrated_db: None
-) -> Generator[FastAPI, None, None]:
+) -> Generator[FastAPI]:
     module = importlib.import_module("app.main")
     app = module.app
     from app.database import get_session
     from app.database.session import AsyncSessionLocal
 
-    async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+    async def override_get_session() -> AsyncGenerator[AsyncSession]:
         async with AsyncSessionLocal() as session:
             try:
                 yield session
@@ -77,13 +77,13 @@ def engine(database_url: str) -> AsyncEngine:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def dispose_engine(engine: AsyncEngine) -> Generator[None, None, None]:
+def dispose_engine(engine: AsyncEngine) -> Generator[None]:
     yield
     engine.sync_engine.dispose()
 
 
 @pytest.fixture(autouse=True)
-async def cleanup_db(engine: AsyncEngine) -> AsyncGenerator[None, None]:
+async def cleanup_db(engine: AsyncEngine) -> AsyncGenerator[None]:
     yield
     async with engine.begin() as conn:
 
@@ -101,7 +101,7 @@ async def cleanup_db(engine: AsyncEngine) -> AsyncGenerator[None, None]:
 
 
 @pytest.fixture
-async def client(app_instance: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(app_instance: FastAPI) -> AsyncGenerator[AsyncClient]:
     transport = ASGITransport(app=app_instance)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client

@@ -1,4 +1,5 @@
-from typing import Sequence
+from collections.abc import Sequence
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import Depends
@@ -21,14 +22,14 @@ class EntityService:
         await self.session.commit()
         return entity
 
-    async def get_by_id(self, id: UUID) -> Entity | None:
-        return await self.repo.find_by_id(id)
+    async def get_by_id(self, entity_id: UUID) -> Entity | None:
+        return await self.repo.find_by_id(entity_id)
 
     async def get_all(self, offset: int = 0, limit: int = 25) -> Sequence[Entity]:
         return await self.repo.find_all_paginated(offset=offset, limit=limit)
 
-    async def update(self, id: UUID, data: EntityUpdate) -> Entity | None:
-        entity = await self.repo.find_by_id(id)
+    async def update(self, entity_id: UUID, data: EntityUpdate) -> Entity | None:
+        entity = await self.repo.find_by_id(entity_id)
         if entity is None:
             return None
 
@@ -41,12 +42,12 @@ class EntityService:
         await self.session.commit()
         return entity
 
-    async def delete(self, id: UUID) -> None:
-        await self.repo.delete_by_id(id)
+    async def delete(self, entity_id: UUID) -> None:
+        await self.repo.delete_by_id(entity_id)
         await self.session.commit()
 
 
 async def get_entity_service(
-    session: AsyncSession = Depends(get_session),
+    session: Annotated[AsyncSession, Depends(get_session)],
 ) -> EntityService:
     return EntityService(session)

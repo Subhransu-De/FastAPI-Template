@@ -6,7 +6,6 @@ from app.io.entity import EntityCreate, EntityUpdate
 from app.model.entity import Entity
 from app.service.entity import EntityService
 
-
 pytestmark = pytest.mark.unit
 
 

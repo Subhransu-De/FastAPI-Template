@@ -2,7 +2,6 @@ import pytest
 
 from app.settings.config import Settings
 
-
 pytestmark = pytest.mark.unit
 
 

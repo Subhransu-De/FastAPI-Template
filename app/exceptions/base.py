@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from app.logger import logger
 
 
-class BaseException(Exception):
+class BaseError(Exception):
     def __init__(
         self, message: str, status_code: int = 500, title: str = "Internal Server Error"
     ):
@@ -37,7 +37,7 @@ async def base_exception_handler(request: Request, exc: Exception):
                     "instance": str(request.url),
                 },
             )
-        case BaseException():
+        case BaseError():
             return JSONResponse(
                 status_code=exc.status_code,
                 content=exc.get_error(request),

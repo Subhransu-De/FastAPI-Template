@@ -43,7 +43,6 @@ name = "ruff"
 type = "exec"
 executable = "ruff"
 options = "check --fix REVISION_SCRIPT_FILENAME"
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

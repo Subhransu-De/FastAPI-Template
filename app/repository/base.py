@@ -1,4 +1,5 @@
-from typing import Any, Generic, Optional, Sequence, Type, TypeVar, cast
+from collections.abc import Sequence
+from typing import Any, TypeVar, cast
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, CursorResult, Result, delete, func, select
@@ -9,13 +10,13 @@ from app.model.base import Base
 ModelType = TypeVar("ModelType", bound=Base)
 
 
-class BaseRepository(Generic[ModelType]):
-    def __init__(self, model: Type[ModelType], session: AsyncSession):
+class BaseRepository[ModelType: Base]:
+    def __init__(self, model: type[ModelType], session: AsyncSession):
         self.model = model
         self.session = session
 
-    async def find_by_id(self, id: UUID) -> Optional[ModelType]:
-        return await self.session.get(self.model, id)
+    async def find_by_id(self, entity_id: UUID) -> ModelType | None:
+        return await self.session.get(self.model, entity_id)
 
     async def find_all(self) -> Sequence[ModelType]:
         result: Result[tuple[ModelType]] = await self.session.execute(
@@ -69,18 +70,18 @@ class BaseRepository(Generic[ModelType]):
         await self.session.refresh(updated)
         return updated
 
-    async def exists_by_id(self, id: UUID) -> bool:
+    async def exists_by_id(self, entity_id: UUID) -> bool:
         result: Result[tuple[int]] = await self.session.execute(
-            select(func.count()).select_from(self.model).where(self.model.id == id)
+            select(func.count()).select_from(self.model).where(self.model.id == entity_id)
         )
         return result.scalar_one() > 0
 
-    async def delete_by_id(self, id: UUID) -> bool:
+    async def delete_by_id(self, entity_id: UUID) -> bool:
         result: Result = await self.session.execute(
-            delete(self.model).where(self.model.id == id)
+            delete(self.model).where(self.model.id == entity_id)
         )
         await self.session.flush()
-        return cast(CursorResult, result).rowcount > 0
+        return cast("CursorResult", result).rowcount > 0
 
     async def delete_all_by_id(self, ids: list[UUID]) -> int:
         if not ids:
@@ -89,4 +90,4 @@ class BaseRepository(Generic[ModelType]):
             delete(self.model).where(self.model.id.in_(ids))
         )
         await self.session.flush()
-        return cast(CursorResult, result).rowcount
+        return cast("CursorResult", result).rowcount

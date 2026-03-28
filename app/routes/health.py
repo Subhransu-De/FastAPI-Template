@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,5 +9,5 @@ route = APIRouter()
 
 
 @route.get("/health/db")
-async def health_db(session: AsyncSession = Depends(get_session)):
+async def health_db(_session: Annotated[AsyncSession, Depends(get_session)]):
     return {"status": "healthy"}

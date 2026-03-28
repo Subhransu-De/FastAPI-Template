@@ -1,0 +1,61 @@
+target-version = "py313"
+line-length = 88
+
+[lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "N",
+    "UP",
+    "B",
+    "A",
+    "SIM",
+    "TCH",
+    "RUF",
+    "FAST",
+    "ASYNC",
+    "S",
+    "PT",
+    "C4",
+    "PERF",
+    "T20",
+    "ERA",
+    "DTZ",
+    "T10",
+    "BLE",
+    "FBT",
+    "PIE",
+    "RET",
+    "FLY",
+    "FURB",
+    "TRY",
+    "PL",
+    "C90",
+    "PGH",
+    "RSE",
+    "ISC",
+    "LOG",
+    "ARG",
+    "FA",
+    "TID",
+]
+ignore = [
+    "E501",
+    "TRY003",
+    "PLW0603",
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["S101", "ARG001", "PLC0415", "PLR2004"]
+"alembic/**" = ["ERA001"]
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.flake8-tidy-imports.banned-api]
+"__future__.annotations".msg = "Python 3.13+ does not need `from __future__ import annotations`."
+
+[lint.isort]
+known-first-party = ["app"]

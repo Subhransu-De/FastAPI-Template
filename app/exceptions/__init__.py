@@ -1,8 +1,8 @@
-from .base import BaseException, base_exception_handler
-from .exceptions import NoEntityFoundException
+from app.exceptions.base import BaseError, base_exception_handler
+from app.exceptions.exceptions import NoEntityFoundError
 
 __all__: list[str] = [
-    "BaseException",
+    "BaseError",
+    "NoEntityFoundError",
     "base_exception_handler",
-    "NoEntityFoundException",
 ]
