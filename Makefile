@@ -1,4 +1,4 @@
-.PHONY: help lint run format install install-prod upgrade docker-up docker-down test test-unit test-integration test-cov
+.PHONY: help lint run format install install-prod upgrade docker-up docker-down test test-unit test-cov
 
 help:
 	@echo "Available targets:"
@@ -50,9 +50,6 @@ test:
 
 test-unit:
 	uv run pytest tests/unit -m unit
-
-test-integration:
-	uv run pytest tests/integration -m integration
 
 test-cov:
 	uv run pytest --cov=app --cov-report=term-missing
