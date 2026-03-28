@@ -8,7 +8,7 @@ from app.logger import logger
 class BaseError(Exception):
     def __init__(
         self, message: str, status_code: int = 500, title: str = "Internal Server Error"
-    ):
+    ) -> None:
         self.message = message
         self.status_code = status_code
         self.title = title
@@ -24,7 +24,7 @@ class BaseError(Exception):
         }
 
 
-async def base_exception_handler(request: Request, exc: Exception):
+async def base_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     match exc:
         case RequestValidationError():
             return JSONResponse(

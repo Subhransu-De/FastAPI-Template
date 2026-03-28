@@ -12,7 +12,7 @@ from app.repository.entity import EntityRepository
 
 
 class EntityService:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
         self.repo = EntityRepository(session)
 

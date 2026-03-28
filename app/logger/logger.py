@@ -7,7 +7,7 @@ from app.settings import settings
 
 
 class JsonFormatter(Formatter):
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
         log_object: dict = {
             "timestamp": self.formatTime(record, self.datefmt),
             "name": record.name,
@@ -32,7 +32,7 @@ if not logger.handlers:
     logger.addHandler(console_handler)
 
 
-def setup_logging():
+def setup_logging() -> None:
     loggers = ["uvicorn", "uvicorn.access", "uvicorn.error"]
     for logger_name in loggers:
         log: Logger = logging.getLogger(logger_name)
@@ -47,17 +47,17 @@ def setup_logging():
         log.propagate = False
 
 
-def info(msg: str, *args, **kwargs) -> None:
+def info(msg: str, *args: object, **kwargs: object) -> None:
     logger.info(msg, *args, **kwargs)
 
 
-def error(msg: str, *args, **kwargs) -> None:
+def error(msg: str, *args: object, **kwargs: object) -> None:
     logger.error(msg, *args, **kwargs)
 
 
-def warning(msg: str, *args, **kwargs) -> None:
+def warning(msg: str, *args: object, **kwargs: object) -> None:
     logger.warning(msg, *args, **kwargs)
 
 
-def debug(msg: str, *args, **kwargs) -> None:
+def debug(msg: str, *args: object, **kwargs: object) -> None:
     logger.debug(msg, *args, **kwargs)

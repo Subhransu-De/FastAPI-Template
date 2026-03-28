@@ -4,7 +4,7 @@ from app.exceptions.base import BaseError
 
 
 class NoEntityFoundError(BaseError):
-    def __init__(self, entity_id: UUID):
+    def __init__(self, entity_id: UUID) -> None:
         super().__init__(
             message=f"Entity '{entity_id}' not found",
             status_code=404,

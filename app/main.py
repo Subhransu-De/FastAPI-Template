@@ -1,3 +1,4 @@
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -13,7 +14,7 @@ from app.settings import settings
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI):
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     logger.setup_logging()
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("script_location", "alembic")
@@ -32,7 +33,7 @@ app.include_router(health_route)
 app.include_router(entity_route)
 
 
-def main():
+def main() -> None:
     uvicorn.run("app.main:app", host="0.0.0.0", port=settings.port, reload=True)  # noqa: S104
 
 

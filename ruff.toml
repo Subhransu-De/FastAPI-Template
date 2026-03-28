@@ -40,22 +40,38 @@ select = [
     "ARG",
     "FA",
     "TID",
+    "PTH",
+    "EM",
+    "INP",
+    "ICN",
+    "Q",
+    "COM",
+    "ANN",
+    "SLF",
+    "G",
 ]
 ignore = [
     "E501",
     "TRY003",
     "PLW0603",
+    "COM812",
+    "ANN401",
 ]
 
 [lint.per-file-ignores]
-"tests/**" = ["S101", "ARG001", "PLC0415", "PLR2004"]
-"alembic/**" = ["ERA001"]
+"tests/**" = ["S101", "ARG001", "PLC0415", "PLR2004", "SLF001", "ANN"]
+"alembic/**" = ["ERA001", "ANN", "INP"]
 
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
 [lint.flake8-tidy-imports.banned-api]
 "__future__.annotations".msg = "Python 3.13+ does not need `from __future__ import annotations`."
+
+[lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"
 
 [lint.isort]
 known-first-party = ["app"]

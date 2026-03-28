@@ -9,7 +9,7 @@ class _SessionMakerProxy:
     def __init__(self) -> None:
         self._sessionmaker = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: object, **kwargs: object) -> AsyncSession:
         if self._sessionmaker is None:
             self._sessionmaker = async_sessionmaker(
                 bind=get_engine(),

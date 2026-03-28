@@ -11,7 +11,7 @@ ModelType = TypeVar("ModelType", bound=Base)
 
 
 class BaseRepository[ModelType: Base]:
-    def __init__(self, model: type[ModelType], session: AsyncSession):
+    def __init__(self, model: type[ModelType], session: AsyncSession) -> None:
         self.model = model
         self.session = session
 
