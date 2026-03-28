@@ -46,6 +46,19 @@ class TestBaseRepository:
         assert len(page2) == 2
         assert len(page3) == 1
 
+    async def test_find_all_paginated_with_order_by(self, repository, async_session):
+        await repository.save(Entity(name="Zulu", description=None))
+        await repository.save(Entity(name="Alpha", description=None))
+        await async_session.commit()
+
+        result = await repository.find_all_paginated(
+            offset=0,
+            limit=10,
+            order_by=Entity.name.asc(),
+        )
+
+        assert [entity.name for entity in result[:2]] == ["Alpha", "Zulu"]
+
     async def test_delete_by_id(self, repository, async_session):
         entity = Entity(name="To Delete", description=None)
         saved = await repository.save(entity)

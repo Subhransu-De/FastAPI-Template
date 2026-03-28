@@ -61,6 +61,33 @@ async def test_update_entity(client):
     assert_entity_response(response.json(), "Entity Updated", "Desc Updated")
 
 
+async def test_update_entity_description_only_preserves_name(client):
+    created = await create_entity(client, name="Entity A", description="Desc A")
+
+    response = await client.put(
+        f"/entities/{created['id']}",
+        json={"description": "Desc Updated"},
+    )
+
+    assert response.status_code == 200
+    assert_entity_response(response.json(), "Entity A", "Desc Updated")
+
+
+async def test_update_entity_not_found(client):
+    missing_id = uuid4()
+
+    response = await client.put(
+        f"/entities/{missing_id}",
+        json={"name": "Entity Updated"},
+    )
+
+    assert response.status_code == 404
+    body = response.json()
+    assert body["title"] == "Not Found"
+    assert body["status"] == 404
+    assert body["detail"] == f"Entity '{missing_id}' not found"
+
+
 async def test_delete_entity(client):
     created = await create_entity(client)
 
@@ -75,6 +102,12 @@ async def test_delete_entity(client):
     assert body["title"] == "Not Found"
     assert body["status"] == 404
     assert body["detail"] == f"Entity '{created['id']}' not found"
+
+
+async def test_delete_missing_entity_returns_no_content(client):
+    response = await client.delete(f"/entities/{uuid4()}")
+
+    assert response.status_code == 204
 
 
 async def test_create_entity_validation_error(client):
@@ -97,3 +130,21 @@ async def test_get_entity_not_found(client):
     assert body["title"] == "Not Found"
     assert body["status"] == 404
     assert body["detail"] == f"Entity '{missing_id}' not found"
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "offset=-1&limit=25",
+        "offset=0&limit=0",
+        "offset=0&limit=101",
+    ],
+)
+async def test_list_entities_validation_error(client, query):
+    response = await client.get(f"/entities/?{query}")
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["title"] == "Bad Request"
+    assert body["status"] == 400
+    assert isinstance(body["detail"], list)

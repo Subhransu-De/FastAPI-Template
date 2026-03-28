@@ -4,7 +4,7 @@ import pytest
 
 from app.io.entity import EntityCreate, EntityUpdate
 from app.model.entity import Entity
-from app.service.entity import EntityService
+from app.service.entity import EntityService, get_entity_service
 
 pytestmark = pytest.mark.unit
 
@@ -76,6 +76,30 @@ class TestEntityService:
         mock_session.commit.assert_called_once()
         assert result.name == "New"
 
+    async def test_update_entity_description_only(
+        self, service, mock_session, mock_entity_repository
+    ):
+        entity_id = uuid4()
+        entity = Entity(id=entity_id, name="Old", description="Old description")
+        updated_entity = Entity(
+            id=entity_id,
+            name="Old",
+            description="New description",
+        )
+        mock_entity_repository.find_by_id.return_value = entity
+        mock_entity_repository.update.return_value = updated_entity
+
+        result = await service.update(
+            entity_id,
+            EntityUpdate(description="New description"),
+        )
+
+        mock_entity_repository.update.assert_called_once_with(entity)
+        mock_session.commit.assert_called_once()
+        assert entity.name == "Old"
+        assert entity.description == "New description"
+        assert result.description == "New description"
+
     async def test_delete_calls_commit(
         self, service, mock_session, mock_entity_repository
     ):
@@ -98,3 +122,19 @@ class TestEntityService:
             offset=0, limit=10
         )
         assert len(result) == 3
+
+    async def test_get_entity_service_returns_bound_session(
+        self, mock_session, monkeypatch
+    ):
+        repository = object()
+
+        monkeypatch.setattr(
+            "app.service.entity.EntityRepository",
+            lambda session: repository,
+        )
+
+        service = await get_entity_service(mock_session)
+
+        assert isinstance(service, EntityService)
+        assert service.session is mock_session
+        assert service.repo is repository

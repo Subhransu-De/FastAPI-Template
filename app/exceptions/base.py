@@ -43,7 +43,7 @@ async def base_exception_handler(request: Request, exc: Exception) -> JSONRespon
                 content=exc.get_error(request),
             )
         case _:
-            logger.error(str(exec))
+            logger.error(str(exc))
             return JSONResponse(
                 status_code=500,
                 content={
