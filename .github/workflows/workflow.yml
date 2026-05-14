@@ -9,6 +9,7 @@ on:
       - "**.ini"
       - "**.toml"
       - "**.lock"
+      - ".github/workflows/**.yml"
   pull_request:
     branches:
       - main
@@ -17,6 +18,7 @@ on:
       - "**.ini"
       - "**.toml"
       - "**.lock"
+      - ".github/workflows/**.yml"
 
 env:
   REGISTRY: ghcr.io
@@ -61,6 +63,12 @@ jobs:
 
       - name: Install dependencies
         run: uv sync --group test
+
+      - name: Run unit tests
+        run: uv run --group test pytest -m unit
+
+      - name: Run integration tests
+        run: uv run --group test pytest -m integration
 
       - name: Run tests with coverage
         run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=80
