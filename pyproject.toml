@@ -25,6 +25,7 @@ test = [
     "httpx>=0.28.0",
     "aiosqlite>=0.21.0",
     "pytest-cov>=6.0.0",
+    "testcontainers[postgres]>=4.8.0",
 ]
 
 [tool.alembic]
@@ -48,5 +49,6 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 markers = [
     "unit: fast, no external deps",
+    "integration: tests that use disposable Postgres via Testcontainers",
 ]
 addopts = "-v --strict-markers"
