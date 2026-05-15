@@ -21,6 +21,7 @@ from app.model import Base
 if sys.platform == "win32":
     import asyncio
 
+    # Use the selector loop on Windows for async DB and HTTP client test stability.
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 DOCKER_COMPOSE_DATABASE_URL = (
@@ -77,9 +78,7 @@ def postgres_container() -> Iterator[PostgresContainer]:
 
 @pytest.fixture(scope="session")
 def test_postgres_url(postgres_container: PostgresContainer) -> str:
-    database_url = normalize_testcontainers_url(
-        postgres_container.get_connection_url()
-    )
+    database_url = normalize_testcontainers_url(postgres_container.get_connection_url())
     assert_not_docker_compose_db(database_url)
 
     cfg = Config("alembic.ini")
