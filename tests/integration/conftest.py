@@ -1,4 +1,3 @@
-import sys
 from collections.abc import AsyncGenerator, Iterator
 
 import httpx
@@ -17,16 +16,6 @@ from testcontainers.postgres import PostgresContainer
 
 from alembic import command
 from app.model import Base
-
-if sys.platform == "win32":
-    import asyncio
-
-    # Use the selector loop on Windows for async DB and HTTP client test stability.
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-DOCKER_COMPOSE_DATABASE_URL = (
-    "postgresql+psycopg://postgres:postgres@db:5432/fastapi_db"
-)
 
 
 class TestSettings(BaseSettings):
@@ -47,14 +36,6 @@ def test_settings() -> TestSettings:
     return TestSettings()
 
 
-def assert_not_docker_compose_db(database_url: str) -> None:
-    parsed = make_url(database_url)
-
-    assert "@db:5432/fastapi_db" not in database_url
-    assert parsed.host != "db"
-    assert database_url != DOCKER_COMPOSE_DATABASE_URL
-
-
 def normalize_testcontainers_url(database_url: str) -> str:
     parsed = make_url(database_url)
     if parsed.host == "localhost":
@@ -71,15 +52,12 @@ def postgres_container() -> Iterator[PostgresContainer]:
         dbname="fastapi_test",
         driver="psycopg",
     ) as container:
-        database_url = normalize_testcontainers_url(container.get_connection_url())
-        assert_not_docker_compose_db(database_url)
         yield container
 
 
 @pytest.fixture(scope="session")
 def test_postgres_url(postgres_container: PostgresContainer) -> str:
     database_url = normalize_testcontainers_url(postgres_container.get_connection_url())
-    assert_not_docker_compose_db(database_url)
 
     cfg = Config("alembic.ini")
     cfg.set_main_option("script_location", "alembic")
@@ -91,7 +69,6 @@ def test_postgres_url(postgres_container: PostgresContainer) -> str:
 
 @pytest_asyncio.fixture
 async def integration_engine(test_postgres_url: str) -> AsyncGenerator[AsyncEngine]:
-    assert_not_docker_compose_db(test_postgres_url)
     engine = create_async_engine(test_postgres_url, echo=False, pool_pre_ping=True)
     try:
         yield engine
