@@ -5,7 +5,6 @@ import pytest
 import pytest_asyncio
 from alembic.config import Config
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -36,13 +35,6 @@ def test_settings() -> TestSettings:
     return TestSettings()
 
 
-def normalize_testcontainers_url(database_url: str) -> str:
-    parsed = make_url(database_url)
-    if parsed.host == "localhost":
-        parsed = parsed.set(host="127.0.0.1")
-    return parsed.render_as_string(hide_password=False)
-
-
 @pytest.fixture(scope="session")
 def postgres_container() -> Iterator[PostgresContainer]:
     with PostgresContainer(
@@ -57,7 +49,7 @@ def postgres_container() -> Iterator[PostgresContainer]:
 
 @pytest.fixture(scope="session")
 def test_postgres_url(postgres_container: PostgresContainer) -> str:
-    database_url = normalize_testcontainers_url(postgres_container.get_connection_url())
+    database_url = postgres_container.get_connection_url(host="127.0.0.1")
 
     cfg = Config("alembic.ini")
     cfg.set_main_option("script_location", "alembic")
