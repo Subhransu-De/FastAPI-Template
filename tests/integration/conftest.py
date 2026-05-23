@@ -1,8 +1,11 @@
+import asyncio
+import selectors
+import sys
 from collections.abc import AsyncGenerator, Iterator
+from typing import Any
 
 import httpx
 import pytest
-import pytest_asyncio
 from alembic.config import Config
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.ext.asyncio import (
@@ -35,6 +38,17 @@ def test_settings() -> TestSettings:
     return TestSettings()
 
 
+def selector_event_loop() -> asyncio.AbstractEventLoop:
+    return asyncio.SelectorEventLoop(selectors.SelectSelector())
+
+
+@pytest.fixture
+def anyio_backend() -> str | tuple[str, dict[str, Any]]:
+    if sys.platform == "win32":
+        return "asyncio", {"loop_factory": selector_event_loop}
+    return "asyncio"
+
+
 @pytest.fixture(scope="session")
 def postgres_container() -> Iterator[PostgresContainer]:
     with PostgresContainer(
@@ -59,7 +73,7 @@ def test_postgres_url(postgres_container: PostgresContainer) -> str:
     return database_url
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def integration_engine(test_postgres_url: str) -> AsyncGenerator[AsyncEngine]:
     engine = create_async_engine(test_postgres_url, echo=False, pool_pre_ping=True)
     try:
@@ -68,7 +82,7 @@ async def integration_engine(test_postgres_url: str) -> AsyncGenerator[AsyncEngi
         await engine.dispose()
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def integration_sessionmaker(
     integration_engine: AsyncEngine,
 ) -> async_sessionmaker[AsyncSession]:
@@ -80,7 +94,7 @@ async def integration_sessionmaker(
     )
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def clean_integration_database(
     integration_engine: AsyncEngine,
 ) -> AsyncGenerator[None]:
@@ -91,7 +105,7 @@ async def clean_integration_database(
             await conn.execute(table.delete())
 
 
-@pytest_asyncio.fixture
+@pytest.fixture
 async def app_client(
     integration_sessionmaker: async_sessionmaker[AsyncSession],
     clean_integration_database: None,

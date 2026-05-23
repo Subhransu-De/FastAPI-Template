@@ -21,7 +21,7 @@ lint = [
 ]
 test = [
     "pytest>=9.0.3",
-    "pytest-asyncio>=1.3.0",
+    "anyio>=4.13.0",
     "httpx>=0.28.1",
     "aiosqlite>=0.22.1",
     "pytest-cov>=7.1.0",
@@ -45,8 +45,7 @@ executable = "ruff"
 options = "check --fix REVISION_SCRIPT_FILENAME"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope = "function"
+anyio_mode = "auto"
 markers = [
     "unit: fast, no external deps",
     "integration: tests that use disposable Postgres via Testcontainers",
