@@ -1,0 +1,43 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":docker",
+    ":enableVulnerabilityAlerts",
+    ":prImmediately"
+  ],
+  "enabledManagers": [
+    "pep621",
+    "dockerfile",
+    "docker-compose",
+    "github-actions",
+    "renovate-config-presets"
+  ],
+  "reviewers": ["Subhransu-De"],
+  "assignees": ["Subhransu-De"],
+  "labels": ["dependencies"],
+  "automerge": false,
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
+  "separateMajorMinor": true,
+  "separateMinorPatch": true,
+  "separateMultipleMajor": true,
+  "configMigration": true,
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": false,
+    "reviewers": ["Subhransu-De"],
+    "assignees": ["Subhransu-De"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": false,
+    "reviewers": ["Subhransu-De"],
+    "assignees": ["Subhransu-De"],
+    "labels": ["dependencies"],
+    "vulnerabilityFixStrategy": "highest"
+  }
+}

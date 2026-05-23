@@ -9,6 +9,10 @@ on:
       - "**.ini"
       - "**.toml"
       - "**.lock"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "renovate.json"
+      - ".github/dependabot.yml"
       - ".github/workflows/**.yml"
   pull_request:
     branches:
@@ -18,6 +22,10 @@ on:
       - "**.ini"
       - "**.toml"
       - "**.lock"
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "renovate.json"
+      - ".github/dependabot.yml"
       - ".github/workflows/**.yml"
 
 env:

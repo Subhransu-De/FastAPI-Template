@@ -1,0 +1,41 @@
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 0
+    reviewers:
+      - "Subhransu-De"
+    assignees:
+      - "Subhransu-De"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 0
+    reviewers:
+      - "Subhransu-De"
+    assignees:
+      - "Subhransu-De"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 0
+    reviewers:
+      - "Subhransu-De"
+    assignees:
+      - "Subhransu-De"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 0
+    reviewers:
+      - "Subhransu-De"
+    assignees:
+      - "Subhransu-De"
