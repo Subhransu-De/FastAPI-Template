@@ -61,34 +61,24 @@ def test_json_formatter_formats_record_with_exception():
     assert "ValueError: boom" in payload["exception"]
 
 
-def test_setup_logging_reconfigures_uvicorn_loggers():
+def test_setup_logging_reconfigures_uvicorn_loggers(monkeypatch: pytest.MonkeyPatch):
     logger_names = ["uvicorn", "uvicorn.access", "uvicorn.error"]
-    originals = {}
 
     for logger_name in logger_names:
         log = logging.getLogger(logger_name)
-        originals[logger_name] = (list(log.handlers), log.level, log.propagate)
-        log.handlers = [logging.NullHandler(), logging.NullHandler()]
-        log.setLevel(logging.WARNING)
-        log.propagate = True
+        monkeypatch.setattr(log, "handlers", [logging.NullHandler(), logging.NullHandler()])
+        monkeypatch.setattr(log, "level", logging.WARNING)
+        monkeypatch.setattr(log, "propagate", True)
 
-    try:
-        logger_module.setup_logging()
+    logger_module.setup_logging()
 
-        for logger_name in logger_names:
-            log = logging.getLogger(logger_name)
-            assert len(log.handlers) == 1
-            assert isinstance(log.handlers[0], logging.StreamHandler)
-            assert log.handlers[0].formatter is logger_module.formatter
-            assert log.level == logging.INFO
-            assert log.propagate is False
-    finally:
-        for logger_name in logger_names:
-            handlers, level, propagate = originals[logger_name]
-            log = logging.getLogger(logger_name)
-            log.handlers = handlers
-            log.setLevel(level)
-            log.propagate = propagate
+    for logger_name in logger_names:
+        log = logging.getLogger(logger_name)
+        assert len(log.handlers) == 1
+        assert isinstance(log.handlers[0], logging.StreamHandler)
+        assert log.handlers[0].formatter is logger_module.formatter
+        assert log.level == logging.INFO
+        assert log.propagate is False
 
 
 @pytest.mark.parametrize(
