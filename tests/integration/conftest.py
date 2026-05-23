@@ -35,7 +35,7 @@ class TestSettings(BaseSettings):
     app_name: str = "FastAPI Template Test"
     port: int = 8000
 
-    database_url: str = "sqlite+aiosqlite:///:memory:"
+    database_url: str = "dummy://"
     database_pool_size: int = 5
     database_max_overflow: int = 10
     database_echo: bool = False

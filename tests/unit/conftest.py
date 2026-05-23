@@ -1,33 +1,7 @@
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from app.model.base import Base
-
-
-@pytest.fixture
-async def async_engine():
-    engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        echo=False,
-    )
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    await engine.dispose()
-
-
-@pytest.fixture
-async def async_session(async_engine):
-    session_factory = async_sessionmaker(
-        bind=async_engine,
-        expire_on_commit=False,
-        autocommit=False,
-        autoflush=False,
-    )
-    async with session_factory() as session:
-        yield session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.fixture
@@ -39,7 +13,8 @@ def mock_session() -> AsyncMock:
     session.refresh = AsyncMock()
     session.get = AsyncMock()
     session.execute = AsyncMock()
-    session.add = AsyncMock()
+    session.add = Mock()
+    session.add_all = Mock()
     session.merge = AsyncMock()
     return session
 

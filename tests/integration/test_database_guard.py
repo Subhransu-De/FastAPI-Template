@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.engine import make_url
 
-from tests.conftest import DOCKER_COMPOSE_DATABASE_URL
+from tests.integration.conftest import DOCKER_COMPOSE_DATABASE_URL
 
 pytestmark = pytest.mark.integration
 
