@@ -2,6 +2,7 @@ import asyncio
 import selectors
 import sys
 from collections.abc import AsyncGenerator, Iterator
+from os import environ
 from typing import Any
 
 import httpx
@@ -54,7 +55,7 @@ def postgres_container() -> Iterator[PostgresContainer]:
     with PostgresContainer(
         image="postgres:18-alpine",
         username="postgres",
-        password="postgres",  # noqa: S106
+        password=environ.get("INTEGRATION_TEST_CONTAINER_PASSWORD", "postgres"),
         dbname="fastapi_test",
         driver="psycopg",
     ) as container:
