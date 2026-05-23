@@ -63,23 +63,30 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: astral-sh/setup-uv@v5
 
+      - name: Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
       - name: Install dependencies
-        run: uv sync --group test
+        run: uv sync --python ${{ matrix.python-version }} --group test
 
       - name: Run unit tests
-        run: uv run --group test pytest -m unit
+        run: uv run --python ${{ matrix.python-version }} --group test pytest -m unit
 
       - name: Run integration tests
-        run: uv run --group test pytest -m integration
+        run: uv run --python ${{ matrix.python-version }} --group test pytest -m integration
 
       - name: Run tests with coverage
-        run: uv run pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+        run: uv run --python ${{ matrix.python-version }} pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 
   build:
     runs-on: ubuntu-latest
