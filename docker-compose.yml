@@ -6,15 +6,35 @@ services:
       POSTGRES_DB: fastapi_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - fastapi_template_postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_URL: http://localhost:8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./.docker/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
 
   app:
     container_name: template-app
@@ -25,10 +45,18 @@ services:
       - "80:80"
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/fastapi_db
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_PUBLIC_URL: http://localhost:8080
+      KEYCLOAK_REALM: fastapi-realm
+      KEYCLOAK_CLIENT_ID: fastapi-client
+      KEYCLOAK_CLIENT_SECRET: change-me
+      KEYCLOAK_JWKS_CACHE_TTL_MINUTES: 15
     depends_on:
       db:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  fastapi_template_postgres_data:

@@ -8,7 +8,7 @@ from fastapi.exceptions import RequestValidationError
 
 from alembic import command
 from app import logger
-from app.exceptions import BaseError, base_exception_handler
+from app.exceptions import AuthenticationError, BaseError, base_exception_handler
 from app.routes import entity_route, health_route
 from app.settings import settings
 
@@ -24,8 +24,18 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     logger.info("Application shutdown")
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app = FastAPI(
+    title=settings.app_name,
+    lifespan=lifespan,
+    swagger_ui_init_oauth={
+        "clientId": settings.keycloak_client_id,
+        "clientSecret": settings.keycloak_client_secret,
+        "scopes": "openid",
+        "usePkceWithAuthorizationCodeGrant": True,
+    },
+)
 
+app.add_exception_handler(AuthenticationError, base_exception_handler)
 app.add_exception_handler(BaseError, base_exception_handler)
 app.add_exception_handler(RequestValidationError, base_exception_handler)
 

@@ -1,0 +1,101 @@
+{
+  "realm": "fastapi-realm",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "browserFlow": "email-first-browser",
+  "authenticationFlows": [
+    {
+      "alias": "email-first-browser",
+      "description": "Email-first login with conditional password step",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "flowAlias": "email-first-forms",
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "email-first-forms",
+      "description": "Username form then conditional password",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "flowAlias": "password-if-configured",
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "password-if-configured",
+      "description": "Password form — skipped when user has no credential",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "fastapi-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me",
+      "implicitFlowEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "credentials": [],
+      "requiredActions": ["UPDATE_PASSWORD"]
+    }
+  ]
+}

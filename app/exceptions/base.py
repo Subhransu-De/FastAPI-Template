@@ -1,11 +1,13 @@
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from app.logger import logger
 
 
 class BaseError(Exception):
+    empty_body: bool = False
+
     def __init__(
         self, message: str, status_code: int = 500, title: str = "Internal Server Error"
     ) -> None:
@@ -24,7 +26,7 @@ class BaseError(Exception):
         }
 
 
-async def base_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+async def base_exception_handler(request: Request, exc: Exception) -> Response:
     match exc:
         case RequestValidationError():
             return JSONResponse(
@@ -36,6 +38,11 @@ async def base_exception_handler(request: Request, exc: Exception) -> JSONRespon
                     "detail": exc.errors(),
                     "instance": str(request.url),
                 },
+            )
+        case BaseError() if exc.empty_body:
+            return Response(
+                status_code=exc.status_code,
+                headers={"WWW-Authenticate": "Bearer"},
             )
         case BaseError():
             return JSONResponse(

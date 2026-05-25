@@ -10,3 +10,14 @@ class NoEntityFoundError(BaseError):
             status_code=404,
             title="Not Found",
         )
+
+
+class AuthenticationError(BaseError):
+    empty_body: bool = True
+
+    def __init__(self) -> None:
+        super().__init__(
+            message="Unauthorized",
+            status_code=401,
+            title="Unauthorized",
+        )

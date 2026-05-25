@@ -1,8 +1,18 @@
 import pytest
+from pydantic import ValidationError
 
 from app.settings.config import Settings
 
 pytestmark = pytest.mark.unit
+
+_REQUIRED_ENV = {
+    "DATABASE_URL": "postgresql+psycopg://user:pass@localhost/db",
+    "KEYCLOAK_URL": "http://keycloak:8080",
+    "KEYCLOAK_PUBLIC_URL": "http://localhost:8080",
+    "KEYCLOAK_REALM": "fastapi-realm",
+    "KEYCLOAK_CLIENT_ID": "fastapi-client",
+    "KEYCLOAK_CLIENT_SECRET": "change-me",
+}
 
 
 @pytest.fixture(autouse=True)
@@ -14,20 +24,16 @@ def _mock_get_session(monkeypatch):
 
 
 class TestSettings:
-    def test_settings_uses_dummy_database_url_when_missing(self, monkeypatch):
-        monkeypatch.delenv("DATABASE_URL", raising=False)
-        monkeypatch.setattr(
-            "app.settings.config.Settings.model_config", {"env_file": None}
-        )
+    def test_settings_requires_database_url(self, monkeypatch):
+        for key in _REQUIRED_ENV:
+            monkeypatch.delenv(key, raising=False)
 
-        settings = Settings(_env_file=None)  # ty: ignore[unknown-argument]
-
-        assert settings.database_url == "dummy://"
+        with pytest.raises(ValidationError):
+            Settings(_env_file=None)  # ty: ignore[unknown-argument]
 
     def test_settings_defaults(self, monkeypatch):
-        monkeypatch.setenv(
-            "DATABASE_URL", "postgresql+psycopg://user:pass@localhost/db"
-        )
+        for key, value in _REQUIRED_ENV.items():
+            monkeypatch.setenv(key, value)
 
         settings = Settings(_env_file=None)  # ty: ignore[unknown-argument]
 
@@ -37,3 +43,4 @@ class TestSettings:
         assert settings.database_max_overflow == 10
         assert settings.database_echo is False
         assert settings.database_pool_pre_ping is True
+        assert settings.keycloak_jwks_cache_ttl_minutes == 15
