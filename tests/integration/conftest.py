@@ -111,6 +111,7 @@ async def app_client(
     integration_sessionmaker: async_sessionmaker[AsyncSession],
     clean_integration_database: None,
 ) -> AsyncGenerator[httpx.AsyncClient]:
+    from app.auth import require_auth
     from app.database import session as session_module
     from app.main import app
 
@@ -122,7 +123,11 @@ async def app_client(
                 await session.rollback()
                 raise
 
+    async def override_require_auth() -> None:
+        return None
+
     app.dependency_overrides[session_module.get_session] = override_get_session
+    app.dependency_overrides[require_auth] = override_require_auth
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(

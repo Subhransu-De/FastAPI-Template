@@ -29,13 +29,13 @@ class TestSettings:
             monkeypatch.delenv(key, raising=False)
 
         with pytest.raises(ValidationError):
-            Settings(_env_file=None)  # ty: ignore[unknown-argument]
+            Settings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
 
     def test_settings_defaults(self, monkeypatch):
         for key, value in _REQUIRED_ENV.items():
             monkeypatch.setenv(key, value)
 
-        settings = Settings(_env_file=None)  # ty: ignore[unknown-argument]
+        settings = Settings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
 
         assert settings.app_name == "FastAPI Template"
         assert settings.port == 80

@@ -4,14 +4,14 @@ from typing import cast
 import pytest
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import Response
 
 from app.exceptions.base import BaseError, base_exception_handler
 
 pytestmark = pytest.mark.unit
 
 
-def load_json_body(response: JSONResponse) -> dict[str, object]:
+def load_json_body(response: Response) -> dict[str, object]:
     body = response.body
     raw_body = body.tobytes() if isinstance(body, memoryview) else body
     return cast("dict[str, object]", json.loads(raw_body))
