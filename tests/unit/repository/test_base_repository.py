@@ -46,7 +46,9 @@ class TestBaseRepository:
         mock_session.flush.assert_awaited_once_with()
         mock_session.refresh.assert_awaited_once_with(entity)
 
-    async def test_find_by_id_returns_session_get_result(self, repository, mock_session):
+    async def test_find_by_id_returns_session_get_result(
+        self, repository, mock_session
+    ):
         entity_id = uuid4()
         entity = Entity(id=entity_id, name="Test Entity", description=None)
         mock_session.get.return_value = entity
@@ -131,7 +133,9 @@ class TestBaseRepository:
         assert await repository.exists_by_id(entity_id) is True
         mock_session.execute.assert_awaited_once()
 
-    async def test_exists_by_id_returns_false_when_missing(self, repository, mock_session):
+    async def test_exists_by_id_returns_false_when_missing(
+        self, repository, mock_session
+    ):
         entity_id = uuid4()
         mock_session.execute.return_value = ResultStub(scalar_value=0)
 

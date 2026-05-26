@@ -62,7 +62,7 @@ async def test_base_exception_handler_for_validation_error():
         ]
     )
 
-    response = await base_exception_handler(request, exc)
+    response = base_exception_handler(request, exc)
     body = load_json_body(response)
 
     assert response.status_code == 400
@@ -79,7 +79,7 @@ async def test_base_exception_handler_for_base_error():
     request = make_request("/entities/123")
     exc = BaseError("not found", status_code=404, title="Not Found")
 
-    response = await base_exception_handler(request, exc)
+    response = base_exception_handler(request, exc)
     body = load_json_body(response)
 
     assert response.status_code == 404
@@ -92,6 +92,18 @@ async def test_base_exception_handler_for_base_error():
     }
 
 
+async def test_base_exception_handler_for_empty_body_error():
+    request = make_request("/entities")
+    exc = BaseError("Unauthorized", status_code=401, title="Unauthorized")
+    exc.empty_body = True
+
+    response = base_exception_handler(request, exc)
+
+    assert response.status_code == 401
+    assert response.body == b""
+    assert response.headers.get("www-authenticate") == "Bearer"
+
+
 async def test_base_exception_handler_for_unexpected_error(monkeypatch):
     request = make_request("/entities/123")
     error = RuntimeError("boom")
@@ -99,7 +111,7 @@ async def test_base_exception_handler_for_unexpected_error(monkeypatch):
 
     monkeypatch.setattr("app.exceptions.base.logger.error", logged.append)
 
-    response = await base_exception_handler(request, error)
+    response = base_exception_handler(request, error)
     body = load_json_body(response)
 
     assert response.status_code == 500

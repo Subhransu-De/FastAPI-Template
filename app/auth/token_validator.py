@@ -1,28 +1,21 @@
 from typing import Annotated
 
+import jwt
 from fastapi import Depends, Request
 from fastapi.openapi.models import OAuthFlowAuthorizationCode
 from fastapi.openapi.models import OAuthFlows as OAuthFlowsModel
 from fastapi.security import OAuth2
 from fastapi.security.utils import get_authorization_scheme_param
-from httpx import HTTPError
-from jose import JWTError, jwt
+from jwt import PyJWKClient, PyJWKClientError, PyJWTError
 
-from app.auth.jwks import get_public_key
 from app.exceptions import AuthenticationError
-from app.settings import settings
+from app.settings import authn_settings
 
 _oauth2_scheme = OAuth2(
     flows=OAuthFlowsModel(
         authorizationCode=OAuthFlowAuthorizationCode(
-            authorizationUrl=(
-                f"{settings.keycloak_public_url}/realms/{settings.keycloak_realm}"
-                "/protocol/openid-connect/auth"
-            ),
-            tokenUrl=(
-                f"{settings.keycloak_public_url}/realms/{settings.keycloak_realm}"
-                "/protocol/openid-connect/token"
-            ),
+            authorizationUrl=authn_settings.authorization_endpoint,
+            tokenUrl=authn_settings.token_endpoint,
             scopes={"openid": "OpenID Connect"},
         )
     ),
@@ -30,7 +23,15 @@ _oauth2_scheme = OAuth2(
 )
 
 
-async def require_auth(
+def _get_jwks_client() -> PyJWKClient:
+    return PyJWKClient(
+        authn_settings.jwks_uri,
+        cache_jwk_set=True,
+        lifespan=authn_settings.jwks_cache_ttl_seconds,
+    )
+
+
+async def authentication_filter(
     request: Request,
     _: Annotated[str | None, Depends(_oauth2_scheme)],
 ) -> None:
@@ -39,19 +40,16 @@ async def require_auth(
     if not authorization or scheme.lower() != "bearer" or not token:
         raise AuthenticationError
     try:
-        header = jwt.get_unverified_header(token)
-        kid = header.get("kid")
-        if kid is None:
-            raise AuthenticationError
-        key = await get_public_key(kid)
-        if key is None:
-            raise AuthenticationError
+        signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
         jwt.decode(
             token,
-            key,
+            signing_key.key,
             algorithms=["RS256"],
-            options={"verify_aud": False},
-            issuer=f"{settings.keycloak_public_url}/realms/{settings.keycloak_realm}",
+            audience=authn_settings.client_id,
+            issuer=authn_settings.issuer,
+            options={
+                "require": ["exp", "iat", "nbf"],
+            },
         )
-    except (JWTError, KeyError, HTTPError) as err:
+    except (PyJWTError, PyJWKClientError) as err:
         raise AuthenticationError from err

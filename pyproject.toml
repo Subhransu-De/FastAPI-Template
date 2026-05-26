@@ -11,7 +11,7 @@ dependencies = [
     "psycopg[binary]>=3.3.4",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
-    "python-jose[cryptography]>=3.3.0",
+    "pyjwt[crypto]>=2.13.0",
     "sqlalchemy>=2.0.49",
     "uvicorn>=0.47.0",
 ]
@@ -27,6 +27,7 @@ test = [
     "httpx>=0.28.1",
     "aiosqlite>=0.22.1",
     "pytest-cov>=7.1.0",
+    "pytest-httpserver>=1.1.3",
     "testcontainers[postgres]>=4.14.2",
 ]
 
@@ -51,5 +52,6 @@ anyio_mode = "auto"
 markers = [
     "unit: fast, no external deps",
     "integration: tests that use disposable Postgres via Testcontainers",
+    "with_auth: inject a signed Bearer token into every request made by the test",
 ]
 addopts = "-v --strict-markers"

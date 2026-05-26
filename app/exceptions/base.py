@@ -26,7 +26,7 @@ class BaseError(Exception):
         }
 
 
-async def base_exception_handler(request: Request, exc: Exception) -> Response:
+def base_exception_handler(request: Request, exc: Exception) -> Response:
     match exc:
         case RequestValidationError():
             return JSONResponse(

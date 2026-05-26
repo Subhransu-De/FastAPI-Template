@@ -1,3 +1,3 @@
-from app.auth.token_validator import require_auth
+from app.auth.token_validator import authentication_filter
 
-__all__: list[str] = ["require_auth"]
+__all__: list[str] = ["authentication_filter"]
