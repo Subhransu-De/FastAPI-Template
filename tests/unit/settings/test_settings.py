@@ -12,7 +12,7 @@ _DB_ENV = {"DATABASE_URL": "postgresql+psycopg://user:pass@localhost/db"}
 _AUTHN_ENV = {
     "OIDC_ISSUER_URL": "http://localhost:8080/realms/fastapi-realm",
     "OIDC_CLIENT_ID": "fastapi-client",
-    "OIDC_CLIENT_SECRET": "change-me",
+    "OIDC_CLIENT_SECRET": "test-client-credential",
     "OIDC_JWKS_URI": "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/certs",
     "OIDC_ISSUER": "http://localhost:8080/realms/fastapi-realm",
     "OIDC_AUTHORIZATION_ENDPOINT": "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/auth",
