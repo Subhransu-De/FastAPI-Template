@@ -47,7 +47,7 @@ class EntityService:
         await self.session.commit()
 
 
-async def get_entity_service(
+def get_entity_service(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> EntityService:
     return EntityService(session)

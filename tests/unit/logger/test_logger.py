@@ -66,7 +66,9 @@ def test_setup_logging_reconfigures_uvicorn_loggers(monkeypatch: pytest.MonkeyPa
 
     for logger_name in logger_names:
         log = logging.getLogger(logger_name)
-        monkeypatch.setattr(log, "handlers", [logging.NullHandler(), logging.NullHandler()])
+        monkeypatch.setattr(
+            log, "handlers", [logging.NullHandler(), logging.NullHandler()]
+        )
         monkeypatch.setattr(log, "level", logging.WARNING)
         monkeypatch.setattr(log, "propagate", True)
 

@@ -1,9 +1,12 @@
 import httpx
 import pytest
 
+from tests.integration.conftest import WithAuth
+
 pytestmark = pytest.mark.integration
 
 
+@WithAuth
 async def test_entities_crud_flow(app_client: httpx.AsyncClient) -> None:
     create_response = await app_client.post(
         "/entities/",
@@ -42,6 +45,7 @@ async def test_entities_crud_flow(app_client: httpx.AsyncClient) -> None:
     assert missing_response.json()["title"] == "Not Found"
 
 
+@WithAuth
 async def test_create_entity_with_empty_name_returns_validation_error(
     app_client: httpx.AsyncClient,
 ) -> None:
@@ -54,6 +58,7 @@ async def test_create_entity_with_empty_name_returns_validation_error(
     assert response.json()["title"] == "Bad Request"
 
 
+@WithAuth
 async def test_list_entities_rejects_limit_above_100(
     app_client: httpx.AsyncClient,
 ) -> None:

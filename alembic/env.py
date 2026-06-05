@@ -4,7 +4,7 @@ from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from app.model import Base
-from app.settings.config import settings
+from app.settings import db_settings
 
 SQLALCHEMY_URL_KEY = "sqlalchemy.url"
 
@@ -15,7 +15,7 @@ if config.config_file_name is not None:
 
 configured_url = config.get_main_option(SQLALCHEMY_URL_KEY)
 if not configured_url:
-    config.set_main_option(SQLALCHEMY_URL_KEY, settings.database_url)
+    config.set_main_option(SQLALCHEMY_URL_KEY, db_settings.url)
 
 target_metadata = Base.metadata
 

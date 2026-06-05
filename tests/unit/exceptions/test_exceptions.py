@@ -4,14 +4,14 @@ from typing import cast
 import pytest
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import Response
 
 from app.exceptions.base import BaseError, base_exception_handler
 
 pytestmark = pytest.mark.unit
 
 
-def load_json_body(response: JSONResponse) -> dict[str, object]:
+def load_json_body(response: Response) -> dict[str, object]:
     body = response.body
     raw_body = body.tobytes() if isinstance(body, memoryview) else body
     return cast("dict[str, object]", json.loads(raw_body))
@@ -49,7 +49,7 @@ def test_base_error_get_error():
     }
 
 
-async def test_base_exception_handler_for_validation_error():
+def test_base_exception_handler_for_validation_error():
     request = make_request("/entities")
     exc = RequestValidationError(
         [
@@ -62,7 +62,7 @@ async def test_base_exception_handler_for_validation_error():
         ]
     )
 
-    response = await base_exception_handler(request, exc)
+    response = base_exception_handler(request, exc)
     body = load_json_body(response)
 
     assert response.status_code == 400
@@ -75,11 +75,11 @@ async def test_base_exception_handler_for_validation_error():
     assert detail[0]["type"] == "missing"
 
 
-async def test_base_exception_handler_for_base_error():
+def test_base_exception_handler_for_base_error():
     request = make_request("/entities/123")
     exc = BaseError("not found", status_code=404, title="Not Found")
 
-    response = await base_exception_handler(request, exc)
+    response = base_exception_handler(request, exc)
     body = load_json_body(response)
 
     assert response.status_code == 404
@@ -92,14 +92,26 @@ async def test_base_exception_handler_for_base_error():
     }
 
 
-async def test_base_exception_handler_for_unexpected_error(monkeypatch):
+def test_base_exception_handler_for_empty_body_error():
+    request = make_request("/entities")
+    exc = BaseError("Unauthorized", status_code=401, title="Unauthorized")
+    exc.empty_body = True
+
+    response = base_exception_handler(request, exc)
+
+    assert response.status_code == 401
+    assert response.body == b""
+    assert response.headers.get("www-authenticate") == "Bearer"
+
+
+def test_base_exception_handler_for_unexpected_error(monkeypatch):
     request = make_request("/entities/123")
     error = RuntimeError("boom")
     logged = []
 
     monkeypatch.setattr("app.exceptions.base.logger.error", logged.append)
 
-    response = await base_exception_handler(request, error)
+    response = base_exception_handler(request, error)
     body = load_json_body(response)
 
     assert response.status_code == 500

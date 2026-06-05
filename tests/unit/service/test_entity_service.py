@@ -123,7 +123,7 @@ class TestEntityService:
         )
         assert len(result) == 3
 
-    async def test_get_entity_service_returns_bound_session(
+    def test_get_entity_service_returns_bound_session(
         self, mock_session, monkeypatch
     ):
         repository = object()
@@ -136,7 +136,7 @@ class TestEntityService:
             repository_factory,
         )
 
-        service = await get_entity_service(mock_session)
+        service = get_entity_service(mock_session)
 
         assert isinstance(service, EntityService)
         assert service.session is mock_session

@@ -8,9 +8,9 @@ from fastapi.exceptions import RequestValidationError
 
 from alembic import command
 from app import logger
-from app.exceptions import BaseError, base_exception_handler
+from app.exceptions import AuthenticationError, BaseError, base_exception_handler
 from app.routes import entity_route, health_route
-from app.settings import settings
+from app.settings import app_settings, authn_settings
 
 
 @asynccontextmanager
@@ -19,13 +19,23 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("script_location", "alembic")
     command.upgrade(alembic_cfg, "head")
-    logger.info(f"Starting up {settings.app_name} on port {settings.port}")
+    logger.info(f"Starting up {app_settings.app_name} on port {app_settings.port}")
     yield
     logger.info("Application shutdown")
 
 
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
+app = FastAPI(
+    title=app_settings.app_name,
+    lifespan=lifespan,
+    swagger_ui_init_oauth={
+        "clientId": authn_settings.client_id,
+        "clientSecret": authn_settings.client_secret,
+        "scopes": "openid",
+        "usePkceWithAuthorizationCodeGrant": True,
+    },
+)
 
+app.add_exception_handler(AuthenticationError, base_exception_handler)
 app.add_exception_handler(BaseError, base_exception_handler)
 app.add_exception_handler(RequestValidationError, base_exception_handler)
 
@@ -34,7 +44,7 @@ app.include_router(entity_route)
 
 
 def main() -> None:
-    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.port, reload=True)  # noqa: S104
+    uvicorn.run("app.main:app", port=app_settings.port, reload=app_settings.reload)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import logging
 import sys
 from logging import Formatter, Handler, Logger
 
-from app.settings import settings
+from app.settings import app_settings
 
 
 class JsonFormatter(Formatter):
@@ -21,7 +21,7 @@ class JsonFormatter(Formatter):
 
 formatter: Formatter = JsonFormatter()
 
-logger: Logger = logging.getLogger(settings.app_name)
+logger: Logger = logging.getLogger(app_settings.app_name)
 logger.setLevel(logging.INFO)
 
 console_handler: Handler = logging.StreamHandler(sys.stdout)
