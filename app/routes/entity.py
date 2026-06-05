@@ -4,7 +4,6 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 
 from app.auth import authentication_filter
-from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
 from app.service import EntityService, get_entity_service
 
@@ -28,8 +27,6 @@ async def get_entity(
     _: Annotated[None, Depends(authentication_filter)],
 ) -> EntityResponse:
     entity = await service.get_by_id(entity_id)
-    if entity is None:
-        raise NoEntityFoundError(entity_id)
     return EntityResponse.model_validate(entity)
 
 
@@ -52,8 +49,6 @@ async def update_entity(
     _: Annotated[None, Depends(authentication_filter)],
 ) -> EntityResponse:
     entity = await service.update(entity_id, data)
-    if entity is None:
-        raise NoEntityFoundError(entity_id)
     return EntityResponse.model_validate(entity)
 
 

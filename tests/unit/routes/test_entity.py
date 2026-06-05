@@ -70,7 +70,7 @@ async def test_get_entity_returns_response(service):
 
 async def test_get_entity_raises_not_found(service):
     entity_id = uuid4()
-    service.get_by_id.return_value = None
+    service.get_by_id.side_effect = NoEntityFoundError(entity_id)
 
     with pytest.raises(NoEntityFoundError):
         await get_entity(entity_id, service, _=None)
@@ -105,7 +105,7 @@ async def test_update_entity_returns_response(service):
 async def test_update_entity_raises_not_found(service):
     entity_id = uuid4()
     payload = EntityUpdate(name="Updated")
-    service.update.return_value = None
+    service.update.side_effect = NoEntityFoundError(entity_id)
 
     with pytest.raises(NoEntityFoundError):
         await update_entity(entity_id, payload, service, _=None)
