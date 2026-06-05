@@ -34,10 +34,7 @@ class EntityService:
         if entity is None:
             raise NoEntityFoundError(entity_id)
 
-        if data.name is not None:
-            entity.name = data.name
-        if data.description is not None:
-            entity.description = data.description
+        entity.apply_changes(data.model_dump(exclude_unset=True))
 
         return await self.repo.update(entity)
 

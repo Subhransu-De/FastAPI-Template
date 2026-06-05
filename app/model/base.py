@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from typing import Any
 from uuid import UUID as PYUUID
 from uuid import uuid4
 
@@ -18,3 +20,7 @@ class Base(DeclarativeBase):
             "pk": "pk_%(table_name)s",
         }
     )
+
+    def apply_changes(self, changes: Mapping[str, Any]) -> None:
+        for field, value in changes.items():
+            setattr(self, field, value)

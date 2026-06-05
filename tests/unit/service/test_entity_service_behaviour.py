@@ -111,6 +111,23 @@ async def test_update_changes_only_provided_fields(
     assert entity.description == "New desc"
 
 
+async def test_update_can_clear_nullable_fields(
+    service: EntityService,
+    repository: AsyncMock,
+) -> None:
+    entity_id = uuid4()
+    entity = Entity(id=entity_id, name="Original", description="Original desc")
+    repository.find_by_id.return_value = entity
+    repository.update.side_effect = lambda updated: updated
+
+    result = await service.update(entity_id, EntityUpdate(description=None))
+
+    repository.update.assert_awaited_once_with(entity)
+    assert result is entity
+    assert entity.name == "Original"
+    assert entity.description is None
+
+
 async def test_delete_deletes_by_id(
     service: EntityService,
     session: AsyncMock,
