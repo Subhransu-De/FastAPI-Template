@@ -49,7 +49,7 @@ def test_base_error_get_error():
     }
 
 
-async def test_base_exception_handler_for_validation_error():
+def test_base_exception_handler_for_validation_error():
     request = make_request("/entities")
     exc = RequestValidationError(
         [
@@ -75,7 +75,7 @@ async def test_base_exception_handler_for_validation_error():
     assert detail[0]["type"] == "missing"
 
 
-async def test_base_exception_handler_for_base_error():
+def test_base_exception_handler_for_base_error():
     request = make_request("/entities/123")
     exc = BaseError("not found", status_code=404, title="Not Found")
 
@@ -92,7 +92,7 @@ async def test_base_exception_handler_for_base_error():
     }
 
 
-async def test_base_exception_handler_for_empty_body_error():
+def test_base_exception_handler_for_empty_body_error():
     request = make_request("/entities")
     exc = BaseError("Unauthorized", status_code=401, title="Unauthorized")
     exc.empty_body = True
@@ -104,7 +104,7 @@ async def test_base_exception_handler_for_empty_body_error():
     assert response.headers.get("www-authenticate") == "Bearer"
 
 
-async def test_base_exception_handler_for_unexpected_error(monkeypatch):
+def test_base_exception_handler_for_unexpected_error(monkeypatch):
     request = make_request("/entities/123")
     error = RuntimeError("boom")
     logged = []

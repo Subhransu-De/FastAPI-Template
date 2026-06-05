@@ -31,7 +31,7 @@ def _get_jwks_client() -> PyJWKClient:
     )
 
 
-async def authentication_filter(
+def authentication_filter(
     request: Request,
     _: Annotated[str | None, Depends(_oauth2_scheme)],
 ) -> None:

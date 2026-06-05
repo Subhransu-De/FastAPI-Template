@@ -48,26 +48,22 @@ class TestGetJwksClient:
 
 
 class TestAuthenticationFilter:
-    @pytest.mark.anyio
-    async def test_raises_when_no_authorization_header(self):
+    def test_raises_when_no_authorization_header(self):
         request = _make_request(None)
         with pytest.raises(AuthenticationError):
-            await authentication_filter(request, None)
+            authentication_filter(request, None)
 
-    @pytest.mark.anyio
-    async def test_raises_when_scheme_is_not_bearer(self):
+    def test_raises_when_scheme_is_not_bearer(self):
         request = _make_request("Basic dXNlcjpwYXNz")
         with pytest.raises(AuthenticationError):
-            await authentication_filter(request, None)
+            authentication_filter(request, None)
 
-    @pytest.mark.anyio
-    async def test_raises_when_token_is_empty(self):
+    def test_raises_when_token_is_empty(self):
         request = _make_request("Bearer ")
         with pytest.raises(AuthenticationError):
-            await authentication_filter(request, None)
+            authentication_filter(request, None)
 
-    @pytest.mark.anyio
-    async def test_raises_on_pyjwt_error(self):
+    def test_raises_on_pyjwt_error(self):
         request = _make_request(f"Bearer {_VALID_TOKEN}")
         mock_signing_key = MagicMock()
         with (
@@ -81,20 +77,18 @@ class TestAuthenticationFilter:
                 mock_signing_key
             )
             with pytest.raises(AuthenticationError):
-                await authentication_filter(request, None)
+                authentication_filter(request, None)
 
-    @pytest.mark.anyio
-    async def test_raises_on_pyjwkclient_error(self):
+    def test_raises_on_pyjwkclient_error(self):
         request = _make_request(f"Bearer {_VALID_TOKEN}")
         with patch("app.auth.token_validator._get_jwks_client") as mock_get_client:
             mock_get_client.return_value.get_signing_key_from_jwt.side_effect = (
                 PyJWKClientError("cannot fetch key")
             )
             with pytest.raises(AuthenticationError):
-                await authentication_filter(request, None)
+                authentication_filter(request, None)
 
-    @pytest.mark.anyio
-    async def test_succeeds_with_valid_token(self):
+    def test_succeeds_with_valid_token(self):
         request = _make_request(f"Bearer {_VALID_TOKEN}")
         mock_signing_key = MagicMock()
         with (
@@ -106,11 +100,10 @@ class TestAuthenticationFilter:
             mock_get_client.return_value.get_signing_key_from_jwt.return_value = (
                 mock_signing_key
             )
-            result = await authentication_filter(request, None)
+            result = authentication_filter(request, None)
             assert result is None
 
-    @pytest.mark.anyio
-    async def test_authentication_error_is_chained_from_jwt_error(self):
+    def test_authentication_error_is_chained_from_jwt_error(self):
         request = _make_request(f"Bearer {_VALID_TOKEN}")
         original_error = PyJWTError("expired")
         mock_signing_key = MagicMock()
@@ -122,11 +115,10 @@ class TestAuthenticationFilter:
                 mock_signing_key
             )
             with pytest.raises(AuthenticationError) as exc_info:
-                await authentication_filter(request, None)
+                authentication_filter(request, None)
             assert exc_info.value.__cause__ is original_error
 
-    @pytest.mark.anyio
-    async def test_authentication_error_is_chained_from_jwks_error(self):
+    def test_authentication_error_is_chained_from_jwks_error(self):
         request = _make_request(f"Bearer {_VALID_TOKEN}")
         original_error = PyJWKClientError("no key found")
         with patch("app.auth.token_validator._get_jwks_client") as mock_get_client:
@@ -134,5 +126,5 @@ class TestAuthenticationFilter:
                 original_error
             )
             with pytest.raises(AuthenticationError) as exc_info:
-                await authentication_filter(request, None)
+                authentication_filter(request, None)
             assert exc_info.value.__cause__ is original_error
