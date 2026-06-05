@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from alembic import command
 from app import logger
 from app.exceptions import AuthenticationError, BaseError, base_exception_handler
-from app.routes import entity_route, health_route
+from app.routes import protected_route, public_route
 from app.settings import app_settings, authn_settings
 
 
@@ -39,8 +39,8 @@ app.add_exception_handler(AuthenticationError, base_exception_handler)
 app.add_exception_handler(BaseError, base_exception_handler)
 app.add_exception_handler(RequestValidationError, base_exception_handler)
 
-app.include_router(health_route)
-app.include_router(entity_route)
+app.include_router(public_route)
+app.include_router(protected_route)
 
 
 def main() -> None:

@@ -48,7 +48,6 @@ async def test_create_entity_returns_response(service):
     response = await create_entity(
         EntityCreate(name="Created", description="Created desc"),
         service,
-        _=None,
     )
 
     service.create.assert_awaited_once()
@@ -61,7 +60,7 @@ async def test_get_entity_returns_response(service):
     entity = make_entity(name="Fetched", description="Fetched desc")
     service.get_by_id.return_value = entity
 
-    response = await get_entity(entity.id, service, _=None)
+    response = await get_entity(entity.id, service)
 
     service.get_by_id.assert_awaited_once_with(entity.id)
     assert response.id == entity.id
@@ -73,7 +72,7 @@ async def test_get_entity_raises_not_found(service):
     service.get_by_id.side_effect = NoEntityFoundError(entity_id)
 
     with pytest.raises(NoEntityFoundError):
-        await get_entity(entity_id, service, _=None)
+        await get_entity(entity_id, service)
 
 
 async def test_list_entities_returns_responses(service):
@@ -83,7 +82,7 @@ async def test_list_entities_returns_responses(service):
     ]
     service.get_all.return_value = entities
 
-    response = await list_entities(service, _=None, offset=5, limit=10)
+    response = await list_entities(service, offset=5, limit=10)
 
     service.get_all.assert_awaited_once_with(offset=5, limit=10)
     assert [item.name for item in response] == ["Entity A", "Entity B"]
@@ -95,7 +94,7 @@ async def test_update_entity_returns_response(service):
     payload = EntityUpdate(description="Updated desc")
     service.update.return_value = entity
 
-    response = await update_entity(entity_id, payload, service, _=None)
+    response = await update_entity(entity_id, payload, service)
 
     service.update.assert_awaited_once_with(entity_id, payload)
     assert response.id == entity.id
@@ -108,12 +107,12 @@ async def test_update_entity_raises_not_found(service):
     service.update.side_effect = NoEntityFoundError(entity_id)
 
     with pytest.raises(NoEntityFoundError):
-        await update_entity(entity_id, payload, service, _=None)
+        await update_entity(entity_id, payload, service)
 
 
 async def test_delete_entity_calls_service(service):
     entity_id = uuid4()
 
-    await delete_entity(entity_id, service, _=None)
+    await delete_entity(entity_id, service)
 
     service.delete.assert_awaited_once_with(entity_id)
