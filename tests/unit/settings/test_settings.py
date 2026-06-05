@@ -106,10 +106,10 @@ class TestAuthNSettings:
             monkeypatch.setenv(key, value)
 
         discovery = {
-            "jwks_uri": "http://idp/certs",
-            "issuer": "http://idp/realm",
-            "authorization_endpoint": "http://idp/auth",
-            "token_endpoint": "http://idp/token",
+            "jwks_uri": "https://idp/certs",
+            "issuer": "https://idp/realm",
+            "authorization_endpoint": "https://idp/auth",
+            "token_endpoint": "https://idp/token",
         }
         mock_response = MagicMock()
         mock_response.json.return_value = discovery

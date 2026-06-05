@@ -33,7 +33,7 @@ from alembic import command
 from app.model import Base
 from app.settings.authentication import authn_settings
 
-_TEST_ISSUER = "http://test-idp/realm"
+_TEST_ISSUER = "https://test-idp/realm"
 _TEST_CLIENT_ID = "test-client"
 _TEST_KID = "test-key-id"
 
