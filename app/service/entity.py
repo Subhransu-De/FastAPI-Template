@@ -34,7 +34,7 @@ class EntityService:
         if entity is None:
             raise NoEntityFoundError(entity_id)
 
-        entity.apply_changes(data.model_dump(exclude_unset=True))
+        entity.apply_changes(data)
 
         return await self.repo.update(entity)
 

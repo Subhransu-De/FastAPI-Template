@@ -1,8 +1,7 @@
-from collections.abc import Mapping
-from typing import Any
 from uuid import UUID as PYUUID
 from uuid import uuid4
 
+from pydantic import BaseModel
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import UUID
@@ -21,6 +20,6 @@ class Base(DeclarativeBase):
         }
     )
 
-    def apply_changes(self, changes: Mapping[str, Any]) -> None:
-        for field, value in changes.items():
+    def apply_changes(self, data: BaseModel) -> None:
+        for field, value in data.model_dump(exclude_unset=True).items():
             setattr(self, field, value)
