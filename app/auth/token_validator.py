@@ -41,7 +41,7 @@ def authentication_filter(
         raise AuthenticationError
     try:
         signing_key = _get_jwks_client().get_signing_key_from_jwt(token)
-        jwt.decode(
+        claims = jwt.decode(
             token,
             signing_key.key,
             algorithms=["RS256"],
@@ -51,5 +51,6 @@ def authentication_filter(
                 "require": ["exp", "iat", "nbf"],
             },
         )
+        request.state.auth_claims = claims
     except (PyJWTError, PyJWKClientError) as err:
         raise AuthenticationError from err

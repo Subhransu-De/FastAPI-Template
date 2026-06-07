@@ -62,7 +62,18 @@ def test_json_formatter_formats_record_with_exception():
 
 
 def test_setup_logging_reconfigures_uvicorn_loggers(monkeypatch: pytest.MonkeyPatch):
-    logger_names = ["uvicorn", "uvicorn.access", "uvicorn.error"]
+    logger_names = [
+        logger_module.app_settings.app_name,
+        "uvicorn",
+        "uvicorn.access",
+        "uvicorn.error",
+    ]
+    otel_handler = logging.NullHandler()
+    monkeypatch.setattr(logger_module, "get_otel_log_handler", lambda: otel_handler)
+
+    root = logging.getLogger()
+    monkeypatch.setattr(root, "handlers", [logging.NullHandler()])
+    monkeypatch.setattr(root, "level", logging.WARNING)
 
     for logger_name in logger_names:
         log = logging.getLogger(logger_name)
@@ -74,12 +85,21 @@ def test_setup_logging_reconfigures_uvicorn_loggers(monkeypatch: pytest.MonkeyPa
 
     logger_module.setup_logging()
 
+    assert len(root.handlers) == 2
+    assert isinstance(root.handlers[0], logging.StreamHandler)
+    assert root.handlers[0].formatter is logger_module.formatter
+    assert root.handlers[1] is otel_handler
+    assert root.level == logging.INFO
+    assert root.disabled is False
+
     for logger_name in logger_names:
         log = logging.getLogger(logger_name)
-        assert len(log.handlers) == 1
+        assert len(log.handlers) == 2
         assert isinstance(log.handlers[0], logging.StreamHandler)
         assert log.handlers[0].formatter is logger_module.formatter
+        assert log.handlers[1] is otel_handler
         assert log.level == logging.INFO
+        assert log.disabled is False
         assert log.propagate is False
 
 

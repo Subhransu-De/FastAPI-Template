@@ -177,6 +177,7 @@ def _make_test_token(private_key: RSAPrivateKey) -> str:
             "sub": "test-user",
             "aud": _TEST_CLIENT_ID,
             "iss": _TEST_ISSUER,
+            "azp": _TEST_CLIENT_ID,
             "iat": now,
             "nbf": now,
             "exp": now + 3600,
