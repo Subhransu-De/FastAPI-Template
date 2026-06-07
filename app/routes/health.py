@@ -12,4 +12,4 @@ route = APIRouter()
 async def health_db(
     _session: Annotated[AsyncSession, Depends(get_session)],
 ) -> dict[str, str]:
-    return {"status": "healthy"}
+    return {"status": "up"}

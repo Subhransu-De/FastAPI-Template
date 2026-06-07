@@ -22,16 +22,19 @@ def test_entity_create_rejects_empty_name() -> None:
         EntityCreate(name="", description=None)
 
 
-def test_entity_update_accepts_partial_payload() -> None:
-    payload = EntityUpdate(description="Updated description")
-
-    assert payload.name is None
-    assert payload.description == "Updated description"
+def test_entity_update_requires_name() -> None:
+    with pytest.raises(ValidationError):
+        EntityUpdate(description="Updated description")
 
 
 def test_entity_update_rejects_empty_name() -> None:
     with pytest.raises(ValidationError):
         EntityUpdate(name="")
+
+
+def test_entity_update_rejects_null_name() -> None:
+    with pytest.raises(ValidationError):
+        EntityUpdate.model_validate({"name": None})
 
 
 def test_entity_response_validates_from_entity_like_object() -> None:

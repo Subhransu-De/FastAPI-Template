@@ -10,7 +10,7 @@ class EntityCreate(BaseModel):
 
 
 class EntityUpdate(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=255)
+    name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=5000)
 
 

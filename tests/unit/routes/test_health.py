@@ -7,7 +7,7 @@ from app.routes.health import health_db
 pytestmark = pytest.mark.unit
 
 
-async def test_health_db_returns_healthy():
+async def test_health_db_returns_up():
     session = AsyncMock()
     result = await health_db(session)
-    assert result == {"status": "healthy"}
+    assert result == {"status": "up"}

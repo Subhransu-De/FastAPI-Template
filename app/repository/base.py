@@ -1,16 +1,15 @@
 from collections.abc import Sequence
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, CursorResult, Result, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.model.base import Base
+from app.repository.primary import PrimaryRepository
 
-ModelType = TypeVar("ModelType", bound=Base)
 
-
-class BaseRepository[ModelType: Base]:
+class BaseRepository[ModelType: Base](PrimaryRepository[ModelType]):
     def __init__(self, model: type[ModelType], session: AsyncSession) -> None:
         self.model = model
         self.session = session

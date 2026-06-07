@@ -53,9 +53,11 @@ async def test_get_session_yields_session(monkeypatch):
     yielded = await anext(generator)
     assert yielded is session
 
-    await generator.aclose()
+    with pytest.raises(StopAsyncIteration):
+        await anext(generator)
 
     session_factory.assert_called_once_with()
+    session.commit.assert_awaited_once_with()
     session.rollback.assert_not_awaited()
 
 

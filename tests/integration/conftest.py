@@ -204,6 +204,7 @@ async def app_client(
         async with integration_sessionmaker() as session:
             try:
                 yield session
+                await session.commit()
             except Exception:
                 await session.rollback()
                 raise
