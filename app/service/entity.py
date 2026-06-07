@@ -1,11 +1,6 @@
 from collections.abc import Sequence
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.database import get_session
 from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityUpdate
 from app.model.entity import Entity
@@ -43,8 +38,3 @@ class EntityService:
         if not deleted:
             raise NoEntityFoundError(entity_id)
 
-
-def get_entity_service(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> EntityService:
-    return EntityService(EntityRepository(session))

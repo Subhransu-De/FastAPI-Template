@@ -5,7 +5,8 @@ import pytest
 from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityUpdate
 from app.model.entity import Entity
-from app.service.entity import EntityService, get_entity_service
+from app.service import get_entity_service
+from app.service.entity import EntityService
 
 pytestmark = pytest.mark.unit
 
@@ -122,20 +123,8 @@ class TestEntityService:
         )
         assert len(result) == 3
 
-    def test_get_entity_service_returns_bound_session(
-        self, mock_session, monkeypatch
-    ):
-        repository = object()
-
-        def repository_factory(_session):
-            return repository
-
-        monkeypatch.setattr(
-            "app.service.entity.EntityRepository",
-            repository_factory,
-        )
-
+    def test_get_entity_service_returns_bound_session(self, mock_session):
         service = get_entity_service(mock_session)
 
         assert isinstance(service, EntityService)
-        assert service.repo is repository
+        assert service.repo.session is mock_session
