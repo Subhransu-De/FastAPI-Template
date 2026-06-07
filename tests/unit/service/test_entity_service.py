@@ -89,7 +89,7 @@ class TestEntityService:
 
         result = await service.update(
             entity_id,
-            EntityUpdate(description="New description"),
+            EntityUpdate(name="Old", description="New description"),
         )
 
         mock_entity_repository.update.assert_called_once_with(entity)

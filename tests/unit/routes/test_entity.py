@@ -91,7 +91,7 @@ async def test_list_entities_returns_responses(service):
 async def test_update_entity_returns_response(service):
     entity = make_entity(name="Updated", description="Updated desc")
     entity_id = uuid4()
-    payload = EntityUpdate(description="Updated desc")
+    payload = EntityUpdate(name="Updated", description="Updated desc")
     service.update.return_value = entity
 
     response = await update_entity(entity_id, payload, service)

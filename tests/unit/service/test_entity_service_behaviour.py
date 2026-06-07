@@ -92,7 +92,7 @@ async def test_update_raises_not_found_when_entity_does_not_exist(
     session.commit.assert_not_awaited()
 
 
-async def test_update_changes_only_provided_fields(
+async def test_update_applies_payload_fields(
     service: EntityService,
     session: AsyncMock,
     repository: AsyncMock,
@@ -102,12 +102,15 @@ async def test_update_changes_only_provided_fields(
     repository.find_by_id.return_value = entity
     repository.update.side_effect = lambda updated: updated
 
-    result = await service.update(entity_id, EntityUpdate(description="New desc"))
+    result = await service.update(
+        entity_id,
+        EntityUpdate(name="Updated", description="New desc"),
+    )
 
     repository.update.assert_awaited_once_with(entity)
     session.commit.assert_not_awaited()
     assert result is entity
-    assert entity.name == "Original"
+    assert entity.name == "Updated"
     assert entity.description == "New desc"
 
 
@@ -120,7 +123,7 @@ async def test_update_can_clear_nullable_fields(
     repository.find_by_id.return_value = entity
     repository.update.side_effect = lambda updated: updated
 
-    result = await service.update(entity_id, EntityUpdate(description=None))
+    result = await service.update(entity_id, EntityUpdate(name="Original", description=None))
 
     repository.update.assert_awaited_once_with(entity)
     assert result is entity
