@@ -46,15 +46,15 @@ services:
     environment:
       APP_HOST: 0.0.0.0
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/fastapi_db
-      OIDC_ISSUER_URL: http://127.0.0.1:8080/realms/fastapi-realm
+      OIDC_ISSUER_URL: http://localhost:8080/realms/fastapi-realm
       OIDC_INTERNAL_URL: http://keycloak:8080/realms/fastapi-realm
       OIDC_CLIENT_ID: fastapi-client
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET is required}
       OIDC_JWKS_CACHE_TTL_SECONDS: 300
       OIDC_JWKS_URI: http://keycloak:8080/realms/fastapi-realm/protocol/openid-connect/certs
-      OIDC_ISSUER: http://127.0.0.1:8080/realms/fastapi-realm
-      OIDC_AUTHORIZATION_ENDPOINT: http://127.0.0.1:8080/realms/fastapi-realm/protocol/openid-connect/auth
-      OIDC_TOKEN_ENDPOINT: http://127.0.0.1:8080/realms/fastapi-realm/protocol/openid-connect/token
+      OIDC_ISSUER: http://localhost:8080/realms/fastapi-realm
+      OIDC_AUTHORIZATION_ENDPOINT: http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/auth
+      OIDC_TOKEN_ENDPOINT: http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/token
     depends_on:
       db:
         condition: service_healthy
