@@ -37,15 +37,19 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
 def test_main_runs_uvicorn(monkeypatch):
     module = importlib.import_module("app.main")
     run = Mock()
+    setup_logging = Mock()
 
     monkeypatch.setattr(module.uvicorn, "run", run)
+    monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
 
     module.main()
 
+    setup_logging.assert_called_once_with()
     run.assert_called_once_with(
         "app.main:app",
         port=module.app_settings.port,
         reload=module.app_settings.reload,
+        log_config=None,
     )
 
 

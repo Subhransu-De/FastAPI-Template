@@ -1,3 +1,4 @@
+import logging
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
@@ -10,7 +11,7 @@ SQLALCHEMY_URL_KEY = "sqlalchemy.url"
 
 config = context.config
 
-if config.config_file_name is not None:
+if config.config_file_name is not None and not logging.getLogger().handlers:
     fileConfig(config.config_file_name)
 
 configured_url = config.get_main_option(SQLALCHEMY_URL_KEY)

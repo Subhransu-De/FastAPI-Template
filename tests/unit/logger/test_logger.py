@@ -32,7 +32,16 @@ def test_json_formatter_formats_record_without_exception():
     assert payload["name"] == "test.logger"
     assert payload["level"] == "INFO"
     assert payload["message"] == "hello world"
+    assert payload["severity_text"] == "INFO"
+    assert payload["severity_number"] == 9
+    assert payload["body"] == "hello world"
+    assert payload["resource"]["service.name"] == logger_module.app_settings.app_name
+    assert payload["scope"]["name"] == "test.logger"
+    assert payload["attributes"]["logger.name"] == "test.logger"
+    assert payload["attributes"]["code.lineno"] == 10
     assert "timestamp" in payload
+    assert "time_unix_nano" in payload
+    assert "observed_time_unix_nano" in payload
     assert "exception" not in payload
 
 
@@ -58,7 +67,12 @@ def test_json_formatter_formats_record_with_exception():
 
     assert payload["level"] == "ERROR"
     assert payload["message"] == "failure"
+    assert payload["severity_text"] == "ERROR"
+    assert payload["severity_number"] == 17
     assert "ValueError: boom" in payload["exception"]
+    assert payload["attributes"]["exception.type"] == "ValueError"
+    assert payload["attributes"]["exception.message"] == "boom"
+    assert "ValueError: boom" in payload["attributes"]["exception.stacktrace"]
 
 
 def test_setup_logging_reconfigures_uvicorn_loggers(monkeypatch: pytest.MonkeyPatch):

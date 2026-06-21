@@ -47,7 +47,13 @@ app.include_router(protected_route)
 
 
 def main() -> None:
-    uvicorn.run("app.main:app", port=app_settings.port, reload=app_settings.reload)
+    logger.setup_logging()
+    uvicorn.run(
+        "app.main:app",
+        port=app_settings.port,
+        reload=app_settings.reload,
+        log_config=None,
+    )
 
 
 if __name__ == "__main__":
