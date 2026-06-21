@@ -38,6 +38,19 @@ _STANDARD_LOG_RECORD_ATTRIBUTES = {
 }
 
 
+def _json_safe(value: Any) -> Any:
+    if value is None or isinstance(value, str | int | float | bool):
+        return value
+
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+
+    if isinstance(value, list | tuple | set | frozenset):
+        return [_json_safe(item) for item in value]
+
+    return str(value)
+
+
 class JsonFormatter(Formatter):
     def _severity_number(self, level: int) -> int:
         if level >= logging.CRITICAL:
@@ -65,7 +78,7 @@ class JsonFormatter(Formatter):
 
         attributes.update(
             {
-                key: value
+                key: _json_safe(value)
                 for key, value in record.__dict__.items()
                 if key not in _STANDARD_LOG_RECORD_ATTRIBUTES
             }

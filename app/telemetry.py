@@ -1,11 +1,12 @@
+import importlib
 import logging
 from typing import Any
 
 import logfire
 from fastapi import FastAPI, Request, WebSocket
+from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.logger.handlers import get_logfire_handler
 from app.settings import app_settings
 
 _configured = False
@@ -28,7 +29,8 @@ def configure_otel() -> None:
 
 def get_otel_log_handler() -> logging.Handler:
     configure_otel()
-    return get_logfire_handler()
+    handlers = importlib.import_module("app.logger.handlers")
+    return handlers.get_logfire_handler()
 
 
 def _extract_client_ip(request: Request | WebSocket) -> str | None:
@@ -84,11 +86,12 @@ def instrument_fastapi(app: FastAPI) -> None:
     _instrumented_fastapi_apps.add(app_id)
 
 
-def instrument_sqlalchemy(engine: AsyncEngine) -> None:
+def instrument_sqlalchemy(engine: AsyncEngine | Engine) -> None:
     configure_otel()
-    engine_id = id(engine)
+    instrumented_engine = engine.sync_engine if isinstance(engine, AsyncEngine) else engine
+    engine_id = id(instrumented_engine)
     if engine_id in _instrumented_sqlalchemy_engines:
         return
 
-    logfire.instrument_sqlalchemy(engine=engine)
+    logfire.instrument_sqlalchemy(engine=instrumented_engine)
     _instrumented_sqlalchemy_engines.add(engine_id)

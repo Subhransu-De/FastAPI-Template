@@ -1,8 +1,10 @@
 import json
 import logging
 import sys
+from datetime import UTC, datetime
 from io import StringIO
 from unittest.mock import Mock
+from uuid import UUID
 
 import pytest
 
@@ -169,6 +171,30 @@ def test_logfire_handler_writes_otel_json_to_stdout(
     assert parsed["severity_text"] == "INFO"
     assert parsed["severity_number"] == 9
     assert parsed["attributes"]["component"] == "unit-test"
+
+
+def test_json_formatter_stringifies_non_json_extra_attributes() -> None:
+    formatter = logger_module.JsonFormatter()
+    record = logging.LogRecord(
+        name="test.logger",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=45,
+        msg="extra payload",
+        args=(),
+        exc_info=None,
+    )
+    record.request_id = UUID("00000000-0000-0000-0000-000000000001")
+    record.started_at = datetime(2026, 6, 21, tzinfo=UTC)
+    record.context = {"items": {1, 2}}
+
+    payload = json.loads(formatter.format(record))
+
+    assert payload["attributes"]["request_id"] == (
+        "00000000-0000-0000-0000-000000000001"
+    )
+    assert payload["attributes"]["started_at"] == "2026-06-21 00:00:00+00:00"
+    assert sorted(payload["attributes"]["context"]["items"]) == [1, 2]
 
 
 def test_logfire_handler_filters_health_endpoint_access_logs() -> None:

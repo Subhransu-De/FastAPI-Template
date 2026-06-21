@@ -33,6 +33,7 @@ COPY app /app/app
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH="/app"
 ENV PYTHONUNBUFFERED=1
+ENV APP_HOST="0.0.0.0"
 
 EXPOSE 80
 
