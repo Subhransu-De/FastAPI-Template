@@ -47,6 +47,7 @@ def test_main_runs_uvicorn(monkeypatch):
     setup_logging.assert_called_once_with()
     run.assert_called_once_with(
         "app.main:app",
+        host=module.app_settings.host,
         port=module.app_settings.port,
         reload=module.app_settings.reload,
         log_config=None,

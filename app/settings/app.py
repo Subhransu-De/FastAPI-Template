@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,6 +8,7 @@ class ApplicationSettings(BaseSettings):
     )
 
     app_name: str = "FastAPI Template"
+    host: str = Field(default="127.0.0.1", validation_alias="APP_HOST")
     port: int = 80
     reload: bool = False
 

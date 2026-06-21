@@ -33,8 +33,17 @@ class TestApplicationSettings:
         settings = ApplicationSettings(_env_file=None)  # ty: ignore[unknown-argument]
 
         assert settings.app_name == "FastAPI Template"
+        assert settings.host == "127.0.0.1"
         assert settings.port == 80
         assert settings.reload is False
+
+    def test_host_uses_app_host_env(self, monkeypatch):
+        docker_bind_host = "0.0.0.0"  # noqa: S104
+        monkeypatch.setenv("APP_HOST", docker_bind_host)
+
+        settings = ApplicationSettings(_env_file=None)  # ty: ignore[unknown-argument]
+
+        assert settings.host == docker_bind_host
 
 
 class TestDatabaseSettings:

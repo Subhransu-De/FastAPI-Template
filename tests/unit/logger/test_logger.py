@@ -1,11 +1,17 @@
 import json
 import logging
 import sys
+from io import StringIO
 from unittest.mock import Mock
 
 import pytest
 
+import app.logger.formatters as formatter_module
 import app.logger.logger as logger_module
+from app.logger.handlers import (
+    JSON_LOG_ATTRIBUTE,
+    JsonPayloadLogfireLoggingHandler,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -99,22 +105,92 @@ def test_setup_logging_reconfigures_uvicorn_loggers(monkeypatch: pytest.MonkeyPa
 
     logger_module.setup_logging()
 
-    assert len(root.handlers) == 2
-    assert isinstance(root.handlers[0], logging.StreamHandler)
-    assert root.handlers[0].formatter is logger_module.formatter
-    assert root.handlers[1] is otel_handler
+    assert root.handlers == [otel_handler]
     assert root.level == logging.INFO
     assert root.disabled is False
 
     for logger_name in logger_names:
         log = logging.getLogger(logger_name)
-        assert len(log.handlers) == 2
-        assert isinstance(log.handlers[0], logging.StreamHandler)
-        assert log.handlers[0].formatter is logger_module.formatter
-        assert log.handlers[1] is otel_handler
+        assert log.handlers == [otel_handler]
         assert log.level == logging.INFO
         assert log.disabled is False
         assert log.propagate is False
+
+
+def test_logfire_handler_preserves_json_formatter_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(formatter_module.time, "time_ns", lambda: 123456789)
+    record = logging.LogRecord(
+        name="test.logger",
+        level=logging.WARNING,
+        pathname=__file__,
+        lineno=30,
+        msg="hello %s",
+        args=("logfire",),
+        exc_info=None,
+    )
+    record.component = "unit-test"
+
+    handler = JsonPayloadLogfireLoggingHandler()
+
+    attributes = handler.fill_attributes(record)
+
+    assert attributes[JSON_LOG_ATTRIBUTE] == logger_module.formatter.format(record)
+
+
+def test_logfire_handler_writes_otel_json_to_stdout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(formatter_module.time, "time_ns", lambda: 123456789)
+    record = logging.LogRecord(
+        name="test.logger",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=40,
+        msg="stdout %s",
+        args=("otel",),
+        exc_info=None,
+    )
+    record.component = "unit-test"
+    stream = StringIO()
+    handler = JsonPayloadLogfireLoggingHandler(stream=stream)
+    logfire_instance = Mock()
+    handler.logfire_instance = logfire_instance
+
+    handler.emit(record)
+
+    stdout_payload = stream.getvalue().strip()
+    exported_attributes = logfire_instance.log.call_args.kwargs["attributes"]
+    parsed = json.loads(stdout_payload)
+
+    assert stdout_payload == exported_attributes[JSON_LOG_ATTRIBUTE]
+    assert parsed["message"] == "stdout otel"
+    assert parsed["severity_text"] == "INFO"
+    assert parsed["severity_number"] == 9
+    assert parsed["attributes"]["component"] == "unit-test"
+
+
+def test_logfire_handler_filters_health_endpoint_access_logs() -> None:
+    record = logging.LogRecord(
+        name="uvicorn.access",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=50,
+        msg='%s - "%s %s HTTP/%s" %d',
+        args=("127.0.0.1:50000", "GET", "/health/db", "1.1", 200),
+        exc_info=None,
+    )
+    stream = StringIO()
+    handler = JsonPayloadLogfireLoggingHandler(stream=stream)
+    logfire_instance = Mock()
+    handler.logfire_instance = logfire_instance
+
+    handled = handler.handle(record)
+
+    assert handled is False
+    assert stream.getvalue() == ""
+    logfire_instance.log.assert_not_called()
 
 
 @pytest.mark.parametrize(

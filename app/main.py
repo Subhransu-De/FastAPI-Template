@@ -50,6 +50,7 @@ def main() -> None:
     logger.setup_logging()
     uvicorn.run(
         "app.main:app",
+        host=app_settings.host,
         port=app_settings.port,
         reload=app_settings.reload,
         log_config=None,

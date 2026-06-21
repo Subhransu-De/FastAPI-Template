@@ -1,3 +1,4 @@
+import json
 import logging
 
 import logfire
@@ -6,6 +7,7 @@ from logfire.testing import TestExporter
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
 import app.logger.logger as logger_module
+from app.logger.handlers import JSON_LOG_ATTRIBUTE, JsonPayloadLogfireLoggingHandler
 
 pytestmark = pytest.mark.unit
 
@@ -21,7 +23,7 @@ def test_setup_logging_exports_app_and_uvicorn_logs_to_otel(
         additional_span_processors=[SimpleSpanProcessor(exporter)],
     )
     def get_test_otel_log_handler() -> logging.Handler:
-        return logfire.LogfireLoggingHandler()
+        return JsonPayloadLogfireLoggingHandler()
 
     monkeypatch.setattr(
         logger_module,
@@ -41,6 +43,14 @@ def test_setup_logging_exports_app_and_uvicorn_logs_to_otel(
 
     exported = exporter.exported_spans_as_dict(parse_json_attributes=True)
     messages = [span["attributes"].get("logfire.msg") for span in exported]
+    app_log = next(
+        span
+        for span in exported
+        if span["attributes"].get("logfire.msg") == "app log captured"
+    )
+    json_payload = app_log["attributes"][JSON_LOG_ATTRIBUTE]
+    if isinstance(json_payload, str):
+        json_payload = json.loads(json_payload)
 
     assert "app log captured" in messages
     assert "uvicorn access captured" in messages
@@ -51,3 +61,7 @@ def test_setup_logging_exports_app_and_uvicorn_logs_to_otel(
     assert any(
         span["attributes"].get("component") == "unit-test" for span in exported
     )
+    assert json_payload["message"] == "app log captured"
+    assert json_payload["severity_text"] == "INFO"
+    assert json_payload["severity_number"] == 9
+    assert json_payload["attributes"]["component"] == "unit-test"

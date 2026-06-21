@@ -5,6 +5,7 @@ import logfire
 from fastapi import FastAPI, Request, WebSocket
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.logger.handlers import get_logfire_handler
 from app.settings import app_settings
 
 _configured = False
@@ -19,7 +20,7 @@ def configure_otel() -> None:
 
     logfire.configure(
         service_name=app_settings.app_name,
-        send_to_logfire=False,
+        send_to_logfire="if-token-present",
         console=False,
     )
     _configured = True
@@ -27,9 +28,7 @@ def configure_otel() -> None:
 
 def get_otel_log_handler() -> logging.Handler:
     configure_otel()
-    handler = logfire.LogfireLoggingHandler()
-    handler.setLevel(logging.INFO)
-    return handler
+    return get_logfire_handler()
 
 
 def _extract_client_ip(request: Request | WebSocket) -> str | None:
