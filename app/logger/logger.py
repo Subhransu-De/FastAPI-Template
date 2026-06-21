@@ -1,50 +1,29 @@
-import json
 import logging
-import sys
-from logging import Formatter, Handler, Logger
+from logging import Logger
 
+from app.logger.configuration import setup_logging as _setup_logging
+from app.logger.formatters import JsonFormatter
+from app.logger.handlers import LOG_LEVEL, formatter
 from app.settings import app_settings
+from app.telemetry import get_otel_log_handler
 
-
-class JsonFormatter(Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        log_object: dict = {
-            "timestamp": self.formatTime(record, self.datefmt),
-            "name": record.name,
-            "level": record.levelname,
-            "message": record.getMessage(),
-        }
-        if record.exc_info:
-            log_object["exception"] = self.formatException(record.exc_info)
-        return json.dumps(log_object)
-
-
-formatter: Formatter = JsonFormatter()
+__all__ = [
+    "JsonFormatter",
+    "debug",
+    "error",
+    "formatter",
+    "info",
+    "logger",
+    "setup_logging",
+    "warning",
+]
 
 logger: Logger = logging.getLogger(app_settings.app_name)
-logger.setLevel(logging.INFO)
-
-console_handler: Handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-console_handler.setFormatter(formatter)
-
-if not logger.handlers:
-    logger.addHandler(console_handler)
+logger.setLevel(LOG_LEVEL)
 
 
 def setup_logging() -> None:
-    loggers = ["uvicorn", "uvicorn.access", "uvicorn.error"]
-    for logger_name in loggers:
-        log: Logger = logging.getLogger(logger_name)
-        log.handlers = []
-
-        handler: Handler = logging.StreamHandler(sys.stdout)
-        handler.setFormatter(formatter)
-        log.addHandler(handler)
-
-        log.setLevel(logging.INFO)
-
-        log.propagate = False
+    _setup_logging(otel_handler_factory=get_otel_log_handler)
 
 
 def info(msg: str, *args: object) -> None:
