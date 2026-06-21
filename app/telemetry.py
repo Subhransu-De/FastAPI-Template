@@ -12,6 +12,7 @@ from app.settings import app_settings
 _configured = False
 _instrumented_fastapi_apps: set[int] = set()
 _instrumented_sqlalchemy_engines: set[int] = set()
+_FASTAPI_EXCLUDED_URLS = r".*/health/db(?:\?.*)?$"
 
 
 def configure_otel() -> None:
@@ -68,12 +69,16 @@ def _request_attributes_mapper(
     request: Request | WebSocket,
     attributes: dict[str, Any],
 ) -> dict[str, Any]:
+    mapped_attributes: dict[str, Any] = {}
+    if errors := attributes.get("errors"):
+        mapped_attributes["errors"] = errors
+
     client_ip = _extract_client_ip(request)
     if client_ip:
-        attributes["client.ip"] = client_ip
+        mapped_attributes["client.ip"] = client_ip
 
-    _add_auth_attributes(request, attributes)
-    return attributes
+    _add_auth_attributes(request, mapped_attributes)
+    return mapped_attributes
 
 
 def instrument_fastapi(app: FastAPI) -> None:
@@ -82,7 +87,11 @@ def instrument_fastapi(app: FastAPI) -> None:
     if app_id in _instrumented_fastapi_apps:
         return
 
-    logfire.instrument_fastapi(app, request_attributes_mapper=_request_attributes_mapper)
+    logfire.instrument_fastapi(
+        app,
+        request_attributes_mapper=_request_attributes_mapper,
+        excluded_urls=_FASTAPI_EXCLUDED_URLS,
+    )
     _instrumented_fastapi_apps.add(app_id)
 
 
