@@ -18,6 +18,12 @@ cp .env.example .env
 
 ---
 
+## Dependency Updates
+
+This template includes both Renovate and Dependabot configurations. They intentionally mirror each other as much as possible so forked projects can use whichever dependency update bot fits their workflow.
+
+---
+
 ## Running the Application
 
 ### Development Mode
