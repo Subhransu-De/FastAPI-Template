@@ -23,7 +23,7 @@ lint = [
     "ty>=0.0.51",
 ]
 test = [
-    "pytest>=9.0.3",
+    "pytest>=9.1.1",
     "anyio>=4.13.0",
     "httpx>=0.28.1",
     "aiosqlite>=0.22.1",
