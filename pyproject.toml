@@ -20,7 +20,7 @@ dependencies = [
 [dependency-groups]
 lint = [
     "ruff>=0.15.18",
-    "ty>=0.0.51",
+    "ty>=0.0.52",
 ]
 test = [
     "pytest>=9.1.1",
