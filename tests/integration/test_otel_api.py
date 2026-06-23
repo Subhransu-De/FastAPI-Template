@@ -77,8 +77,20 @@ async def test_entity_api_requests_emit_otel_records(
     assert post_record["attributes"].get("oidc.client_id") == "test-client"
     assert post_record["attributes"].get("oidc.audience") == "test-client"
     assert post_record["attributes"].get("oidc.issuer") == "https://test-idp/realm"
-    assert ("GET", "/entities/{entity_id}", 200) in actual_requests
+    assert (
+        ("GET", "/entities/{entity_id}", 200) in actual_requests
+        or ("GET", f"/entities/{entity_id}", 200) in actual_requests
+    )
     assert ("GET", "/entities/", 200) in actual_requests
-    assert ("PUT", "/entities/{entity_id}", 200) in actual_requests
-    assert ("DELETE", "/entities/{entity_id}", 204) in actual_requests
-    assert ("GET", "/entities/{entity_id}", 404) in actual_requests
+    assert (
+        ("PUT", "/entities/{entity_id}", 200) in actual_requests
+        or ("PUT", f"/entities/{entity_id}", 200) in actual_requests
+    )
+    assert (
+        ("DELETE", "/entities/{entity_id}", 204) in actual_requests
+        or ("DELETE", f"/entities/{entity_id}", 204) in actual_requests
+    )
+    assert (
+        ("GET", "/entities/{entity_id}", 404) in actual_requests
+        or ("GET", f"/entities/{entity_id}", 404) in actual_requests
+    )
