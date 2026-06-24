@@ -52,7 +52,7 @@ modules, but it is intentionally not part of the normal PR gate. Run it from
 Linux or WSL because mutmut requires fork support:
 
 ```bash
-uvx mutmut run
+uv run --group test --with mutmut mutmut run
 ```
 
 ---
