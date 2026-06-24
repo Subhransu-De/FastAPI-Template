@@ -46,10 +46,10 @@ docker-down:
 	docker compose down -v
 
 test:
-	uv run pytest
+	uv run --group test pytest
 
 test-unit:
-	uv run pytest tests/unit -m unit
+	uv run --group test pytest tests/unit -m unit
 
 test-cov:
-	uv run pytest --cov=app --cov-report=term-missing
+	uv run --group test pytest --cov=app --cov-report=term-missing

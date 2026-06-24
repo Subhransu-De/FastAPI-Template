@@ -39,3 +39,20 @@ docker compose up --build
 ```
 
 ---
+
+## Testing
+
+```bash
+make test
+make test-cov
+```
+
+Mutation testing is configured for the critical auth, IO, service, and repository
+modules, but it is intentionally not part of the normal PR gate. Run it from
+Linux or WSL because mutmut requires fork support:
+
+```bash
+uv run --group test --with mutmut mutmut run
+```
+
+---

@@ -6,7 +6,7 @@ import pytest
 from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityUpdate
 from app.model.entity import Entity
-from app.service import entity as service_module
+from app.service import get_entity_service
 from app.service.entity import EntityService
 
 pytestmark = pytest.mark.unit
@@ -18,19 +18,20 @@ def session() -> AsyncMock:
 
 
 @pytest.fixture
-def repository(monkeypatch: pytest.MonkeyPatch) -> AsyncMock:
-    repo = AsyncMock()
-
-    def repository_factory(_session: AsyncMock) -> AsyncMock:
-        return repo
-
-    monkeypatch.setattr(service_module, "EntityRepository", repository_factory)
-    return repo
+def repository() -> AsyncMock:
+    return AsyncMock()
 
 
 @pytest.fixture
 def service(session: AsyncMock, repository: AsyncMock) -> EntityService:
     return EntityService(repository)
+
+
+def test_get_entity_service_returns_bound_session(session: AsyncMock) -> None:
+    service = get_entity_service(session)
+
+    assert isinstance(service, EntityService)
+    assert service.repo.session is session
 
 
 async def test_create_builds_entity_and_saves(

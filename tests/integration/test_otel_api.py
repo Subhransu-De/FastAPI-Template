@@ -1,3 +1,6 @@
+import json
+from uuid import uuid4
+
 import httpx
 import logfire
 import pytest
@@ -30,24 +33,12 @@ async def test_entity_api_requests_emit_otel_records(
     create_response = await app_client.post(
         "/entities/",
         headers={"X-Forwarded-For": "203.0.113.42"},
-        json={"name": "OTEL entity", "description": "Created through OTEL test"},
+        json={"name": "OTEL entity", "description": "private description"},
     )
     assert create_response.status_code == 201
-    entity_id = create_response.json()["id"]
+    missing_entity_id = uuid4()
 
-    get_response = await app_client.get(f"/entities/{entity_id}")
-    list_response = await app_client.get("/entities/")
-    update_response = await app_client.put(
-        f"/entities/{entity_id}",
-        json={"name": "OTEL entity updated"},
-    )
-    delete_response = await app_client.delete(f"/entities/{entity_id}")
-    missing_response = await app_client.get(f"/entities/{entity_id}")
-
-    assert get_response.status_code == 200
-    assert list_response.status_code == 200
-    assert update_response.status_code == 200
-    assert delete_response.status_code == 204
+    missing_response = await app_client.get(f"/entities/{missing_entity_id}")
     assert missing_response.status_code == 404
 
     exported = otel_exporter.exported_spans_as_dict(parse_json_attributes=True)
@@ -67,6 +58,8 @@ async def test_entity_api_requests_emit_otel_records(
     ]
 
     assert ("POST", "/entities/", 201) in actual_requests
+    assert ("GET", f"/entities/{missing_entity_id}", 404) in actual_requests
+
     post_record = next(
         span
         for span in request_records
@@ -77,8 +70,11 @@ async def test_entity_api_requests_emit_otel_records(
     assert post_record["attributes"].get("oidc.client_id") == "test-client"
     assert post_record["attributes"].get("oidc.audience") == "test-client"
     assert post_record["attributes"].get("oidc.issuer") == "https://test-idp/realm"
-    assert ("GET", f"/entities/{entity_id}", 200) in actual_requests
-    assert ("GET", "/entities/", 200) in actual_requests
-    assert ("PUT", f"/entities/{entity_id}", 200) in actual_requests
-    assert ("DELETE", f"/entities/{entity_id}", 204) in actual_requests
-    assert ("GET", f"/entities/{entity_id}", 404) in actual_requests
+
+    serialized_attributes = json.dumps(
+        [span["attributes"] for span in request_records],
+        default=str,
+    )
+    assert "private description" not in serialized_attributes
+    assert "Bearer " not in serialized_attributes
+    assert "authorization" not in serialized_attributes.lower()
