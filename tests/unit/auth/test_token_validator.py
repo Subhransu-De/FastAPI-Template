@@ -2,11 +2,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi import Request
-from jwt import PyJWKClient, PyJWKClientError, PyJWTError
+from jwt import PyJWKClientError, PyJWTError
 
 from app.auth import authentication_filter
 from app.auth.token_validator import _get_jwks_client
 from app.exceptions.exceptions import AuthenticationError
+from app.settings import authn_settings
 
 pytestmark = pytest.mark.unit
 
@@ -32,19 +33,11 @@ class TestGetJwksClient:
             client = _get_jwks_client()
 
         mock_cls.assert_called_once_with(
-            pytest.approx(mock_cls.call_args.args[0]),
+            authn_settings.jwks_uri,
             cache_jwk_set=True,
-            lifespan=mock_cls.call_args.kwargs["lifespan"],
+            lifespan=authn_settings.jwks_cache_ttl_seconds,
         )
         assert client is mock_cls.return_value
-
-    def test_returns_pyjwks_client_instance(self):
-        with patch("app.auth.token_validator.PyJWKClient") as mock_cls:
-            mock_cls.return_value = MagicMock(spec=PyJWKClient)
-            client = _get_jwks_client()
-
-        assert isinstance(client, MagicMock)
-        mock_cls.assert_called_once()
 
 
 class TestAuthenticationFilter:

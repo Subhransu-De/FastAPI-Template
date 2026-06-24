@@ -56,3 +56,29 @@ markers = [
     "with_auth: inject a signed Bearer token into every request made by the test",
 ]
 addopts = "-v --strict-markers"
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "@abstractmethod",
+    "pass",
+]
+
+[tool.mutmut]
+source_paths = [
+    "app/auth",
+    "app/io",
+    "app/service",
+    "app/repository",
+]
+pytest_add_cli_args_test_selection = [
+    "tests/unit/auth",
+    "tests/unit/io",
+    "tests/unit/service",
+    "tests/integration/test_entities_api.py",
+    "tests/integration/test_repository.py",
+]

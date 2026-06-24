@@ -3,7 +3,7 @@ import json
 import selectors
 import sys
 import time
-from collections.abc import AsyncGenerator, Iterator
+from collections.abc import AsyncGenerator, Callable, Iterator
 from os import environ
 from typing import Any
 
@@ -114,15 +114,19 @@ async def integration_sessionmaker(
     )
 
 
+async def _clear_database(engine: AsyncEngine) -> None:
+    async with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
+
+
 @pytest.fixture
 async def clean_integration_database(
     integration_engine: AsyncEngine,
 ) -> AsyncGenerator[None]:
+    await _clear_database(integration_engine)
     yield
-
-    async with integration_engine.begin() as conn:
-        for table in reversed(Base.metadata.sorted_tables):
-            await conn.execute(table.delete())
+    await _clear_database(integration_engine)
 
 
 # --- Auth helpers ---
@@ -165,7 +169,13 @@ def _patch_authn_settings(_jwks_server: HTTPServer) -> Iterator[None]:
     authn_settings.jwks_uri, authn_settings.issuer, authn_settings.client_id = original
 
 
-def _make_test_token(private_key: RSAPrivateKey) -> str:
+def _make_test_token(
+    private_key: RSAPrivateKey,
+    *,
+    audience: str = _TEST_CLIENT_ID,
+    issuer: str = _TEST_ISSUER,
+    expires_in_seconds: int = 3600,
+) -> str:
     now = int(time.time())
     private_key_pem = private_key.private_bytes(
         encoding=Encoding.PEM,
@@ -175,17 +185,27 @@ def _make_test_token(private_key: RSAPrivateKey) -> str:
     return pyjwt.encode(
         {
             "sub": "test-user",
-            "aud": _TEST_CLIENT_ID,
-            "iss": _TEST_ISSUER,
+            "aud": audience,
+            "iss": issuer,
             "azp": _TEST_CLIENT_ID,
             "iat": now,
             "nbf": now,
-            "exp": now + 3600,
+            "exp": now + expires_in_seconds,
         },
         private_key_pem,
         algorithm="RS256",
         headers={"kid": _TEST_KID},
     )
+
+
+@pytest.fixture
+def make_test_token(
+    _rsa_private_key: RSAPrivateKey,
+) -> Callable[..., str]:
+    def factory(**claims: Any) -> str:
+        return _make_test_token(_rsa_private_key, **claims)
+
+    return factory
 
 
 # --- App client ---
