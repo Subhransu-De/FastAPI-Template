@@ -1,0 +1,13 @@
+services:
+  keycloak:
+    volumes:
+      - ./.docker/e2e-realm-export.json:/opt/keycloak/data/import/e2e-realm-export.json
+
+  app:
+    environment:
+      OIDC_ISSUER_URL: http://localhost:8080/realms/fastapi-e2e-realm
+      OIDC_INTERNAL_URL: http://keycloak:8080/realms/fastapi-e2e-realm
+      OIDC_JWKS_URI: http://keycloak:8080/realms/fastapi-e2e-realm/protocol/openid-connect/certs
+      OIDC_ISSUER: http://localhost:8080/realms/fastapi-e2e-realm
+      OIDC_AUTHORIZATION_ENDPOINT: http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/auth
+      OIDC_TOKEN_ENDPOINT: http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/token
