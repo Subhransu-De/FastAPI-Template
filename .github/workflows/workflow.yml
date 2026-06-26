@@ -53,7 +53,7 @@ jobs:
         run: uv sync --group lint
 
       - name: Run Ruff
-        run: uv run ruff check .
+        run: uv run ruff check app tests alembic
 
   ty:
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
         run: uv sync --group lint --group test
 
       - name: Run Ty
-        run: uv run ty check
+        run: uv run ty check app tests alembic
 
   test:
     runs-on: ubuntu-latest
