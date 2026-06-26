@@ -130,7 +130,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  scenario-tests:
+  e2e:
+    name: Scenario tests
     runs-on: ubuntu-latest
     needs: [build]
     permissions:
@@ -162,7 +163,7 @@ jobs:
         working-directory: scenario-tests
         run: uv sync --python 3.13
 
-      - name: Run endpoint scenarios
+      - name: Run scenario tests
         working-directory: scenario-tests
         run: uv run --python 3.13 behave
 
