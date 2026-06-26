@@ -14,7 +14,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-editable
 
-FROM python:3.14-slim-bookworm
+FROM python:3.13-slim-bookworm
 
 LABEL org.opencontainers.image.title="FastAPI Template"
 LABEL org.opencontainers.image.description="FastAPI template"
