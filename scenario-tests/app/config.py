@@ -1,37 +1,28 @@
-import os
-from dataclasses import dataclass
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-def _required_environment_value(name: str) -> str:
-    value = os.getenv(name)
-    if not value:
-        raise RuntimeError(f"{name} must be set")
-    return value
+class ScenarioTestSettings(BaseSettings):
+    model_config = SettingsConfigDict(extra="ignore")
 
+    target_base_url: str = Field(
+        default="http://localhost",
+        validation_alias="TARGET_BASE_URL",
+    )
+    token_url: str = Field(
+        default="http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/token",
+        validation_alias="TOKEN_URL",
+    )
+    oidc_client_id: str = Field(
+        default="fastapi-client",
+        validation_alias="OIDC_CLIENT_ID",
+    )
+    oidc_client_secret: str = Field(validation_alias="OIDC_CLIENT_SECRET")
+    username: str = Field(default="e2e-user", validation_alias="E2E_USERNAME")
+    password: str = Field(validation_alias="E2E_PASSWORD")
+    health_endpoint: str = Field(default="/health/db", validation_alias="HEALTH_ENDPOINT")
 
-@dataclass(frozen=True)
-class EndpointTestSettings:
-    target_base_url: str
-    token_url: str
-    oidc_client_id: str
-    oidc_client_secret: str
-    username: str
-    password: str
-    health_endpoint: str
-
+    @field_validator("target_base_url")
     @classmethod
-    def from_environment(cls) -> "EndpointTestSettings":
-        return cls(
-            target_base_url=os.getenv("TARGET_BASE_URL", "http://localhost").rstrip(
-                "/"
-            ),
-            token_url=os.getenv(
-                "TOKEN_URL",
-                "http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/token",
-            ),
-            oidc_client_id=os.getenv("OIDC_CLIENT_ID", "fastapi-client"),
-            oidc_client_secret=_required_environment_value("OIDC_CLIENT_SECRET"),
-            username=os.getenv("E2E_USERNAME", "e2e-user"),
-            password=_required_environment_value("E2E_PASSWORD"),
-            health_endpoint=os.getenv("HEALTH_ENDPOINT", "/health/db"),
-        )
+    def strip_target_base_url_trailing_slash(cls, value: str) -> str:
+        return value.rstrip("/")
