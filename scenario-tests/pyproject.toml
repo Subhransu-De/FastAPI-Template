@@ -1,7 +1,7 @@
 [project]
-name = "endpoint-test"
+name = "scenario-tests"
 version = "0.1.0"
-description = "Standalone Behave endpoint tests for the FastAPI template application."
+description = "Standalone Behave Scenario Testss for the FastAPI template application."
 requires-python = ">=3.13"
 dependencies = [
     "behave>=1.3.3",

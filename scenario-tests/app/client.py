@@ -3,11 +3,11 @@ from typing import Any
 
 import httpx
 
-from endpoint_test.config import EndpointTestSettings
+from app.config import ScenarioTestSettings
 
 
-class EndpointTestClient:
-    def __init__(self, settings: EndpointTestSettings) -> None:
+class ScenarioTestClient:
+    def __init__(self, settings: ScenarioTestSettings) -> None:
         self.settings = settings
         self.client = httpx.Client(
             base_url=settings.target_base_url,

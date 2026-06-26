@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
 
 
 def _required_environment_value(name: str) -> str:
@@ -22,7 +22,9 @@ class EndpointTestSettings:
     @classmethod
     def from_environment(cls) -> "EndpointTestSettings":
         return cls(
-            target_base_url=os.getenv("TARGET_BASE_URL", "http://localhost").rstrip("/"),
+            target_base_url=os.getenv("TARGET_BASE_URL", "http://localhost").rstrip(
+                "/"
+            ),
             token_url=os.getenv(
                 "TOKEN_URL",
                 "http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/token",

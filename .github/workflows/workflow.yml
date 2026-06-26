@@ -12,7 +12,7 @@ on:
       - "Dockerfile"
       - "docker-compose*.yml"
       - ".docker/**"
-      - "Endpoint-test/**"
+      - "scenario-tests/**"
       - "renovate.json"
       - "sonar-project.properties"
       - ".sonarcloud.properties"
@@ -29,7 +29,7 @@ on:
       - "Dockerfile"
       - "docker-compose*.yml"
       - ".docker/**"
-      - "Endpoint-test/**"
+      - "scenario-tests/**"
       - "renovate.json"
       - "sonar-project.properties"
       - ".sonarcloud.properties"
@@ -130,7 +130,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  endpoint-test:
+  scenario-tests:
     runs-on: ubuntu-latest
     needs: [build]
     permissions:
@@ -158,12 +158,12 @@ jobs:
       - name: Start Docker Compose stack
         run: docker compose up --build --wait --wait-timeout 240
 
-      - name: Install endpoint test dependencies
-        working-directory: Endpoint-test
+      - name: Install Scenario Tests dependencies
+        working-directory: scenario-tests
         run: uv sync --python 3.13
 
       - name: Run endpoint scenarios
-        working-directory: Endpoint-test
+        working-directory: scenario-tests
         run: uv run --python 3.13 behave
 
       - name: Show Docker Compose logs
