@@ -5,6 +5,8 @@ import httpx
 
 from app.config import ScenarioTestSettings
 
+HTTP_OK = 200
+
 
 class ScenarioTestClient:
     def __init__(self, settings: ScenarioTestSettings) -> None:
@@ -24,7 +26,7 @@ class ScenarioTestClient:
         for _ in range(attempts):
             try:
                 response = self.client.get(self.settings.health_endpoint)
-                if response.status_code == 200:
+                if response.status_code == HTTP_OK:
                     return
             except httpx.HTTPError as exc:
                 last_error = exc
@@ -52,7 +54,8 @@ class ScenarioTestClient:
 
         access_token = response.json().get("access_token")
         if not access_token:
-            raise RuntimeError("Keycloak did not return an access token")
+            message = "Keycloak did not return an access token"
+            raise RuntimeError(message)
 
         self.client.headers.update({"Authorization": f"Bearer {access_token}"})
         return access_token
