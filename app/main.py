@@ -23,6 +23,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     command.upgrade(alembic_cfg, "head")
     logger.info(f"Starting up {app_settings.app_name} on port {app_settings.port}")
     yield
+    await get_engine().dispose()
     logger.info("Application shutdown")
 
 
