@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Annotated
 
 import jwt
@@ -23,6 +24,7 @@ _oauth2_scheme = OAuth2(
 )
 
 
+@lru_cache
 def _get_jwks_client() -> PyJWKClient:
     return PyJWKClient(
         authn_settings.jwks_uri,
