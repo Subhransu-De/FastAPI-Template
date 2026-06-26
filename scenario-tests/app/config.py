@@ -1,5 +1,10 @@
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+REQUIRED_ENVIRONMENT_FIELDS = {
+    "oidc_client_secret": "OIDC_CLIENT_SECRET",
+    "password": "E2E_PASSWORD",
+}
 
 
 class ScenarioTestSettings(BaseSettings):
@@ -17,12 +22,27 @@ class ScenarioTestSettings(BaseSettings):
         default="fastapi-client",
         validation_alias="OIDC_CLIENT_ID",
     )
-    oidc_client_secret: str = Field(validation_alias="OIDC_CLIENT_SECRET")
+    oidc_client_secret: str = Field(default="", validation_alias="OIDC_CLIENT_SECRET")
     username: str = Field(default="e2e-user", validation_alias="E2E_USERNAME")
-    password: str = Field(validation_alias="E2E_PASSWORD")
+    password: str = Field(default="", validation_alias="E2E_PASSWORD")
     health_endpoint: str = Field(default="/health/db", validation_alias="HEALTH_ENDPOINT")
 
     @field_validator("target_base_url")
     @classmethod
     def strip_target_base_url_trailing_slash(cls, value: str) -> str:
         return value.rstrip("/")
+
+    @field_validator("oidc_client_secret", "password")
+    @classmethod
+    def require_environment_value(cls, value: str, info: ValidationInfo) -> str:
+        if value:
+            return value
+
+        field_name = info.field_name
+        if field_name is None:
+            message = "Required environment value must be set"
+            raise ValueError(message)
+
+        environment_name = REQUIRED_ENVIRONMENT_FIELDS[field_name]
+        message = f"{environment_name} must be set"
+        raise ValueError(message)

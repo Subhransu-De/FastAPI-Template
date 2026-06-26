@@ -1,11 +1,18 @@
+from collections.abc import Callable
+from importlib import import_module
 from typing import Any
-
-from behave import given, then, when
 
 HTTP_OK = 200
 HTTP_CREATED = 201
 HTTP_NO_CONTENT = 204
 HTTP_NOT_FOUND = 404
+StepFunction = Callable[..., Any]
+StepDecorator = Callable[[str], Callable[[StepFunction], StepFunction]]
+
+_behave = import_module("behave")
+given: StepDecorator = _behave.given
+then: StepDecorator = _behave.then
+when: StepDecorator = _behave.when
 
 
 def require(condition: object, message: str = "Scenario assertion failed") -> None:
