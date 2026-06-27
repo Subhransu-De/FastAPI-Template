@@ -9,11 +9,5 @@ dependencies = [
     "pydantic-settings>=2.14.2",
 ]
 
-[dependency-groups]
-lint = [
-    "ruff>=0.15.20",
-    "ty>=0.0.54",
-]
-
 [tool.uv]
 package = false
