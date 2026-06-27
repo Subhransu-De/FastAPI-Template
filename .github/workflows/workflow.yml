@@ -163,7 +163,7 @@ jobs:
         run: uv sync --python 3.13 --package scenario-tests
 
       - name: Run scenario tests
-        run: uv run --python 3.13 --package scenario-tests behave
+        run: uv run --python 3.13 --package scenario-tests behave scenario-tests/features
 
       - name: Show Docker Compose logs
         if: failure()
