@@ -29,7 +29,7 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 
 This template keeps tests split by purpose so each feedback loop stays clear:
 
-- **Unit tests** cover isolated settings, auth, service, IO, logging, telemetry, and exception behavior.
+- **Unit tests** cover isolated settings, auth, service, IO, logging, and exception behavior.
 - **Integration tests** exercise the API and repository with disposable PostgreSQL through Testcontainers.
 - **Scenario tests** live in `scenario-tests` and use Behave plus HTTPX against the running Docker Compose stack.
 - **Coverage checks** run with `pytest-cov`; CI currently enforces at least 80% coverage.
@@ -38,7 +38,7 @@ This template keeps tests split by purpose so each feedback loop stays clear:
 ## Architecture
 
 At a glance, the template wires requests, authentication, business behavior,
-persistence, migrations, observability, and scenario tests like this:
+persistence, migrations, and scenario tests like this:
 
 ```mermaid
 flowchart LR
@@ -62,8 +62,6 @@ flowchart LR
     settings -.-> database
     settings -.-> auth
 
-    routes -.-> telemetry["app/telemetry + app/logger<br/>Logfire, OpenTelemetry, structured logs"]
-    database -.-> telemetry
 ```
 
 The application uses a small layered architecture:
@@ -73,7 +71,7 @@ The application uses a small layered architecture:
 - `app/repository` isolates persistence logic behind reusable async repository helpers.
 - `app/model` defines SQLAlchemy database models.
 - `app/io` defines request and response schemas at the API boundary.
-- `app/settings`, `app/auth`, `app/logger`, and `app/telemetry` keep cross-cutting concerns separate from endpoint logic.
+- `app/settings`, `app/auth`, and `app/logger` keep cross-cutting concerns separate from endpoint logic.
 
 This shape is meant for teams that want a practical backend template: simple enough to understand quickly, but structured enough to grow into a real service without immediately rewriting the foundation.
 
