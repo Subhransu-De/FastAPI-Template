@@ -4,11 +4,6 @@
 [![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=bugs)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
 [![SonarCloud Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
 [![SonarCloud Code Smells](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
-[![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
-[![SonarCloud Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
-[![SonarCloud Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
-[![SonarCloud Security Rating](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
-[![SonarCloud Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
 [![Snyk Repository](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
 [![CI/CD](https://github.com/Subhransu-De/FastAPI-Template/actions/workflows/workflow.yml/badge.svg)](https://github.com/Subhransu-De/FastAPI-Template/actions/workflows/workflow.yml)
 
