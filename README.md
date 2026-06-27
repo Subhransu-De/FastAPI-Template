@@ -1,10 +1,14 @@
 # FastAPI Template
 
 [![SonarQube Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=Subhransu-De_FastAPI-Template&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Subhransu-De_FastAPI-Template)
-[![Snyk Security](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
+[![Snyk Repository](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
+[![Snyk Main Branch](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/main/badge.svg)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
+[![Snyk pyproject.toml](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg?targetFile=pyproject.toml)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
+[![Snyk uv.lock](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg?targetFile=uv.lock)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
+[![Snyk Dockerfile](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg?targetFile=Dockerfile)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
 [![CI/CD](https://github.com/Subhransu-De/FastAPI-Template/actions/workflows/workflow.yml/badge.svg)](https://github.com/Subhransu-De/FastAPI-Template/actions/workflows/workflow.yml)
 
-![FastAPI](https://img.shields.io/badge/FastAPI-%3E%3D0.138.1-009688?style=flat&logo=fastapi&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.138.0-009688?style=flat&logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-%3E%3D3.13-3776AB?style=flat&logo=python&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-%3E%3D2.13.4-E92063?style=flat&logo=pydantic&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-%3E%3D2.0.51-D71F00?style=flat)
@@ -14,16 +18,16 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 
 ## What It Contains
 
-| Area                    | Included                                                                                               |
-| ----------------------- | ------------------------------------------------------------------------------------------------------ |
-| API                     | FastAPI application with health endpoints and protected CRUD routes for entities.                      |
-| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations applied on startup.             |
-| Authentication          | OAuth2 authorization-code flow, JWT bearer validation, and a Keycloak-backed Docker setup.             |
-| Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.       |
-| Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.              |
-| Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                            |
-| Quality gates           | Ruff linting, Ty type checks, coverage enforcement, SonarCloud analysis, and Snyk security status.     |
-| Dependency upkeep       | Renovate and Dependabot are configured for Python, Docker, Docker Compose, and GitHub Actions updates. |
+| Area                    | Included                                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| API                     | FastAPI application with health endpoints and protected CRUD routes for entities.                  |
+| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations applied on startup.         |
+| Authentication          | OAuth2 authorization-code flow, JWT bearer validation, and a Keycloak-backed Docker setup.         |
+| Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.   |
+| Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.          |
+| Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                        |
+| Quality gates           | Ruff linting, Ty type checks, coverage enforcement, SonarCloud analysis, and Snyk security status. |
+| Dependency upkeep       | Dependabot is configured for Python, Docker, Docker Compose, and GitHub Actions updates.           |
 
 ## Testing Strategy
 
@@ -129,4 +133,4 @@ uv run --group test --with mutmut mutmut run
 
 ## Maintenance
 
-The GitHub Actions workflow runs Ruff, Ty, unit tests, integration tests, coverage, Docker image build validation, and scenario tests. Renovate and Dependabot keep dependency updates visible, while SonarCloud and Snyk expose code-quality and security status at the top of this README.
+The GitHub Actions workflow runs Ruff, Ty, unit tests, integration tests, coverage, Docker image build validation, and scenario tests. Dependabot keeps dependency updates visible, while SonarCloud and Snyk expose code-quality and security status at the top of this README.
