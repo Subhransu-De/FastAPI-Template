@@ -37,6 +37,35 @@ This template keeps tests split by purpose so each feedback loop stays clear:
 
 ## Architecture
 
+At a glance, the template wires requests, authentication, business behavior,
+persistence, migrations, observability, and scenario tests like this:
+
+```mermaid
+flowchart LR
+    client["Client / API consumer"] -->|"HTTP"| routes["app/routes<br/>FastAPI routers"]
+    scenario["scenario-tests<br/>Behave + HTTPX"] -->|"HTTP against running stack"| routes
+
+    routes -->|"Depends"| auth["app/auth<br/>OAuth2 + JWT validation"]
+    keycloak["Keycloak<br/>OIDC issuer"] -->|"Tokens + JWKS"| auth
+
+    routes -->|"Pydantic input/output"| io["app/io<br/>Request and response schemas"]
+    routes -->|"Depends"| service["app/service<br/>Business behavior"]
+    service --> repository["app/repository<br/>Async data access"]
+    repository --> database["app/database<br/>Engine and sessions"]
+    model["app/model<br/>SQLAlchemy models"] --> repository
+    database --> postgres[("PostgreSQL")]
+
+    main["app/main.py<br/>Application startup"] --> alembic["Alembic<br/>Migrations"]
+    alembic --> postgres
+
+    settings["app/settings<br/>Environment configuration"] -.-> routes
+    settings -.-> database
+    settings -.-> auth
+
+    routes -.-> telemetry["app/telemetry + app/logger<br/>Logfire, OpenTelemetry, structured logs"]
+    database -.-> telemetry
+```
+
 The application uses a small layered architecture:
 
 - `app/routes` owns HTTP endpoints, request dependencies, and route grouping.
