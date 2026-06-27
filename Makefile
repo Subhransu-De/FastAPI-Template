@@ -1,4 +1,4 @@
-.PHONY: help lint run format install install-prod upgrade docker-up docker-down test test-unit test-cov
+.PHONY: help lint lint-ruff lint-ty run format install install-prod upgrade docker-up docker-down test test-unit test-cov
 
 help:
 	@echo "Available targets:"
@@ -16,20 +16,26 @@ help:
 	@echo "  make test-cov                  - Run tests with coverage report"
 
 install:
-	uv sync --group lint --group test
+	uv sync --group lint --group test --all-packages
 
 install-prod:
 	uv sync
 
 upgrade:
-	uv sync --group lint --group test -U
+	uv sync --group lint --group test --all-packages -U
 
 lint:
-	uv run ruff check .
-	uv run ty check
+	uv run --group lint --all-packages ruff check app tests alembic scenario-tests
+	uv run --group lint --all-packages ty check app tests alembic scenario-tests
+
+lint-ruff:
+	uv run --group lint --all-packages ruff check app tests alembic scenario-tests
+
+lint-ty:
+	uv run --group lint --all-packages ty check app tests alembic scenario-tests
 
 format:
-	uv run ruff check --fix .
+	uv run --group lint --all-packages ruff check --fix app tests alembic scenario-tests
 
 run:
 	@if [ ! -f .env ]; then \

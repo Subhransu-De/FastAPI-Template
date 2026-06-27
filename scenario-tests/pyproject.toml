@@ -1,0 +1,13 @@
+[project]
+name = "scenario-tests"
+version = "0.1.0"
+description = "Standalone Behave scenario tests for the FastAPI template application."
+requires-python = ">=3.13"
+dependencies = [
+    "behave>=1.3.3",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.14.2",
+]
+
+[tool.uv]
+package = false

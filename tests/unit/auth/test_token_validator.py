@@ -27,10 +27,14 @@ def _make_request(authorization: str | None) -> Request:
 
 class TestGetJwksClient:
     def test_returns_pyjwks_client_with_settings(self):
-        with patch(
-            "app.auth.token_validator.PyJWKClient", return_value=MagicMock()
-        ) as mock_cls:
-            client = _get_jwks_client()
+        _get_jwks_client.cache_clear()
+        try:
+            with patch(
+                "app.auth.token_validator.PyJWKClient", return_value=MagicMock()
+            ) as mock_cls:
+                client = _get_jwks_client()
+        finally:
+            _get_jwks_client.cache_clear()
 
         mock_cls.assert_called_once_with(
             authn_settings.jwks_uri,

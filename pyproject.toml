@@ -32,6 +32,9 @@ test = [
     "testcontainers[postgres]>=4.14.2",
 ]
 
+[tool.uv.workspace]
+members = ["scenario-tests"]
+
 [tool.alembic]
 script_location = "%(here)s/alembic"
 timezone = "UTC"

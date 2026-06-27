@@ -1,0 +1,134 @@
+{
+  "realm": "fastapi-e2e-realm",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "browserFlow": "email-first-browser",
+  "authenticationFlows": [
+    {
+      "alias": "email-first-browser",
+      "description": "Email-first login with conditional password step",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "flowAlias": "email-first-forms",
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "email-first-forms",
+      "description": "Username form then conditional password",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "flowAlias": "password-if-configured",
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "alias": "password-if-configured",
+      "description": "Password form - skipped when user has no credential",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-password-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "fastapi-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me",
+      "implicitFlowEnabled": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "fastapi-client",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        },
+        {
+          "name": "not-before",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "nbf",
+            "claim.value": "0",
+            "jsonType.label": "long",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "e2e-user",
+      "enabled": true,
+      "email": "e2e-user@example.com",
+      "firstName": "E2E",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test-password",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
+    }
+  ]
+}
