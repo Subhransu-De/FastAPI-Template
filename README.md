@@ -7,7 +7,7 @@
 [![Snyk Repository](https://snyk.io/test/github/Subhransu-De/FastAPI-Template/badge.svg)](https://snyk.io/test/github/Subhransu-De/FastAPI-Template)
 [![CI/CD](https://github.com/Subhransu-De/FastAPI-Template/actions/workflows/workflow.yml/badge.svg)](https://github.com/Subhransu-De/FastAPI-Template/actions/workflows/workflow.yml)
 
-![FastAPI](https://img.shields.io/badge/FastAPI-%3E%3D0.138.0-009688?style=flat&logo=fastapi&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-%3E%3D0.138.1-009688?style=flat&logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-%3E%3D3.13-3776AB?style=flat&logo=python&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-%3E%3D2.13.4-E92063?style=flat&logo=pydantic&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-%3E%3D2.0.51-D71F00?style=flat)
