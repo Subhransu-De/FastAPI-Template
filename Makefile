@@ -25,8 +25,8 @@ upgrade:
 	uv sync --group lint --group test --all-packages -U
 
 lint:
-	$(MAKE) lint-ruff
-	$(MAKE) lint-ty
+	uv run --group lint --all-packages ruff check app tests alembic scenario-tests
+	uv run --group lint --all-packages ty check app tests alembic scenario-tests
 
 lint-ruff:
 	uv run --group lint --all-packages ruff check app tests alembic scenario-tests
