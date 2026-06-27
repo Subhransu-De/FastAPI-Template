@@ -70,7 +70,7 @@ class ScenarioTestClient:
         return self.client.get(f"/entities/{entity_id}")
 
     def list_entities(self) -> httpx.Response:
-        return self.client.get("/entities/")
+        return self.client.get("/entities/", params={"limit": 100})
 
     def update_entity(
         self,

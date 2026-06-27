@@ -8,7 +8,7 @@ REQUIRED_ENVIRONMENT_FIELDS = {
 
 
 class ScenarioTestSettings(BaseSettings):
-    model_config = SettingsConfigDict(extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     target_base_url: str = Field(
         default="http://localhost",
