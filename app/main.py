@@ -32,6 +32,7 @@ app = FastAPI(
     lifespan=lifespan,
     swagger_ui_init_oauth={
         "clientId": authn_settings.client_id,
+        "clientSecret": authn_settings.client_secret,
         "scopes": "openid",
         "usePkceWithAuthorizationCodeGrant": True,
     },
