@@ -115,13 +115,19 @@ Run tests with coverage:
 make test-cov
 ```
 
-Run scenario tests against the Docker Compose stack:
+Run scenario tests against the e2e Docker Compose stack:
 
 ```bash
+export COMPOSE_FILE=docker-compose.yml:docker-compose.e2e.yml
+export POSTGRES_PASSWORD=postgres
+export KEYCLOAK_ADMIN_PASSWORD=admin
+export OIDC_CLIENT_SECRET=change-me
+export E2E_PASSWORD=test-password
+
 docker compose up --build --wait
 cd scenario-tests
 uv sync
-uv run behave
+OIDC_CLIENT_SECRET=change-me E2E_PASSWORD=test-password uv run behave
 ```
 
 Run mutation testing from Linux or WSL because `mutmut` requires fork support:
