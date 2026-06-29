@@ -40,7 +40,7 @@ services:
     container_name: template-app
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: ${APP_DOCKERFILE:-Dockerfile.3.14}
     ports:
       - "80:80"
     environment:
