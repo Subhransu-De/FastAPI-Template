@@ -25,7 +25,7 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 | Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.   |
 | Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.          |
 | Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                        |
-| Quality gates           | Ruff linting, Ty type checks, coverage enforcement, SonarCloud analysis, and Snyk security status. |
+| Quality gates           | Ruff linting, Ty type checks, import-linter architecture checks, coverage enforcement, SonarCloud analysis, and Snyk security status. |
 | Dependency upkeep       | Dependabot is configured for Python, Docker, Docker Compose, and GitHub Actions updates.           |
 
 ## Testing Strategy
