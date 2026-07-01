@@ -36,9 +36,6 @@ test = [
 [tool.uv.workspace]
 members = ["scenario-tests"]
 
-[tool.ty.environment]
-extra-paths = ["./scenario-tests/typings"]
-
 [tool.alembic]
 script_location = "%(here)s/alembic"
 timezone = "UTC"
