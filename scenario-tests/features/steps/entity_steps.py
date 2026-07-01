@@ -1,6 +1,6 @@
 from typing import Any
 
-from interface.behave import given, then, when
+from behave import given, then, when
 
 HTTP_OK = 200
 HTTP_CREATED = 201
