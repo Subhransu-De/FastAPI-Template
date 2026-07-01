@@ -1,0 +1,112 @@
+[importlinter]
+root_package = app
+
+[importlinter:contract:app_layers]
+name = Application layers
+type = layers
+layers =
+    app.main
+    app.routes
+    app.service
+    app.auth
+    app.io
+    app.repository
+    app.database
+    app.model
+    app.exceptions
+    app.logger
+    app.telemetry
+    app.settings
+
+[importlinter:contract:database_access_is_protected]
+name = Database access is protected
+type = protected
+protected_modules =
+    app.database
+allowed_importers =
+    app.main
+    app.routes.health
+    app.service
+
+[importlinter:contract:repository_access_is_protected]
+name = Repository access is protected
+type = protected
+protected_modules =
+    app.repository
+allowed_importers =
+    app.service
+
+[importlinter:contract:auth_access_is_protected]
+name = Authentication access is protected
+type = protected
+protected_modules =
+    app.auth
+allowed_importers =
+    app.routes
+
+[importlinter:contract:entity_routes_do_not_access_persistence_directly]
+name = Entity routes do not access persistence directly
+type = forbidden
+source_modules =
+    app.routes.entity
+forbidden_modules =
+    app.database
+    app.repository
+allow_indirect_imports = True
+
+[importlinter:contract:entity_service_does_not_access_delivery_layer]
+name = Entity service does not access delivery layer
+type = forbidden
+source_modules =
+    app.service.entity
+forbidden_modules =
+    app.routes
+    app.auth
+    app.database
+
+[importlinter:contract:persistence_does_not_access_application_layers]
+name = Persistence does not access application layers
+type = forbidden
+source_modules =
+    app.repository
+    app.model
+forbidden_modules =
+    app.routes
+    app.service
+    app.auth
+    app.io
+    app.database
+
+[importlinter:contract:settings_are_foundational]
+name = Settings are foundational
+type = forbidden
+source_modules =
+    app.settings
+forbidden_modules =
+    app.*
+
+[importlinter:contract:schemas_and_models_are_independent]
+name = Schemas and models are independent
+type = independence
+modules =
+    app.io
+    app.model
+
+[importlinter:contract:auth_and_database_are_independent]
+name = Authentication and database are independent
+type = independence
+modules =
+    app.auth
+    app.database
+
+[importlinter:contract:routes_are_independent]
+name = Routes are independent
+type = independence
+modules =
+    app.routes.entity
+    app.routes.health
+
+[importlinter:contract:app_siblings_are_acyclic]
+name = App siblings are acyclic
+type = acyclic_siblings
+ancestors = app

@@ -1,20 +1,11 @@
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
 
-from behave import given as behave_given
-from behave import then as behave_then
-from behave import when as behave_when
-
-if TYPE_CHECKING:
-    from features.steps.behave_types import StepDecorator
+from behave import given, then, when
 
 HTTP_OK = 200
 HTTP_CREATED = 201
 HTTP_NO_CONTENT = 204
 HTTP_NOT_FOUND = 404
-
-given = cast("StepDecorator", behave_given)
-then = cast("StepDecorator", behave_then)
-when = cast("StepDecorator", behave_when)
 
 
 def require(condition: object, message: str = "Scenario assertion failed") -> None:

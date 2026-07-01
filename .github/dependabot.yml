@@ -15,6 +15,11 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    ignore:
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     rebase-strategy: "auto"
     open-pull-requests-limit: 5
     reviewers:
