@@ -11,14 +11,9 @@ pytestmark = pytest.mark.unit
 async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
     module = importlib.import_module("app.main")
 
-    config = Mock()
-    config_cls = Mock(return_value=config)
-    upgrade = Mock()
     setup_logging = Mock()
     info = Mock()
 
-    monkeypatch.setattr(module, "Config", config_cls)
-    monkeypatch.setattr(module.command, "upgrade", upgrade)
     monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
     monkeypatch.setattr(module.logger, "info", info)
 
@@ -28,9 +23,6 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
             f"Starting up {module.app_settings.app_name} on port {module.app_settings.port}"
         )
 
-    config_cls.assert_called_once_with("alembic.ini")
-    config.set_main_option.assert_called_once_with("script_location", "alembic")
-    upgrade.assert_called_once_with(config, "head")
     info.assert_any_call("Application shutdown")
 
 

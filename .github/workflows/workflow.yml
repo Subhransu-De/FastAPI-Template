@@ -123,10 +123,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python-version: "3.13"
-            dockerfile: Dockerfile.3.13
-          - python-version: "3.14"
-            dockerfile: Dockerfile.3.14
+          - image-name: app
+            dockerfile: Dockerfile
+            tag: fastapi-template:ci-app
+          - image-name: migration
+            dockerfile: Dockerfile.migration
+            tag: fastapi-template:ci-migration
 
     steps:
       - name: Checkout repository
@@ -135,13 +137,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
-      - name: Build Docker image for Python ${{ matrix.python-version }}
+      - name: Build ${{ matrix.image-name }} Docker image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}
           push: false
-          tags: fastapi-template:ci-python-${{ matrix.python-version }}
+          tags: ${{ matrix.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -2,11 +2,9 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
-from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
-from alembic import command
 from app import logger, telemetry
 from app.database.engine import get_engine
 from app.exceptions import AuthenticationError, BaseError, base_exception_handler
@@ -18,9 +16,6 @@ from app.settings import app_settings, authn_settings
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     logger.setup_logging()
     telemetry.instrument_sqlalchemy(get_engine())
-    alembic_cfg = Config("alembic.ini")
-    alembic_cfg.set_main_option("script_location", "alembic")
-    command.upgrade(alembic_cfg, "head")
     logger.info(f"Starting up {app_settings.app_name} on port {app_settings.port}")
     yield
     await get_engine().dispose()

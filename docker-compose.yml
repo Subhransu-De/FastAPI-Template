@@ -1,3 +1,15 @@
+x-app-image: &app-image
+  image: ${APP_IMAGE:-fastapi-template:local}
+  build:
+    context: .
+    dockerfile: ${APP_DOCKERFILE:-Dockerfile}
+
+x-migration-image: &migration-image
+  image: ${MIGRATION_IMAGE:-fastapi-template-migration:local}
+  build:
+    context: .
+    dockerfile: ${MIGRATION_DOCKERFILE:-Dockerfile.migration}
+
 services:
   db:
     container_name: postgres
@@ -36,11 +48,19 @@ services:
       retries: 15
       start_period: 30s
 
+  migrate:
+    <<: *migration-image
+    container_name: template-migrate
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/fastapi_db
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
   app:
+    <<: *app-image
     container_name: template-app
-    build:
-      context: .
-      dockerfile: ${APP_DOCKERFILE:-Dockerfile.3.14}
     ports:
       - "80:80"
     environment:
@@ -58,6 +78,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       keycloak:
         condition: service_healthy
     restart: unless-stopped
