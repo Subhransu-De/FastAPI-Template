@@ -2,8 +2,6 @@ name: CI/CD
 
 on:
   push:
-    branches:
-      - main
     paths:
       - "**.py"
       - "**.ini"
@@ -21,8 +19,6 @@ on:
       - ".github/dependabot.yml"
       - ".github/workflows/**.yml"
   pull_request:
-    branches:
-      - main
     paths:
       - "**.py"
       - "**.ini"
