@@ -93,8 +93,10 @@ Fill in the required values in `.env` before starting the app.
 Development mode:
 
 ```bash
-uv run --env-file .env python -m app.main --reload
+make run
 ```
+
+`make run` applies `alembic upgrade head` with the `migration` dependency group, then starts the FastAPI app.
 
 Docker-based development:
 
@@ -108,8 +110,8 @@ Docker Compose builds the API from `Dockerfile` and the one-shot migration servi
 
 Build and push both images before deployment:
 
-- API image: built from `Dockerfile`; default command is `python -m app.main`.
-- Migration image: built from `Dockerfile.migration`; default command is `alembic -c alembic.ini upgrade head` and only ships the Alembic migration files plus runtime dependencies.
+- API image: built from `Dockerfile`; default command is `python -m app.main`; installs only application runtime dependencies.
+- Migration image: built from `Dockerfile.migration`; default command is `alembic -c alembic.ini upgrade head`; installs only the `migration` dependency group and only ships the Alembic migration files.
 
 For ECS, run the migration image as a one-off task before updating or starting the service. For EKS, run the migration image as a Kubernetes Job before rolling out the Deployment. In both cases, the migration task/job must use the same production database environment variables as the application release.
 
