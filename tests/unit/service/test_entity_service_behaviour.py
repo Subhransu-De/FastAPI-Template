@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.exceptions import NoEntityFoundError
-from app.io.entity import EntityCreate, EntityUpdate
+from app.io.entity import EntityCreate, EntityOrderBy, EntityUpdate, OrderDirection
 from app.model.entity import Entity
 from app.service import get_entity_service
 from app.service.entity import EntityService
@@ -66,7 +66,7 @@ async def test_get_by_id_returns_repository_result(
     assert result is entity
 
 
-async def test_get_all_passes_offset_and_limit(
+async def test_get_all_passes_pagination_and_default_order(
     service: EntityService,
     repository: AsyncMock,
 ) -> None:
@@ -74,8 +74,28 @@ async def test_get_all_passes_offset_and_limit(
 
     result = await service.get_all(offset=10, limit=5)
 
-    repository.find_all_paginated.assert_awaited_once_with(offset=10, limit=5)
+    repository.find_all_paginated.assert_awaited_once()
+    call = repository.find_all_paginated.await_args
+    assert call.kwargs["offset"] == 10
+    assert call.kwargs["limit"] == 5
+    assert str(call.kwargs["order_by"]) == "entities.created_at ASC"
     assert result == []
+
+
+@pytest.mark.parametrize("order_by", list(EntityOrderBy))
+@pytest.mark.parametrize("direction", list(OrderDirection))
+async def test_get_all_allows_one_safe_entity_order_column(
+    service: EntityService,
+    repository: AsyncMock,
+    order_by: EntityOrderBy,
+    direction: OrderDirection,
+) -> None:
+    repository.find_all_paginated.return_value = []
+
+    await service.get_all(order_by=order_by, order_direction=direction)
+
+    clause = repository.find_all_paginated.await_args.kwargs["order_by"]
+    assert str(clause) == f"entities.{order_by.value} {direction.value.upper()}"
 
 
 async def test_update_raises_not_found_when_entity_does_not_exist(
@@ -124,7 +144,9 @@ async def test_update_can_clear_nullable_fields(
     repository.find_by_id.return_value = entity
     repository.update.side_effect = lambda updated: updated
 
-    result = await service.update(entity_id, EntityUpdate(name="Original", description=None))
+    result = await service.update(
+        entity_id, EntityUpdate(name="Original", description=None)
+    )
 
     repository.update.assert_awaited_once_with(entity)
     assert result is entity

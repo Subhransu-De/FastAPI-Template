@@ -5,8 +5,10 @@ import pytest
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import Response
+from starlette.exceptions import HTTPException
 
 from app.exceptions.base import BaseError, base_exception_handler
+from app.exceptions.exceptions import AuthenticationError
 
 pytestmark = pytest.mark.unit
 
@@ -92,16 +94,23 @@ def test_base_exception_handler_for_base_error():
     }
 
 
-def test_base_exception_handler_for_empty_body_error():
+def test_base_exception_handler_for_authentication_error():
     request = make_request("/entities")
-    exc = BaseError("Unauthorized", status_code=401, title="Unauthorized")
-    exc.empty_body = True
+    exc = AuthenticationError()
 
     response = base_exception_handler(request, exc)
+    body = load_json_body(response)
 
     assert response.status_code == 401
-    assert response.body == b""
     assert response.headers.get("www-authenticate") == "Bearer"
+    assert response.media_type == "application/problem+json"
+    assert body == {
+        "type": "https://testserver/openapi.json",
+        "title": "Unauthorized",
+        "status": 401,
+        "detail": "Unauthorized",
+        "instance": "https://testserver/entities",
+    }
 
 
 def test_base_exception_handler_for_unexpected_error(monkeypatch):
@@ -109,17 +118,43 @@ def test_base_exception_handler_for_unexpected_error(monkeypatch):
     error = RuntimeError("boom")
     logged = []
 
-    monkeypatch.setattr("app.exceptions.base.logger.error", logged.append)
+    def capture_log(*args, **kwargs):
+        logged.append((args, kwargs))
+
+    monkeypatch.setattr("app.exceptions.base.logger.exception", capture_log)
 
     response = base_exception_handler(request, error)
     body = load_json_body(response)
 
     assert response.status_code == 500
-    assert logged == ["boom"]
+    assert logged == [
+        (
+            ("Unhandled exception while processing %s", request.url),
+            {"exc": error},
+        )
+    ]
     assert body == {
         "type": "about:blank",
         "title": "Internal Server Error",
         "status": 500,
-        "detail": None,
+        "detail": "An unexpected error occurred.",
         "instance": "https://testserver/entities/123",
+    }
+    assert response.media_type == "application/problem+json"
+
+
+def test_base_exception_handler_for_framework_http_error():
+    request = make_request("/missing")
+
+    response = base_exception_handler(request, HTTPException(status_code=404))
+    body = load_json_body(response)
+
+    assert response.status_code == 404
+    assert response.media_type == "application/problem+json"
+    assert body == {
+        "type": "about:blank",
+        "title": "Not Found",
+        "status": 404,
+        "detail": "Not Found",
+        "instance": "https://testserver/missing",
     }

@@ -12,7 +12,7 @@ from app.settings import app_settings
 _configured = False
 _instrumented_fastapi_apps: set[int] = set()
 _instrumented_sqlalchemy_engines: set[int] = set()
-_FASTAPI_EXCLUDED_URLS = r".*/health/db(?:\?.*)?$"
+_FASTAPI_EXCLUDED_URLS = r".*/health(?:\?.*)?$"
 
 
 def configure_otel() -> None:

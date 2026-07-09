@@ -12,7 +12,7 @@ _DB_ENV = {"DATABASE_URL": "postgresql+psycopg://user:pass@localhost/db"}
 _AUTHN_ENV = {
     "OIDC_ISSUER_URL": "http://localhost:8080/realms/fastapi-realm",
     "OIDC_CLIENT_ID": "fastapi-client",
-    "OIDC_CLIENT_SECRET": "test-client-credential",
+    "OIDC_DOCS_CLIENT_ID": "fastapi-docs",
     "OIDC_JWKS_URI": "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/certs",
     "OIDC_ISSUER": "http://localhost:8080/realms/fastapi-realm",
     "OIDC_AUTHORIZATION_ENDPOINT": "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/auth",
@@ -83,7 +83,7 @@ class TestAuthNSettings:
         assert settings.issuer_url == _AUTHN_ENV["OIDC_ISSUER_URL"]
         assert settings.internal_url is None
         assert settings.client_id == _AUTHN_ENV["OIDC_CLIENT_ID"]
-        assert settings.client_secret == _AUTHN_ENV["OIDC_CLIENT_SECRET"]
+        assert settings.docs_client_id == _AUTHN_ENV["OIDC_DOCS_CLIENT_ID"]
         assert settings.jwks_cache_ttl_seconds == 300
         assert settings.jwks_uri == _AUTHN_ENV["OIDC_JWKS_URI"]
         assert settings.issuer == _AUTHN_ENV["OIDC_ISSUER"]

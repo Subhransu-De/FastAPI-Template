@@ -35,15 +35,22 @@ def _assert_validation_problem(
         status_code=400,
         title="Bad Request",
     )
-    assert any(
-        tuple(error["loc"]) == expected_location for error in body["detail"]
-    ), body["detail"]
+    assert any(tuple(error["loc"]) == expected_location for error in body["detail"]), (
+        body["detail"]
+    )
 
 
 def _assert_unauthorized(response: httpx.Response) -> None:
     assert response.status_code == 401
     assert response.headers["WWW-Authenticate"] == "Bearer"
-    assert not response.content
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json() == {
+        "type": "https://testserver/openapi.json",
+        "title": "Unauthorized",
+        "status": 401,
+        "detail": "Unauthorized",
+        "instance": str(response.request.url),
+    }
 
 
 async def test_entity_routes_require_bearer_authorization(
@@ -282,6 +289,8 @@ async def test_create_entity_rejects_missing_body(
         ("offset=-1", ("query", "offset")),
         ("limit=0", ("query", "limit")),
         ("limit=101", ("query", "limit")),
+        ("order_by=id", ("query", "order_by")),
+        ("order_direction=sideways", ("query", "order_direction")),
     ],
 )
 async def test_list_entities_rejects_invalid_pagination(
@@ -292,6 +301,24 @@ async def test_list_entities_rejects_invalid_pagination(
     response = await app_client.get(f"/entities/?{query_string}")
 
     _assert_validation_problem(response, expected_location=expected_location)
+
+
+@WithAuth
+async def test_list_entities_orders_by_one_selected_column(
+    app_client: httpx.AsyncClient,
+) -> None:
+    for name in ("Beta", "Alpha", "Gamma"):
+        response = await app_client.post("/entities/", json={"name": name})
+        assert response.status_code == 201
+
+    response = await app_client.get("/entities/?order_by=name&order_direction=desc")
+
+    assert response.status_code == 200
+    assert [entity["name"] for entity in response.json()] == [
+        "Gamma",
+        "Beta",
+        "Alpha",
+    ]
 
 
 @WithAuth

@@ -1,7 +1,20 @@
 from datetime import datetime
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+
+class EntityOrderBy(StrEnum):
+    NAME = "name"
+    DESCRIPTION = "description"
+    CREATED_AT = "created_at"
+    UPDATED_AT = "updated_at"
+
+
+class OrderDirection(StrEnum):
+    ASC = "asc"
+    DESC = "desc"
 
 
 class EntityCreate(BaseModel):

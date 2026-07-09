@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from uuid import UUID
 
 from app.exceptions import NoEntityFoundError
-from app.io.entity import EntityCreate, EntityUpdate
+from app.io.entity import EntityCreate, EntityOrderBy, EntityUpdate, OrderDirection
 from app.model.entity import Entity
 from app.repository.entity import EntityRepository
 
@@ -21,8 +21,22 @@ class EntityService:
             raise NoEntityFoundError(entity_id)
         return entity
 
-    async def get_all(self, offset: int = 0, limit: int = 25) -> Sequence[Entity]:
-        return await self.repo.find_all_paginated(offset=offset, limit=limit)
+    async def get_all(
+        self,
+        offset: int = 0,
+        limit: int = 25,
+        order_by: EntityOrderBy = EntityOrderBy.CREATED_AT,
+        order_direction: OrderDirection = OrderDirection.ASC,
+    ) -> Sequence[Entity]:
+        column = getattr(Entity, order_by.value)
+        order_clause = (
+            column.desc() if order_direction is OrderDirection.DESC else column.asc()
+        )
+        return await self.repo.find_all_paginated(
+            offset=offset,
+            limit=limit,
+            order_by=order_clause,
+        )
 
     async def update(self, entity_id: UUID, data: EntityUpdate) -> Entity:
         entity = await self.repo.find_by_id(entity_id)
@@ -37,4 +51,3 @@ class EntityService:
         deleted = await self.repo.delete_by_id(entity_id)
         if not deleted:
             raise NoEntityFoundError(entity_id)
-

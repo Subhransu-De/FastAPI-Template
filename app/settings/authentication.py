@@ -14,7 +14,7 @@ class AuthNSettings(BaseSettings):
     issuer_url: str
     internal_url: str | None = None
     client_id: str
-    client_secret: str
+    docs_client_id: str
     jwks_cache_ttl_seconds: int = 300
 
     # Populated from OIDC discovery on startup; can be overridden via env vars

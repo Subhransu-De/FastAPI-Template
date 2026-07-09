@@ -69,7 +69,7 @@ services:
       OIDC_ISSUER_URL: http://localhost:8080/realms/fastapi-realm
       OIDC_INTERNAL_URL: http://keycloak:8080/realms/fastapi-realm
       OIDC_CLIENT_ID: fastapi-client
-      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?OIDC_CLIENT_SECRET is required}
+      OIDC_DOCS_CLIENT_ID: fastapi-docs
       OIDC_JWKS_CACHE_TTL_SECONDS: 300
       OIDC_JWKS_URI: http://keycloak:8080/realms/fastapi-realm/protocol/openid-connect/certs
       OIDC_ISSUER: http://localhost:8080/realms/fastapi-realm

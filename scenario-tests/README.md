@@ -14,7 +14,7 @@ The application expects the target service and Keycloak realm to already be runn
 | `OIDC_CLIENT_SECRET` | Required | OIDC client secret. |
 | `E2E_USERNAME` | `e2e-user` | Test user username. |
 | `E2E_PASSWORD` | Required | Test user password. |
-| `HEALTH_ENDPOINT` | `/health/db` | Endpoint used before scenarios to wait for application readiness. |
+| `HEALTH_ENDPOINT` | `/health` | Endpoint used before scenarios to wait for application readiness. |
 
 ## Run
 

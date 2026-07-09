@@ -1,6 +1,6 @@
 import logging
 
-HEALTH_ENDPOINT_PATH = "/health/db"
+HEALTH_ENDPOINT_PATH = "/health"
 _UVICORN_ACCESS_PATH_ARG_INDEX = 2
 
 __all__ = ["HEALTH_ENDPOINT_PATH", "HealthEndpointFilter"]

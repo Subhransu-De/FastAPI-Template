@@ -25,7 +25,7 @@ class ScenarioTestSettings(BaseSettings):
     oidc_client_secret: str = Field(default="", validation_alias="OIDC_CLIENT_SECRET")
     username: str = Field(default="e2e-user", validation_alias="E2E_USERNAME")
     password: str = Field(default="", validation_alias="E2E_PASSWORD")
-    health_endpoint: str = Field(default="/health/db", validation_alias="HEALTH_ENDPOINT")
+    health_endpoint: str = Field(default="/health", validation_alias="HEALTH_ENDPOINT")
 
     @field_validator("target_base_url")
     @classmethod

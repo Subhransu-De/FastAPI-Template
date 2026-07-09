@@ -106,6 +106,8 @@ docker compose up --build
 
 Docker Compose builds the API from `Dockerfile` and the one-shot migration service from `Dockerfile.migration`. `APP_IMAGE` defaults to `fastapi-template:local`, while `MIGRATION_IMAGE` defaults to `fastapi-template-migration:local`. Compose starts `migrate` first, waits for `alembic upgrade head` to exit successfully, and then starts the API container. If migrations fail, the API container does not start.
 
+Swagger UI signs users in with the public `fastapi-docs` client using authorization code flow plus PKCE. The API continues to validate the `fastapi-client` audience. A browser client must never receive a client secret; `OIDC_CLIENT_SECRET` is used only by the confidential client in scenario tests.
+
 ## Container Images and Production Migrations
 
 Build and push both images before deployment:

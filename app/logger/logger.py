@@ -11,6 +11,7 @@ __all__ = [
     "JsonFormatter",
     "debug",
     "error",
+    "exception",
     "formatter",
     "info",
     "logger",
@@ -32,6 +33,14 @@ def info(msg: str, *args: object) -> None:
 
 def error(msg: str, *args: object) -> None:
     logger.error(msg, *args)
+
+
+def exception(msg: str, *args: object, exc: BaseException) -> None:
+    logger.error(
+        msg,
+        *args,
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
 
 
 def warning(msg: str, *args: object) -> None:

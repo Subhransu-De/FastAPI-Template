@@ -3,9 +3,61 @@ import runpy
 import sys
 from unittest.mock import Mock
 
+import httpx
 import pytest
+from fastapi import FastAPI
+from starlette.exceptions import HTTPException
+
+from app.exceptions import base_exception_handler
 
 pytestmark = pytest.mark.unit
+
+
+def test_swagger_uses_public_pkce_client_without_a_secret() -> None:
+    module = importlib.import_module("app.main")
+
+    assert module.app.swagger_ui_init_oauth == {
+        "clientId": "fastapi-docs",
+        "scopes": "openid",
+        "usePkceWithAuthorizationCodeGrant": True,
+    }
+
+
+def test_main_registers_problem_details_handlers() -> None:
+    module = importlib.import_module("app.main")
+
+    assert module.app.exception_handlers[HTTPException] is base_exception_handler
+    assert module.app.exception_handlers[Exception] is base_exception_handler
+
+
+async def test_catch_all_returns_problem_details_for_unknown_error() -> None:
+    test_app = FastAPI()
+    test_app.add_exception_handler(Exception, base_exception_handler)
+
+    @test_app.get("/failure")
+    async def failure() -> None:
+        message = "sensitive diagnostic"
+        raise RuntimeError(message)
+
+    transport = httpx.ASGITransport(
+        app=test_app,
+        raise_app_exceptions=False,
+    )
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="https://testserver",
+    ) as client:
+        response = await client.get("/failure")
+
+    assert response.status_code == 500
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json() == {
+        "type": "about:blank",
+        "title": "Internal Server Error",
+        "status": 500,
+        "detail": "An unexpected error occurred.",
+        "instance": "https://testserver/failure",
+    }
 
 
 async def test_lifespan_runs_startup_and_shutdown(monkeypatch):

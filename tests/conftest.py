@@ -5,6 +5,7 @@ os.environ.setdefault(
 )
 os.environ.setdefault("OIDC_ISSUER_URL", "http://localhost:8080/realms/fastapi-realm")
 os.environ.setdefault("OIDC_CLIENT_ID", "fastapi-client")
+os.environ.setdefault("OIDC_DOCS_CLIENT_ID", "fastapi-docs")
 os.environ.setdefault("OIDC_CLIENT_SECRET", "test-client-credential")
 os.environ.setdefault(
     "OIDC_JWKS_URI",

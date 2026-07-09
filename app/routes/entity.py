@@ -4,7 +4,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
+from app.io.entity import (
+    EntityCreate,
+    EntityOrderBy,
+    EntityResponse,
+    EntityUpdate,
+    OrderDirection,
+)
 from app.model.entity import Entity
 from app.service import EntityService, get_entity_service
 
@@ -32,8 +38,15 @@ async def list_entities(
     service: Annotated[EntityService, Depends(get_entity_service)],
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    order_by: EntityOrderBy = EntityOrderBy.CREATED_AT,
+    order_direction: OrderDirection = OrderDirection.ASC,
 ) -> Sequence[Entity]:
-    return await service.get_all(offset=offset, limit=limit)
+    return await service.get_all(
+        offset=offset,
+        limit=limit,
+        order_by=order_by,
+        order_direction=order_direction,
+    )
 
 
 @route.put("/{entity_id}", response_model=EntityResponse)

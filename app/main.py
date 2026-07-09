@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException
 
 from app import logger, telemetry
 from app.database.engine import get_engine
@@ -26,8 +27,7 @@ app = FastAPI(
     title=app_settings.app_name,
     lifespan=lifespan,
     swagger_ui_init_oauth={
-        "clientId": authn_settings.client_id,
-        "clientSecret": authn_settings.client_secret,
+        "clientId": authn_settings.docs_client_id,
         "scopes": "openid",
         "usePkceWithAuthorizationCodeGrant": True,
     },
@@ -37,6 +37,8 @@ telemetry.instrument_fastapi(app)
 app.add_exception_handler(AuthenticationError, base_exception_handler)
 app.add_exception_handler(BaseError, base_exception_handler)
 app.add_exception_handler(RequestValidationError, base_exception_handler)
+app.add_exception_handler(HTTPException, base_exception_handler)
+app.add_exception_handler(Exception, base_exception_handler)
 
 app.include_router(public_route)
 app.include_router(protected_route)

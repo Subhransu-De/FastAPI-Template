@@ -204,7 +204,7 @@ def test_logfire_handler_filters_health_endpoint_access_logs() -> None:
         pathname=__file__,
         lineno=50,
         msg='%s - "%s %s HTTP/%s" %d',
-        args=("127.0.0.1:50000", "GET", "/health/db", "1.1", 200),
+        args=("127.0.0.1:50000", "GET", "/health", "1.1", 200),
         exc_info=None,
     )
     stream = StringIO()
@@ -235,3 +235,17 @@ def test_log_wrappers_delegate(monkeypatch, wrapper, method_name):
     getattr(logger_module, wrapper)("message %s", "value")
 
     method.assert_called_once_with("message %s", "value")
+
+
+def test_exception_wrapper_preserves_stack_trace(monkeypatch):
+    method = Mock()
+    monkeypatch.setattr(logger_module.logger, "error", method)
+    error = RuntimeError("boom")
+
+    logger_module.exception("request failed: %s", "/failure", exc=error)
+
+    method.assert_called_once_with(
+        "request failed: %s",
+        "/failure",
+        exc_info=(RuntimeError, error, error.__traceback__),
+    )
