@@ -14,7 +14,7 @@ def service_dependency[RepoT, ServiceT](
     repository_type: Callable[[AsyncSession], RepoT],
 ) -> Callable[[AsyncSession], ServiceT]:
     def dependency(
-        session: Annotated[AsyncSession, Depends(get_session)],
+        session: Annotated[AsyncSession, Depends(get_session, scope="function")],
     ) -> ServiceT:
         return service_type(repository_type(session))
 
