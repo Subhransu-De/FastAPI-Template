@@ -143,7 +143,7 @@ class TestAuthNSettings:
     async def test_internal_discovery_uses_internal_jwks_url(self, monkeypatch):
         env = {
             "OIDC_ISSUER_URL": "http://localhost:8080/realms/fastapi-realm",
-            "OIDC_INTERNAL_URL": "http://keycloak:8080/realms/fastapi-realm",
+            "OIDC_INTERNAL_URL": "http://keycloak:8080/realms/fastapi-realm",  # NOSONAR: local Compose-only URL
             "OIDC_CLIENT_ID": "fastapi-client",
             "OIDC_DOCS_CLIENT_ID": "fastapi-docs",
         }
@@ -154,7 +154,7 @@ class TestAuthNSettings:
         settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
         discovery = {
             "jwks_uri": (
-                "http://keycloak:8080/realms/fastapi-realm/"
+                "http://keycloak:8080/realms/fastapi-realm/"  # NOSONAR: local Compose-only URL
                 "protocol/openid-connect/certs"
             ),
             "issuer": env["OIDC_ISSUER_URL"],
@@ -163,7 +163,7 @@ class TestAuthNSettings:
                 "protocol/openid-connect/auth"
             ),
             "token_endpoint": (
-                "http://keycloak:8080/realms/fastapi-realm/"
+                "http://keycloak:8080/realms/fastapi-realm/"  # NOSONAR: local Compose-only URL
                 "protocol/openid-connect/token"
             ),
         }
@@ -178,7 +178,7 @@ class TestAuthNSettings:
             metadata = await resolve_oidc_metadata(settings, client=client)
 
         assert metadata.jwks_uri == (
-            "http://keycloak:8080/realms/fastapi-realm/protocol/openid-connect/certs"
+            "http://keycloak:8080/realms/fastapi-realm/protocol/openid-connect/certs"  # NOSONAR: local Compose-only URL
         )
         assert metadata.authorization_endpoint == discovery["authorization_endpoint"]
         expected_endpoint = discovery["token_endpoint"].replace(

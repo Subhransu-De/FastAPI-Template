@@ -7,6 +7,8 @@ from starlette.exceptions import HTTPException
 
 from app.logger import logger
 
+_PROBLEM_JSON_MEDIA_TYPE = "application/problem+json"
+
 
 class BaseError(Exception):
     def __init__(
@@ -44,14 +46,14 @@ def base_exception_handler(request: Request, exc: Exception) -> Response:
                     "detail": exc.errors(),
                     "instance": str(request.url),
                 },
-                media_type="application/problem+json",
+                media_type=_PROBLEM_JSON_MEDIA_TYPE,
             )
         case BaseError():
             return JSONResponse(
                 status_code=exc.status_code,
                 content=exc.get_error(request),
                 headers=exc.headers,
-                media_type="application/problem+json",
+                media_type=_PROBLEM_JSON_MEDIA_TYPE,
             )
         case HTTPException():
             return JSONResponse(
@@ -64,7 +66,7 @@ def base_exception_handler(request: Request, exc: Exception) -> Response:
                     "instance": str(request.url),
                 },
                 headers=exc.headers,
-                media_type="application/problem+json",
+                media_type=_PROBLEM_JSON_MEDIA_TYPE,
             )
         case _:
             logger.exception(
@@ -81,7 +83,7 @@ def base_exception_handler(request: Request, exc: Exception) -> Response:
                     "detail": "An unexpected error occurred.",
                     "instance": str(request.url),
                 },
-                media_type="application/problem+json",
+                media_type=_PROBLEM_JSON_MEDIA_TYPE,
             )
 
 

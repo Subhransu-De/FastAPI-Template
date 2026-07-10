@@ -2,7 +2,7 @@ import asyncio
 from typing import cast
 
 import httpx
-from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DISCOVERY_PATH = "/.well-known/openid-configuration"
@@ -135,7 +135,7 @@ async def _discover_oidc_metadata(
             response.raise_for_status()
             metadata = OIDCMetadata.model_validate(response.json())
             return _validate_discovered_metadata(metadata, settings)
-        except (httpx.HTTPError, ValidationError, ValueError) as exc:
+        except (httpx.HTTPError, ValueError) as exc:
             last_error = exc
             if attempt < attempts:
                 await asyncio.sleep(retry_delay_seconds * attempt)
