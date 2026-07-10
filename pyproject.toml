@@ -20,7 +20,7 @@ dependencies = [
 [dependency-groups]
 lint = [
     "import-linter>=2.13",
-    "ruff>=0.15.20",
+    "ruff>=0.15.21",
     "ty>=0.0.57",
 ]
 test = [
