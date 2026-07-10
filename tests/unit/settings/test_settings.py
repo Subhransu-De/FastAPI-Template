@@ -1,9 +1,13 @@
-from unittest.mock import MagicMock, patch
-
+import httpx
 import pytest
 from pydantic import ValidationError
 
-from app.settings import ApplicationSettings, AuthNSettings, DatabaseSettings
+from app.settings import (
+    ApplicationSettings,
+    AuthNSettings,
+    DatabaseSettings,
+    resolve_oidc_metadata,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -92,7 +96,7 @@ class TestAuthNSettings:
         )
         assert settings.token_endpoint == _AUTHN_ENV["OIDC_TOKEN_ENDPOINT"]
 
-    def test_fetches_discovery_when_jwks_uri_not_set(self, monkeypatch):
+    async def test_resolves_discovery_when_overrides_are_not_set(self, monkeypatch):
         env = {
             k: v
             for k, v in _AUTHN_ENV.items()
@@ -115,18 +119,81 @@ class TestAuthNSettings:
             monkeypatch.setenv(key, value)
 
         discovery = {
-            "jwks_uri": "https://idp/certs",
-            "issuer": "https://idp/realm",
-            "authorization_endpoint": "https://idp/auth",
-            "token_endpoint": "https://idp/token",
+            "jwks_uri": (
+                "http://localhost:8080/realms/fastapi-realm/"
+                "protocol/openid-connect/certs"
+            ),
+            "issuer": _AUTHN_ENV["OIDC_ISSUER_URL"],
+            "authorization_endpoint": "http://localhost:8080/realms/fastapi-realm/auth",
+            "token_endpoint": "http://localhost:8080/realms/fastapi-realm/token",
         }
-        mock_response = MagicMock()
-        mock_response.json.return_value = discovery
+        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        assert settings.metadata_override() is None
 
-        with patch("app.settings.authentication.httpx.get", return_value=mock_response):
-            settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        def discovery_response(request: httpx.Request) -> httpx.Response:
+            assert request.url.path.endswith("/.well-known/openid-configuration")
+            return httpx.Response(200, json=discovery)
 
-        assert settings.jwks_uri == discovery["jwks_uri"]
-        assert settings.issuer == discovery["issuer"]
-        assert settings.authorization_endpoint == discovery["authorization_endpoint"]
-        assert settings.token_endpoint == discovery["token_endpoint"]
+        transport = httpx.MockTransport(discovery_response)
+        async with httpx.AsyncClient(transport=transport) as client:
+            metadata = await resolve_oidc_metadata(settings, client=client)
+
+        assert metadata.model_dump() == discovery
+
+    async def test_internal_discovery_uses_internal_jwks_url(self, monkeypatch):
+        env = {
+            "OIDC_ISSUER_URL": "http://localhost:8080/realms/fastapi-realm",
+            "OIDC_INTERNAL_URL": "http://keycloak:8080/realms/fastapi-realm",
+            "OIDC_CLIENT_ID": "fastapi-client",
+            "OIDC_DOCS_CLIENT_ID": "fastapi-docs",
+        }
+        for key in _AUTHN_ENV:
+            monkeypatch.delenv(key, raising=False)
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
+        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        discovery = {
+            "jwks_uri": (
+                "http://keycloak:8080/realms/fastapi-realm/"
+                "protocol/openid-connect/certs"
+            ),
+            "issuer": env["OIDC_ISSUER_URL"],
+            "authorization_endpoint": (
+                "http://localhost:8080/realms/fastapi-realm/"
+                "protocol/openid-connect/auth"
+            ),
+            "token_endpoint": (
+                "http://keycloak:8080/realms/fastapi-realm/"
+                "protocol/openid-connect/token"
+            ),
+        }
+
+        def discovery_response(request: httpx.Request) -> httpx.Response:
+            assert request.url.host == "keycloak"
+            return httpx.Response(200, json=discovery)
+
+        async with httpx.AsyncClient(
+            transport=httpx.MockTransport(discovery_response)
+        ) as client:
+            metadata = await resolve_oidc_metadata(settings, client=client)
+
+        assert metadata.jwks_uri == (
+            "http://keycloak:8080/realms/fastapi-realm/protocol/openid-connect/certs"
+        )
+        assert metadata.authorization_endpoint == discovery["authorization_endpoint"]
+        expected_endpoint = discovery["token_endpoint"].replace(
+            "keycloak",
+            "localhost",
+        )
+        assert metadata.token_endpoint == expected_endpoint
+
+    def test_rejects_partial_endpoint_overrides(self, monkeypatch):
+        for key in _AUTHN_ENV:
+            monkeypatch.delenv(key, raising=False)
+        monkeypatch.setenv("OIDC_ISSUER_URL", _AUTHN_ENV["OIDC_ISSUER_URL"])
+        monkeypatch.setenv("OIDC_CLIENT_ID", _AUTHN_ENV["OIDC_CLIENT_ID"])
+        monkeypatch.setenv("OIDC_DOCS_CLIENT_ID", _AUTHN_ENV["OIDC_DOCS_CLIENT_ID"])
+        monkeypatch.setenv("OIDC_JWKS_URI", _AUTHN_ENV["OIDC_JWKS_URI"])
+
+        with pytest.raises(ValidationError, match="must provide"):
+            AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]

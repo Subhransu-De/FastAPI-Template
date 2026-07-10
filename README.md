@@ -104,9 +104,26 @@ Docker-based development:
 docker compose up --build
 ```
 
-Docker Compose builds the API from `Dockerfile` and the one-shot migration service from `Dockerfile.migration`. `APP_IMAGE` defaults to `fastapi-template:local`, while `MIGRATION_IMAGE` defaults to `fastapi-template-migration:local`. Compose starts `migrate` first, waits for `alembic upgrade head` to exit successfully, and then starts the API container. If migrations fail, the API container does not start.
+Docker Compose builds the API from `Dockerfile` and the one-shot migration service from `Dockerfile.migration`. Their default image tags include `COMPOSE_PROJECT_NAME`, so parallel worktrees do not overwrite each other's local images; `APP_IMAGE` and `MIGRATION_IMAGE` can still override those tags. Compose starts `migrate` first, waits for `alembic upgrade head` to exit successfully, and then starts the API container. If migrations fail, the API container does not start.
 
 Swagger UI signs users in with the public `fastapi-docs` client using authorization code flow plus PKCE. The API continues to validate the `fastapi-client` audience. A browser client must never receive a client secret; `OIDC_CLIENT_SECRET` is used only by the confidential client in scenario tests.
+
+Compose does not assign host-global container names. To run isolated stacks in parallel, give each one a unique project name, application port, Keycloak port, and public URLs:
+
+```bash
+COMPOSE_PROJECT_NAME=fastapi-feature-a \
+APP_PORT=8081 \
+APP_PUBLIC_URL=http://localhost:8081 \
+KEYCLOAK_PORT=8181 \
+OIDC_PUBLIC_URL=http://localhost:8181 \
+docker compose up --build
+```
+
+The `keycloak-config` one-shot service registers the exact Swagger callback for `APP_PUBLIC_URL`; production deployments should likewise use exact redirect URIs rather than wildcards.
+
+## Customizing the Template
+
+When adopting this repository, update the application name, package metadata, image names, OIDC realm/client identifiers, and Sonar/Snyk project identifiers. Compose service names such as `db` and `keycloak` are internal DNS names and do not need to be renamed for stack isolation.
 
 ## Container Images and Production Migrations
 

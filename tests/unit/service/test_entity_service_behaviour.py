@@ -105,9 +105,10 @@ async def test_update_raises_not_found_when_entity_does_not_exist(
 ) -> None:
     entity_id = uuid4()
     repository.find_by_id.return_value = None
+    update = EntityUpdate(name="Updated")
 
     with pytest.raises(NoEntityFoundError):
-        await service.update(entity_id, EntityUpdate(name="Updated"))
+        await service.update(entity_id, update)
 
     repository.update.assert_not_awaited()
     session.commit.assert_not_awaited()

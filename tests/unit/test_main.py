@@ -1,7 +1,7 @@
 import importlib
 import runpy
 import sys
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import httpx
 import pytest
@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from starlette.exceptions import HTTPException
 
 from app.exceptions import base_exception_handler
+from app.settings import OIDCMetadata
 
 pytestmark = pytest.mark.unit
 
@@ -65,16 +66,39 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
 
     setup_logging = Mock()
     info = Mock()
+    metadata = OIDCMetadata(
+        jwks_uri="https://idp.example/jwks",
+        issuer="https://idp.example",
+        authorization_endpoint="https://idp.example/authorize",
+        token_endpoint="https://idp.example/token",  # noqa: S106
+    )
+    resolve_oidc_metadata = AsyncMock(return_value=metadata)
+    access_token_validator = Mock()
+    access_token_validator_class = Mock(return_value=access_token_validator)
 
     monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
     monkeypatch.setattr(module.logger, "info", info)
+    monkeypatch.setattr(module, "resolve_oidc_metadata", resolve_oidc_metadata)
+    monkeypatch.setattr(
+        module,
+        "AccessTokenValidator",
+        access_token_validator_class,
+    )
 
     async with module.lifespan(module.app):
         setup_logging.assert_called_once_with()
         info.assert_called_once_with(
             f"Starting up {module.app_settings.app_name} on port {module.app_settings.port}"
         )
+        assert module.app.state.oidc_metadata is metadata
+        assert module.app.state.access_token_validator is access_token_validator
 
+    resolve_oidc_metadata.assert_awaited_once_with(module.authn_settings)
+    access_token_validator_class.assert_called_once_with(
+        metadata,
+        audience=module.authn_settings.client_id,
+        jwks_cache_ttl_seconds=module.authn_settings.jwks_cache_ttl_seconds,
+    )
     info.assert_any_call("Application shutdown")
 
 

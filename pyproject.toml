@@ -1,7 +1,7 @@
 [project]
 name = "fastapi-template"
 version = "0.1.0"
-description = "Add your description here"
+description = "An opinionated FastAPI template with async SQLAlchemy 2.0, Alembic migrations, Pydantic v2, uv package manager, Docker, pytest, and pre-configured CI/CD. Python 3.13+ boilerplate for building REST APIs."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
