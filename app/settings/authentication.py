@@ -172,4 +172,4 @@ async def resolve_oidc_metadata(
         )
 
 
-authn_settings = AuthNSettings()  # ty: ignore[missing-argument]
+authn_settings = AuthNSettings()

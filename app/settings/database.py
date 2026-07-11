@@ -16,4 +16,4 @@ class DatabaseSettings(BaseSettings):
     pool_pre_ping: bool = True
 
 
-db_settings = DatabaseSettings()  # ty: ignore[missing-argument]
+db_settings = DatabaseSettings()
