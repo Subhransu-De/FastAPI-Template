@@ -1,6 +1,6 @@
 # Local Development
 
-The project supports a host-run application and a complete Docker Compose stack. Keycloak details are documented separately in [Local Keycloak](local-keycloak.md).
+The project supports a host-run application and a complete Docker Compose stack. Keycloak details are documented separately in [Local Keycloak](local-keycloak.md). Environment keys are listed in [Environment Variables](environment-variables.md).
 
 ## Host-run application
 
@@ -14,12 +14,18 @@ PostgreSQL and the configured OIDC provider must already be reachable. Reloading
 
 ## Compose stack
 
-The local stack has five services:
+The local stack has five services. Solid arrows are startup gates; dotted arrows are runtime connections:
 
 ```mermaid
 flowchart LR
-    db --> migrate --> app
-    Keycloak --> keycloak-config --> app
+    db["db<br/>PostgreSQL"] -->|healthy| migrate["migrate<br/>apply schema, then exit"]
+    migrate -->|completed| app["app<br/>FastAPI API"]
+
+    keycloak["keycloak<br/>local identity"] -->|healthy| config["keycloak-config<br/>set Swagger callback, then exit"]
+    config -->|completed| app
+
+    db -.->|SQL| app
+    keycloak -.->|OIDC and keys| app
 ```
 
 - `db` is PostgreSQL and stores data in a named volume.
