@@ -81,7 +81,7 @@ def _normalize_discovered_endpoints(
     metadata: OIDCMetadata,
     settings: AuthNSettings,
 ) -> OIDCMetadata:
-    if settings.internal_url is None:
+    if not settings.internal_url:
         return metadata
 
     return metadata.model_copy(
