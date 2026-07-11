@@ -31,7 +31,7 @@ def test_entity_create_rejects_empty_name() -> None:
 
 def test_entity_update_requires_name() -> None:
     with pytest.raises(ValidationError):
-        EntityUpdate(description="Updated description")
+        EntityUpdate(description="Updated description")  # ty: ignore[missing-argument]
 
 
 def test_entity_update_rejects_empty_name() -> None:

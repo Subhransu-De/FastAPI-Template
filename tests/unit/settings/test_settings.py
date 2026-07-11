@@ -58,13 +58,13 @@ class TestDatabaseSettings:
         monkeypatch.delenv("DATABASE_URL", raising=False)
 
         with pytest.raises(ValidationError):
-            DatabaseSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+            DatabaseSettings(_env_file=None)  # ty: ignore[unknown-argument]
 
     def test_defaults(self, monkeypatch):
         for key, value in _DB_ENV.items():
             monkeypatch.setenv(key, value)
 
-        settings = DatabaseSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        settings = DatabaseSettings(_env_file=None)  # ty: ignore[unknown-argument]
 
         assert settings.url == _DB_ENV["DATABASE_URL"]
         assert settings.pool_size == 5
@@ -79,13 +79,13 @@ class TestAuthNSettings:
             monkeypatch.delenv(key, raising=False)
 
         with pytest.raises(ValidationError):
-            AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+            AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument]
 
     def test_defaults(self, monkeypatch):
         for key, value in _AUTHN_ENV.items():
             monkeypatch.setenv(key, value)
 
-        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument]
 
         assert settings.issuer_url == _AUTHN_ENV["OIDC_ISSUER_URL"]
         assert settings.internal_url is None
@@ -130,7 +130,7 @@ class TestAuthNSettings:
             "authorization_endpoint": "http://localhost:8080/realms/fastapi-realm/auth",
             "token_endpoint": "http://localhost:8080/realms/fastapi-realm/token",
         }
-        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument]
         assert settings.metadata_override() is None
 
         def discovery_response(request: httpx.Request) -> httpx.Response:
@@ -154,7 +154,7 @@ class TestAuthNSettings:
             monkeypatch.delenv(key, raising=False)
         for key, value in env.items():
             monkeypatch.setenv(key, value)
-        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument]
         discovery = {
             "jwks_uri": f"{_INTERNAL_OIDC_URL}/protocol/openid-connect/certs",
             "issuer": env["OIDC_ISSUER_URL"],
@@ -189,7 +189,7 @@ class TestAuthNSettings:
         monkeypatch.setenv("OIDC_INTERNAL_URL", "")
         monkeypatch.setenv("OIDC_CLIENT_ID", "fastapi-client")
         monkeypatch.setenv("OIDC_DOCS_CLIENT_ID", "fastapi-docs")
-        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+        settings = AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument]
         discovery = {
             "jwks_uri": "https://idp.example/realm/jwks",
             "issuer": "https://idp.example/realm",
@@ -217,4 +217,4 @@ class TestAuthNSettings:
         monkeypatch.setenv("OIDC_JWKS_URI", _AUTHN_ENV["OIDC_JWKS_URI"])
 
         with pytest.raises(ValidationError, match="must provide"):
-            AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument, missing-argument]
+            AuthNSettings(_env_file=None)  # ty: ignore[unknown-argument]
