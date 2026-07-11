@@ -1,4 +1,4 @@
-name: GitHub Actions lint
+name: GitHub workflow checks
 
 on:
   push:
@@ -12,6 +12,23 @@ permissions:
   contents: read
 
 jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Scan workflow changes for secrets
+        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   actionlint:
     runs-on: ubuntu-latest
 
