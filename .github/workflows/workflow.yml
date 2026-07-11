@@ -87,12 +87,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hadolint]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - project: application
-            audit-args: ""
+            working-directory: .
           - project: scenario-tests
-            audit-args: --package scenario-tests
+            working-directory: scenario-tests
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -102,7 +103,8 @@ jobs:
           version: "0.11.28"
 
       - name: Audit ${{ matrix.project }} dependencies
-        run: uv audit --locked ${{ matrix.audit-args }}
+        working-directory: ${{ matrix.working-directory }}
+        run: uv audit --locked
 
   dependency-review:
     if: github.event_name == 'pull_request'
