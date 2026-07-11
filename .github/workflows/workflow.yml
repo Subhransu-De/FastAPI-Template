@@ -17,7 +17,7 @@ on:
       - "sonar-project.properties"
       - ".sonarcloud.properties"
       - ".github/dependabot.yml"
-      - ".github/workflows/**.yml"
+      - ".github/workflows/workflow.yml"
   pull_request:
     paths:
       - "**.py"
@@ -34,7 +34,7 @@ on:
       - "sonar-project.properties"
       - ".sonarcloud.properties"
       - ".github/dependabot.yml"
-      - ".github/workflows/**.yml"
+      - ".github/workflows/workflow.yml"
 
 env:
   REGISTRY: ghcr.io
