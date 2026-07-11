@@ -1,16 +1,16 @@
-name: Markdown lint
+name: Documentation
 
 on:
   push:
     paths:
       - "docs/**/*.md"
       - ".markdownlint-cli2.yaml"
-      - ".github/workflows/markdownlint.yml"
+      - ".github/workflows/documentation.yml"
   pull_request:
     paths:
       - "docs/**/*.md"
       - ".markdownlint-cli2.yaml"
-      - ".github/workflows/markdownlint.yml"
+      - ".github/workflows/documentation.yml"
 
 permissions:
   contents: read
