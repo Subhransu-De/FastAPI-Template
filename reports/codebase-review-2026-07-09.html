@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>FastAPI Template — Review Follow-up</title>
+<style>
+:root{--bg:#071018;--panel:#0d1924;--text:#e9f2f8;--muted:#9bb0bf;--line:#243746;--cyan:#48d7d0;--blue:#79a7ff;--high:#ff6b6b;--med:#ffbd59;--good:#84d49b;--shadow:0 18px 55px #0005}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 80% 0,#48d7d01f,transparent 30rem),radial-gradient(circle at 0 25%,#79a7ff1a,transparent 28rem),var(--bg);color:var(--text);font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--cyan)}code,pre{font-family:"Cascadia Code",Consolas,monospace}code{color:#bde7ff}.shell{width:min(1180px,calc(100% - 32px));margin:auto}header{padding:72px 0 38px}.eyebrow{color:var(--cyan);font-size:12px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}h1{max-width:900px;margin:12px 0 14px;font-size:clamp(40px,7vw,76px);line-height:1.02;letter-spacing:-.045em}h1 span{color:var(--cyan)}.lede{max-width:790px;color:var(--muted);font-size:18px}.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}.pill{padding:7px 11px;border:1px solid var(--line);border-radius:99px;background:#0d1924b8;color:var(--muted)}.pill strong{color:var(--text)}
+nav{position:sticky;top:0;z-index:3;border-block:1px solid #243746cc;background:#071018e0;backdrop-filter:blur(15px)}nav .shell{display:flex;gap:22px;overflow:auto;padding-block:12px}nav a{color:var(--muted);font-weight:700;text-decoration:none;white-space:nowrap}nav a:hover{color:var(--text)}
+main{padding:38px 0 80px}section{scroll-margin-top:70px;margin-bottom:54px}h2{margin:0 0 18px;font-size:28px;letter-spacing:-.02em}h3{margin:0;font-size:20px;line-height:1.3}p{margin:9px 0}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}.stat,.card,.finding,.note{border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,#101f2cf5,#0b1721f5);box-shadow:var(--shadow)}.stat{grid-column:span 3;min-height:135px;padding:20px}.value{display:block;margin-bottom:6px;font-size:34px;font-weight:850;line-height:1}.label{color:var(--muted)}.good .value,.check{color:var(--good)}.alert .value{color:var(--high)}.info .value{color:var(--cyan)}.card{padding:22px}.verdict{grid-column:span 8}.scope{grid-column:span 4}.callout{border-left:3px solid var(--cyan);padding-left:15px;color:var(--muted)}
+.finding{overflow:hidden;margin-bottom:18px}.finding-head{display:grid;grid-template-columns:auto 1fr auto;gap:15px;align-items:center;padding:20px 22px;border-bottom:1px solid var(--line)}.index{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:#172938;color:var(--cyan);font-weight:850}.severity{padding:5px 9px;border-radius:99px;font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.high{border:1px solid #ff6b6b80;background:#ff6b6b1f;color:var(--high)}.medium{border:1px solid #ffbd5980;background:#ffbd591f;color:var(--med)}.improvement{border:1px solid #48d7d080;background:#48d7d01a;color:var(--cyan)}.fixed{border:1px solid #84d49b80;background:#84d49b1a;color:var(--good)}.finding-body{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;padding:22px}.finding-body h4{margin:16px 0 5px;color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}.finding-body h4:first-child{margin-top:0}.evidence{border:1px solid #294154;border-radius:12px;background:#07131d;overflow:hidden}.evidence .title{padding:9px 12px;border-bottom:1px solid #294154;color:var(--muted);font-size:12px;font-weight:800;text-transform:uppercase}pre{margin:0;padding:14px;overflow:auto;color:#d4eaf6;font-size:13px;line-height:1.55;white-space:pre-wrap}.path{color:var(--blue);font-weight:750}.fix{margin:0;padding-left:19px}.fix li+li{margin-top:5px}.decision{border-left:3px solid var(--good);padding-left:15px}.source{font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}th,td{padding:13px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--muted);font-size:12px;letter-spacing:.09em;text-transform:uppercase}tr:last-child td{border-bottom:0}.check{font-weight:800}.warn{color:var(--med);font-weight:800}details{border-top:1px solid var(--line)}summary{cursor:pointer;padding:15px 22px;color:var(--muted);font-weight:750}details>div{padding:0 22px 20px}.priority{display:inline-block;min-width:34px;margin-right:8px;color:var(--high);font-weight:850}.note{padding:20px;color:var(--muted)}footer{padding:28px 0 48px;border-top:1px solid var(--line);color:var(--muted)}
+@media(max-width:850px){.stat{grid-column:span 6}.verdict,.scope{grid-column:span 12}.finding-body{grid-template-columns:1fr}}@media(max-width:560px){.stat{grid-column:span 12}.finding-head{grid-template-columns:auto 1fr}.finding-head .severity{grid-column:2;justify-self:start}header{padding-top:48px}}@media print{:root{--bg:#fff;--panel:#fff;--text:#14202a;--muted:#52616c;--line:#ced7dd}body{background:#fff}nav{display:none}.stat,.card,.finding,.note{box-shadow:none;break-inside:avoid}.evidence{background:#f5f8fa}pre{color:#14202a}}
+</style>
+</head>
+<body>
+<header class="shell">
+<div class="eyebrow">Evidence-based engineering audit · updated 10 July 2026</div>
+<h1>FastAPI Template<br><span>Review Follow-up</span></h1>
+<p class="lede">Implementation results for the original fixes and the approved follow-up: lifespan OIDC discovery, immutable Action pins, repository-aligned metadata, parallel Compose stacks, and Snyk/Sonar findings.</p>
+<div class="meta"><span class="pill"><strong>Branch</strong> feature/separate-alembic-migrations</span><span class="pill"><strong>Commit</strong> 2b68de04f83e</span><span class="pill"><strong>State</strong> 2 local commits ahead</span><span class="pill"><strong>PR</strong> none open for branch</span></div>
+</header>
+<nav aria-label="Report sections"><div class="shell"><a href="#summary">Summary</a><a href="#defects">Implemented fixes</a><a href="#improvements">Follow-up implementation</a><a href="#verification">Verification</a><a href="#sequence">Status</a></div></nav>
+<main class="shell">
+<section id="summary">
+<h2>Executive summary</h2>
+<div class="grid">
+<div class="stat good"><span class="value">4</span><span class="label">requested fixes implemented</span></div>
+<div class="stat good"><span class="value">4</span><span class="label">follow-up decisions implemented</span></div>
+<div class="stat good"><span class="value">✓</span><span class="label">public PKCE docs login retained</span></div>
+<div class="stat good"><span class="value">✓</span><span class="label">problem details through catch-all</span></div>
+<div class="card verdict"><h3>Outcome</h3><p>Swagger no longer receives a secret, but login remains available through a dedicated public <code>fastapi-docs</code> client using authorization code flow with S256 PKCE. The API audience remains <code>fastapi-client</code>, so bearer validation and the confidential scenario-test client stay separate.</p><p><code>GET /health</code> is now an application liveness response returning <code>200 {"status":"up"}</code> without probing PostgreSQL. Unknown exceptions and framework HTTP errors continue to use the same problem-details family as business errors.</p></div>
+<div class="card scope"><h3>Pagination contract</h3><p><code>GET /entities/</code> accepts exactly one <code>order_by</code> value from <code>name</code>, <code>description</code>, <code>created_at</code>, or <code>updated_at</code>, plus <code>order_direction=asc|desc</code>. <code>id</code> is rejected.</p></div>
+</div>
+</section>
+<section id="defects">
+<h2>Implemented fixes</h2>
+<article class="finding">
+<div class="finding-head"><span class="index">01</span><h3>Swagger uses a public PKCE client without a secret</h3><span class="severity fixed">Implemented</span></div>
+<div class="finding-body"><div>
+<h4>What changed</h4><ul class="fix"><li><code>clientSecret</code> was removed from Swagger initialization and from API runtime settings.</li><li><code>OIDC_DOCS_CLIENT_ID=fastapi-docs</code> selects a public client.</li><li>Both Keycloak realm exports define that client with standard flow enabled, direct grants disabled, and S256 PKCE required.</li><li>An audience mapper adds <code>fastapi-client</code> to the access token so the existing API validator accepts the login token.</li></ul>
+<h4>Why login still works</h4><p>The browser sends the authorization code plus its PKCE verifier to the token endpoint; no client secret is expected from a public client. The existing confidential <code>fastapi-client</code> remains available for scenario-test token acquisition.</p>
+</div><div class="evidence"><div class="title">Resulting separation</div><pre>Swagger browser
+  client_id: fastapi-docs
+  flow: authorization_code + PKCE(S256)
+  secret: none
+  token audience: fastapi-client
+
+API validator
+  expected audience: fastapi-client
+
+Scenario tests
+  confidential fastapi-client + secret</pre></div></div>
+</article>
+<article class="finding">
+<div class="finding-head"><span class="index">02</span><h3><code>GET /health</code> reports application liveness</h3><span class="severity fixed">Current contract</span></div>
+<div class="finding-body"><div>
+<h4>Current behavior</h4><p>The endpoint does not accept a database session and does not execute a dependency probe. It answers whether the API process is running and able to serve requests.</p>
+<h4>Test alignment</h4><p>The obsolete database-probe and HTTP 503 expectations were removed from the health tests. The unit and integration tests now assert only the current liveness response.</p>
+</div><div class="evidence"><div class="title">Verified response</div><pre>Application running
+GET /health → 200
+{"status":"up"}</pre></div></div>
+</article>
+<article class="finding">
+<div class="finding-head"><span class="index">03</span><h3>All request error families now use Problem Details</h3><span class="severity fixed">Implemented</span></div>
+<div class="finding-body"><div>
+<h4>Registration</h4><p>The handler is registered for business <code>BaseError</code>, request validation errors, Starlette <code>HTTPException</code>, and finally <code>Exception</code> as the catch-all. Authentication failures now also return a 401 problem body while preserving <code>WWW-Authenticate: Bearer</code>.</p>
+<h4>Unknown failures</h4><p>The client gets a generic 500 problem response without internal exception text. The structured logger receives the original exception object and traceback, preserving diagnostic detail for developers.</p>
+</div><div class="evidence"><div class="title">Catch-all response</div><pre>Route raises RuntimeError(...)
+
+status       = 500
+content-type = application/problem+json
+body = {
+  "type": "about:blank",
+  "title": "Internal Server Error",
+  "status": 500,
+  "detail": "An unexpected error occurred.",
+  "instance": request URL
+}</pre></div></div>
+</article>
+<article class="finding"><div class="finding-head"><span class="index">04</span><h3>Entity pagination has one safe, user-selected ordering</h3><span class="severity fixed">Implemented</span></div><div class="finding-body"><div><p>The route uses enums rather than passing arbitrary column text into SQL. Every entity-table column except <code>id</code> is represented, and invalid values return the existing 400 validation problem.</p><p><strong>Important constraint:</strong> ordering by a non-unique column cannot mathematically guarantee stable boundaries when values tie or rows change between requests. The requested one-column/no-ID contract is implemented; a unique tie-breaker or cursor would be needed for strict determinism.</p></div><div class="evidence"><div class="title">API contract</div><pre>GET /entities/?
+  offset=0&amp;limit=25&amp;
+  order_by=name&amp;
+  order_direction=desc
+
+order_by ∈ {
+  name, description,
+  created_at, updated_at
+}
+
+Exactly one column; id is rejected.</pre></div></div></article>
+</section>
+<section id="improvements">
+<h2>Follow-up implementation</h2>
+<article class="finding"><div class="finding-head"><span class="index">A</span><h3>OIDC discovery runs at application startup — inside lifespan</h3><span class="severity fixed">Implemented</span></div><div class="finding-body"><div><p class="decision"><strong>Imports are now network-free.</strong> <span class="path">AuthNSettings</span> contains only environment input, while immutable <code>OIDCMetadata</code> is resolved asynchronously before the lifespan yields readiness.</p><h4>Implemented behavior</h4><ul class="fix"><li>Discovery uses <code>httpx.AsyncClient</code> with explicit timeouts, three bounded attempts, and backoff.</li><li>The discovered issuer must exactly match the configured public issuer.</li><li>Compose can fetch discovery through the internal Keycloak address while retaining public browser endpoints and rewriting only the JWKS URL for container access.</li><li>A complete four-endpoint override bypasses discovery; partial override groups fail settings validation.</li><li>Lifespan constructs an app-scoped <code>AccessTokenValidator</code>; request dependencies retrieve it from <code>request.app.state</code>. There is no mutable module-level authentication state.</li><li>OpenAPI rendering reads the same app-scoped metadata to publish the discovered authorization and token endpoints.</li><li>Exhausted discovery retries fail startup, so the service never becomes ready with partial trust configuration.</li></ul><p class="source">Sources: <a href="https://fastapi.tiangolo.com/advanced/events/">FastAPI lifespan events</a>; <a href="https://openid.net/specs/openid-connect-discovery-1_0.html">OpenID Connect Discovery 1.0</a>.</p></div><div class="evidence"><div class="title">Implemented lifecycle</div><pre>1. Python imports modules
+   no network I/O
+
+2. FastAPI lifespan starts
+   configure logging
+   await resolve_oidc_metadata()
+   validate issuer + required fields
+   create auth runtime / JWKS client
+
+3. Mark application ready
+   yield
+
+4. Serve requests
+
+Failure policy:
+bounded retry → explicit startup failure
+never partially configured auth</pre></div></div></article>
+<article class="finding"><div class="finding-head"><span class="index">B</span><h3>Actions are pinned without stopping Renovate or Dependabot</h3><span class="severity fixed">Implemented</span></div><div class="finding-body"><div><p class="decision"><strong>Every workflow Action now uses the commit behind its latest tagged release.</strong> Pinning changes the runtime from a mutable tag to an exact reviewed commit; the adjacent version comment gives update bots the release line they need.</p><h4>Renovate</h4><p><code>helpers:pinGitHubActionDigests</code> is enabled. Renovate can update the digest and version comment together.</p><h4>Dependabot</h4><p>The existing GitHub Actions ecosystem configuration remains valid for full SHAs and same-line version comments. Both updater configurations remain intentionally available for template adopters to choose between.</p><p class="source">Sources: <a href="https://docs.github.com/en/actions/reference/security/secure-use">GitHub secure use reference</a>; <a href="https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories#github-actions">Dependabot GitHub Actions support</a>; <a href="https://docs.renovatebot.com/modules/manager/github-actions/">Renovate GitHub Actions manager</a>.</p></div><div class="evidence"><div class="title">Pinned releases</div><pre># Immutable runtime + readable release
+actions/checkout@9c091bb... # v7.0.0
+astral-sh/setup-uv@11f9893... # v8.3.2
+docker/setup-buildx-action@bb05f3f... # v4.2.0
+docker/build-push-action@53b7df9... # v7.3.0
+
+Renovate option:
+{
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
+  ]
+}
+
+Result:
+bot PR updates SHA and version comment;
+CI never follows a moved tag silently.</pre></div></div></article>
+<article class="finding"><div class="finding-head"><span class="index">C</span><h3>Both dependency-bot configs are intentional template choices</h3><span class="severity fixed">Reclassified · not a defect</span></div><div class="finding-body"><div><p>Your reasoning is valid for a template: shipping both <span class="path">renovate.json</span> and <span class="path">.github/dependabot.yml</span> lets adopters choose the service their organization uses.</p><p>The remaining recommendation is documentation, not removal: add a short “choose one updater” setup step. Explain that users should install/enable Renovate and remove or disable Dependabot version updates, or keep Dependabot and avoid installing Renovate. GitHub Dependabot security alerts are separate from scheduled version-update config and can remain enabled.</p></div><div class="evidence"><div class="title">Template onboarding text</div><pre>Choose one dependency updater:
+
+Option A — Dependabot
+  keep .github/dependabot.yml
+  do not install Renovate
+
+Option B — Renovate
+  keep renovate.json
+  remove/disable Dependabot version updates
+
+Do not run both scheduled updaters
+for the same ecosystems.</pre></div></div></article>
+<article class="finding"><div class="finding-head"><span class="index">D</span><h3>Concrete template identity and parallel-Compose solution</h3><span class="severity fixed">Implemented</span></div><div class="finding-body"><div><h4>Template identity</h4><p>The package description now exactly matches the GitHub repository description. The README includes an adopter checklist for package metadata, image names, OIDC clients, ports, and observability identifiers.</p><h4>Compose portability</h4><p>All fixed <code>container_name</code> values are removed. Host ports, public URLs, default image tags, and the optional Compose project name are configurable, while service-to-service DNS remains <code>db</code> and <code>keycloak</code>.</p><h4>Exact login callback per stack</h4><p>A one-shot <code>keycloak-config</code> service uses Keycloak's Admin REST API through <code>httpx</code> to register the exact Swagger redirect URI and web origin derived from <code>APP_PUBLIC_URL</code>. The application waits for this configuration before startup. This supports parallel stacks without production wildcard callbacks.</p><ul class="fix"><li>Run each stack with a distinct <code>COMPOSE_PROJECT_NAME</code>.</li><li>Assign unique <code>APP_PORT</code> and <code>KEYCLOAK_PORT</code> values.</li><li>Set matching <code>APP_PUBLIC_URL</code> and <code>OIDC_PUBLIC_URL</code> values.</li><li>Default API and migration images are also project-scoped, preventing worktrees from overwriting a shared <code>:local</code> tag.</li><li>Keep internal database, discovery, and JWKS traffic on Compose service DNS.</li></ul></div><div class="evidence"><div class="title">Implemented shape</div><pre># pyproject.toml
+description = "An opinionated FastAPI template with async SQLAlchemy 2.0, Alembic migrations, Pydantic v2, uv package manager, Docker, pytest, and pre-configured CI/CD. Python 3.13+ boilerplate for building REST APIs."
+
+# docker-compose.yml
+# delete every container_name
+app:
+  ports:
+    - "${APP_PORT:-80}:80"
+  environment:
+    OIDC_ISSUER_URL: "${OIDC_PUBLIC_URL:-http://localhost:8080}/realms/fastapi-realm"
+keycloak:
+  ports:
+    - "${KEYCLOAK_PORT:-8080}:8080"
+  environment:
+    KC_HOSTNAME: "${OIDC_PUBLIC_URL:-http://localhost:8080}"
+    KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+
+# parallel stacks
+APP_PORT=8081 KEYCLOAK_PORT=8181 \
+OIDC_PUBLIC_URL=http://localhost:8181 \
+docker compose -p feature-a up
+
+APP_PORT=8082 KEYCLOAK_PORT=8182 \
+OIDC_PUBLIC_URL=http://localhost:8182 \
+docker compose -p feature-b up</pre></div></div></article>
+<article class="finding"><div class="finding-head"><span class="index">E</span><h3>Why the Keycloak client configurator is under <code>.docker</code></h3><span class="severity fixed">Infrastructure boundary</span></div><div class="finding-body"><div><p class="decision"><strong><code>configure_keycloak_client.py</code> is Compose bootstrap infrastructure, not application authentication code.</strong> It changes the development Keycloak server before the API starts; it does not discover OIDC metadata, validate tokens, or participate in request handling.</p><h4>Why a script is needed</h4><ul class="fix"><li>The checked-in realm export is static, but a parallel stack chooses its public application URL and port at runtime.</li><li>Keycloak should receive an exact Swagger callback such as <code>http://localhost:8081/docs/oauth2-redirect</code>. A static realm file cannot know that value, and using a broad wildcard would weaken redirect validation.</li><li>The one-shot <code>keycloak-config</code> service waits for Keycloak health, obtains an admin token, finds the <code>fastapi-docs</code> client, and updates only its redirect URI and web origin.</li><li>The API depends on that one-shot service completing successfully, so Swagger login configuration is ready before the API becomes available.</li></ul><h4>Why it belongs in <code>.docker</code></h4><p>The file is mounted only into the Compose bootstrap container. The production API image copies <code>app/</code>, not <code>.docker/</code>, so this Keycloak-specific local-environment concern stays outside the application package and production runtime. In a production platform, the equivalent configuration should normally be owned by identity-provider automation or infrastructure as code; this script is the self-contained local-template equivalent.</p><h4>Naming alignment</h4><p>The file <code>configure_keycloak_client.py</code> now exposes <code>configure_keycloak_client()</code>; its helper is named <code>_get_keycloak_client_representation()</code>. The names describe both the operation and the Keycloak Admin API object being handled.</p></div><div class="evidence"><div class="title">Compose bootstrap sequence</div><pre>Keycloak starts
+      ↓ health check
+keycloak-config runs once
+      ↓ exact APP_PUBLIC_URL callback
+fastapi-docs client updated
+      ↓ successful exit
+API lifespan starts
+      ↓ OIDC discovery
+API becomes healthy
+
+Application package: app/
+Compose-only bootstrap: .docker/
+Production image includes: app/ only</pre></div></div></article>
+</section>
+<section id="verification">
+<h2>Verification ledger</h2>
+<div class="card">
+<table><thead><tr><th>Check</th><th>Result</th><th>Evidence</th></tr></thead><tbody>
+<tr><td>Full pytest suite</td><td class="check">Pass</td><td>117 passed; 93% measured branch coverage</td></tr>
+<tr><td>Ruff</td><td class="check">Pass</td><td>All checks passed</td></tr>
+<tr><td>Ty</td><td class="check">Pass</td><td>All checks passed</td></tr>
+<tr><td>Import Linter</td><td class="check">Pass</td><td>12 contracts kept; 0 broken; 37 files / 66 dependencies</td></tr>
+<tr><td>Lockfile</td><td class="check">Pass</td><td><code>uv lock --check</code>: 81 packages resolved</td></tr>
+<tr><td>Workflow / Dockerfile syntax</td><td class="check">Pass</td><td><code>actionlint</code> and <code>hadolint</code> emitted no findings</td></tr>
+<tr><td>Filesystem security scan</td><td class="check">Pass</td><td>Trivy: 0 high/critical Dockerfile misconfigurations; no secret finding</td></tr>
+<tr><td>API image</td><td class="check">Pass</td><td>Built successfully; non-root user <code>app</code></td></tr>
+<tr><td>Migration image</td><td class="check">Pass</td><td>Built successfully; non-root; valid PostgreSQL upgrade SQL emitted</td></tr>
+<tr><td>Compose scenario</td><td class="check">Pass</td><td>1 feature, 1 scenario, and 13 steps passed with confidential-client authentication</td></tr>
+<tr><td>Swagger public login</td><td class="check">Pass</td><td>Real Keycloak authorization-code + S256 PKCE exchange succeeded without a secret; issued token authenticated <code>GET /entities/</code></td></tr>
+<tr><td>Swagger secret regression</td><td class="check">Pass</td><td>Live <code>GET /docs</code> contains <code>fastapi-docs</code> and no <code>clientSecret</code></td></tr>
+<tr><td>Snyk Python dependency scan</td><td class="check">Pass</td><td>55 production dependencies tested with 0 vulnerable paths. The scanner was explicitly bound to the uv virtual environment so it did not inspect unrelated global Python packages.</td></tr>
+<tr><td>Snyk application image scan</td><td class="warn">Base-image findings</td><td>77 unique Debian 12 findings: 70 low, 4 medium, 2 high, 1 critical; Snyk marks all 77 non-upgradable for the current latest <code>python:3.13.14-slim-bookworm</code> base</td></tr>
+<tr><td>SonarQube CLI</td><td class="check">Pass after fixes</td><td>0 open bugs/vulnerabilities; two valid <code>python:S5778</code> test smells were corrected. Local Agentic Analysis is unavailable for this Sonar organization (403).</td></tr>
+</tbody></table>
+<details><summary>Verification boundaries and working-tree care</summary><div><p>Existing branch work was preserved; the checkout was already one commit ahead of its remote. The requested application, tests, realm configuration, documentation, and this report are modified locally; no commit, push, or PR was created.</p><p>The Compose stack was built from the working tree with explicit disposable test secrets. PostgreSQL, migrations, Keycloak, the API, the Behave scenario, and a real public-client PKCE login were exercised. The disposable stack and volume were removed after verification.</p></div></details>
+</div>
+</section>
+<section id="sequence">
+<h2>Implementation status</h2>
+<div class="card"><table><thead><tr><th>Order</th><th>Change</th><th>Why now</th><th>Scope</th></tr></thead><tbody>
+<tr><td><span class="priority">Done</span>1</td><td>OIDC lifespan discovery</td><td>No import-time network I/O; bounded startup failure policy</td><td>Auth settings/runtime refactor</td></tr>
+<tr><td><span class="priority">Done</span>2</td><td>Immutable Action pins</td><td>Latest tagged commits with bot-readable version comments</td><td>Workflow + Renovate preset</td></tr>
+<tr><td><span class="priority">Done</span>3</td><td>Dependency-updater choice</td><td>Both template options retained and onboarding clarified</td><td>README</td></tr>
+<tr><td><span class="priority">Done</span>4</td><td>Metadata and parallel Compose</td><td>Repository description matched; isolated stacks and exact callbacks verified</td><td>Metadata, Compose, README</td></tr>
+</tbody></table></div>
+</section>
+<div class="note"><strong>Bottom line:</strong> all requested follow-up decisions are implemented. OIDC discovery happens before readiness in FastAPI lifespan, all Actions use verified immutable release commits, the template supports isolated parallel Compose stacks with exact callbacks, and a real public-client PKCE login reached the protected API successfully.</div>
+</main>
+<footer><div class="shell">Updated from local source, official documentation, executable checks, Testcontainers PostgreSQL, Docker Compose, Keycloak, Snyk, SonarQube CLI, and live PKCE authentication on 10 July 2026 (Asia/Calcutta).</div></footer>
+</body>
+</html>

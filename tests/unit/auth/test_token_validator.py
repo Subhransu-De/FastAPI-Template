@@ -1,127 +1,87 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi import Request
 from jwt import PyJWKClientError, PyJWTError
 
-from app.auth import authentication_filter
-from app.auth.token_validator import _get_jwks_client
-from app.exceptions.exceptions import AuthenticationError
-from app.settings import authn_settings
+from app.auth.token_validator import AccessTokenValidator
+from app.exceptions import AuthenticationError
+from app.settings import OIDCMetadata
 
 pytestmark = pytest.mark.unit
 
 _VALID_TOKEN = "valid.jwt.token"  # noqa: S105
+_METADATA = OIDCMetadata(
+    jwks_uri="https://idp.example/jwks",
+    issuer="https://idp.example",
+    authorization_endpoint="https://idp.example/authorize",
+    token_endpoint="https://idp.example/token",  # noqa: S106
+)
 
 
-def _make_request(authorization: str | None) -> Request:
-    headers = {"authorization": authorization} if authorization else {}
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "path": "/",
-        "headers": [(k.encode(), v.encode()) for k, v in headers.items()],
-    }
-    return Request(scope)
-
-
-class TestGetJwksClient:
-    def test_returns_pyjwks_client_with_settings(self):
-        _get_jwks_client.cache_clear()
-        try:
-            with patch(
-                "app.auth.token_validator.PyJWKClient", return_value=MagicMock()
-            ) as mock_cls:
-                client = _get_jwks_client()
-        finally:
-            _get_jwks_client.cache_clear()
-
-        mock_cls.assert_called_once_with(
-            authn_settings.jwks_uri,
-            cache_jwk_set=True,
-            lifespan=authn_settings.jwks_cache_ttl_seconds,
+def _create_validator() -> tuple[AccessTokenValidator, MagicMock]:
+    with patch(
+        "app.auth.token_validator.PyJWKClient",
+        return_value=MagicMock(),
+    ) as jwks_client_class:
+        validator = AccessTokenValidator(
+            _METADATA,
+            audience="api-client",
+            jwks_cache_ttl_seconds=600,
         )
-        assert client is mock_cls.return_value
+
+    jwks_client_class.assert_called_once_with(
+        _METADATA.jwks_uri,
+        cache_jwk_set=True,
+        lifespan=600,
+    )
+    return validator, jwks_client_class.return_value
 
 
-class TestAuthenticationFilter:
-    def test_raises_when_no_authorization_header(self):
-        request = _make_request(None)
-        with pytest.raises(AuthenticationError):
-            authentication_filter(request, None)
+def test_validate_returns_decoded_claims() -> None:
+    validator, jwks_client = _create_validator()
+    signing_key = MagicMock()
+    jwks_client.get_signing_key_from_jwt.return_value = signing_key
 
-    def test_raises_when_scheme_is_not_bearer(self):
-        request = _make_request("Basic dXNlcjpwYXNz")
-        with pytest.raises(AuthenticationError):
-            authentication_filter(request, None)
+    with patch(
+        "app.auth.token_validator.jwt.decode",
+        return_value={"sub": "user-1"},
+    ) as decode:
+        claims = validator.validate(_VALID_TOKEN)
 
-    def test_raises_when_token_is_empty(self):
-        request = _make_request("Bearer ")
-        with pytest.raises(AuthenticationError):
-            authentication_filter(request, None)
+    decode.assert_called_once_with(
+        _VALID_TOKEN,
+        signing_key.key,
+        algorithms=["RS256"],
+        audience="api-client",
+        issuer=_METADATA.issuer,
+        options={"require": ["exp", "iat", "nbf"]},
+    )
+    assert claims == {"sub": "user-1"}
 
-    def test_raises_on_pyjwt_error(self):
-        request = _make_request(f"Bearer {_VALID_TOKEN}")
-        mock_signing_key = MagicMock()
-        with (
-            patch("app.auth.token_validator._get_jwks_client") as mock_get_client,
-            patch(
-                "app.auth.token_validator.jwt.decode",
-                side_effect=PyJWTError("bad token"),
-            ),
-        ):
-            mock_get_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
-            with pytest.raises(AuthenticationError):
-                authentication_filter(request, None)
 
-    def test_raises_on_pyjwkclient_error(self):
-        request = _make_request(f"Bearer {_VALID_TOKEN}")
-        with patch("app.auth.token_validator._get_jwks_client") as mock_get_client:
-            mock_get_client.return_value.get_signing_key_from_jwt.side_effect = (
-                PyJWKClientError("cannot fetch key")
-            )
-            with pytest.raises(AuthenticationError):
-                authentication_filter(request, None)
+@pytest.mark.parametrize(
+    "error",
+    [PyJWTError("expired"), PyJWKClientError("no signing key")],
+)
+def test_validate_translates_jwt_errors(error: Exception) -> None:
+    validator, jwks_client = _create_validator()
+    jwks_client.get_signing_key_from_jwt.side_effect = error
 
-    def test_succeeds_with_valid_token(self):
-        request = _make_request(f"Bearer {_VALID_TOKEN}")
-        mock_signing_key = MagicMock()
-        with (
-            patch("app.auth.token_validator._get_jwks_client") as mock_get_client,
-            patch(
-                "app.auth.token_validator.jwt.decode", return_value={"sub": "user-1"}
-            ),
-        ):
-            mock_get_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
-            result = authentication_filter(request, None)
-            assert result is None
+    with pytest.raises(AuthenticationError) as exc_info:
+        validator.validate(_VALID_TOKEN)
 
-    def test_authentication_error_is_chained_from_jwt_error(self):
-        request = _make_request(f"Bearer {_VALID_TOKEN}")
-        original_error = PyJWTError("expired")
-        mock_signing_key = MagicMock()
-        with (
-            patch("app.auth.token_validator._get_jwks_client") as mock_get_client,
-            patch("app.auth.token_validator.jwt.decode", side_effect=original_error),
-        ):
-            mock_get_client.return_value.get_signing_key_from_jwt.return_value = (
-                mock_signing_key
-            )
-            with pytest.raises(AuthenticationError) as exc_info:
-                authentication_filter(request, None)
-            assert exc_info.value.__cause__ is original_error
+    assert exc_info.value.__cause__ is error
 
-    def test_authentication_error_is_chained_from_jwks_error(self):
-        request = _make_request(f"Bearer {_VALID_TOKEN}")
-        original_error = PyJWKClientError("no key found")
-        with patch("app.auth.token_validator._get_jwks_client") as mock_get_client:
-            mock_get_client.return_value.get_signing_key_from_jwt.side_effect = (
-                original_error
-            )
-            with pytest.raises(AuthenticationError) as exc_info:
-                authentication_filter(request, None)
-            assert exc_info.value.__cause__ is original_error
+
+def test_validate_translates_decode_errors() -> None:
+    validator, jwks_client = _create_validator()
+    jwks_client.get_signing_key_from_jwt.return_value = MagicMock()
+    error = PyJWTError("invalid claims")
+
+    with (
+        patch("app.auth.token_validator.jwt.decode", side_effect=error),
+        pytest.raises(AuthenticationError) as exc_info,
+    ):
+        validator.validate(_VALID_TOKEN)
+
+    assert exc_info.value.__cause__ is error

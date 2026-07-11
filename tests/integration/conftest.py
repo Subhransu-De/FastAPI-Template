@@ -30,8 +30,9 @@ from sqlalchemy.ext.asyncio import (
 from testcontainers.postgres import PostgresContainer
 
 from alembic import command
+from app.auth.token_validator import AccessTokenValidator
 from app.model import Base
-from app.settings.authentication import authn_settings
+from app.settings.authentication import OIDCMetadata
 
 _TEST_ISSUER = "https://test-idp/realm"
 _TEST_CLIENT_ID = "test-client"
@@ -156,17 +157,22 @@ def _jwks_server(_rsa_private_key: RSAPrivateKey) -> Iterator[HTTPServer]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _patch_authn_settings(_jwks_server: HTTPServer) -> Iterator[None]:
-    original = (
-        authn_settings.jwks_uri,
-        authn_settings.issuer,
-        authn_settings.client_id,
+def _configure_test_authentication(_jwks_server: HTTPServer) -> None:
+    from app.main import app
+
+    metadata = OIDCMetadata(
+        jwks_uri=f"http://127.0.0.1:{_jwks_server.port}/jwks",
+        issuer=_TEST_ISSUER,
+        authorization_endpoint="https://test-idp/authorize",
+        token_endpoint="https://test-idp/token",  # noqa: S106
     )
-    authn_settings.jwks_uri = f"http://127.0.0.1:{_jwks_server.port}/jwks"
-    authn_settings.issuer = _TEST_ISSUER
-    authn_settings.client_id = _TEST_CLIENT_ID
-    yield
-    authn_settings.jwks_uri, authn_settings.issuer, authn_settings.client_id = original
+    app.state.oidc_metadata = metadata
+    app.state.access_token_validator = AccessTokenValidator(
+        metadata,
+        audience=_TEST_CLIENT_ID,
+        jwks_cache_ttl_seconds=300,
+    )
+
 
 
 def _make_test_token(

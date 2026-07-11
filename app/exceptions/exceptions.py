@@ -13,11 +13,19 @@ class NoEntityFoundError(BaseError):
 
 
 class AuthenticationError(BaseError):
-    empty_body: bool = True
-
     def __init__(self) -> None:
         super().__init__(
             message="Unauthorized",
             status_code=401,
             title="Unauthorized",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class DatabaseUnavailableError(BaseError):
+    def __init__(self) -> None:
+        super().__init__(
+            message="The database is unavailable.",
+            status_code=503,
+            title="Service Unavailable",
         )

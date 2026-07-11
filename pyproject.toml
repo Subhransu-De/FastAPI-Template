@@ -1,11 +1,10 @@
 [project]
 name = "fastapi-template"
 version = "0.1.0"
-description = "Add your description here"
+description = "An opinionated FastAPI template with async SQLAlchemy 2.0, Alembic migrations, Pydantic v2, uv package manager, Docker, pytest, and pre-configured CI/CD. Python 3.13+ boilerplate for building REST APIs."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "alembic[tz]>=1.18.5",
     "fastapi>=0.139.0",
     "httpx>=0.28.1",
     "logfire[fastapi,psycopg,sqlalchemy]>=4.37.0",
@@ -18,12 +17,17 @@ dependencies = [
 ]
 
 [dependency-groups]
+migration = [
+    "alembic[tz]>=1.18.5",
+    "psycopg[binary]>=3.3.4",
+]
 lint = [
     "import-linter>=2.13",
     "ruff>=0.15.21",
     "ty>=0.0.57",
 ]
 test = [
+    { include-group = "migration" },
     "pytest>=9.1.1",
     "anyio>=4.14.1",
     "httpx>=0.28.1",

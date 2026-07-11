@@ -1,14 +1,14 @@
-.PHONY: help lint lint-ruff lint-ty lint-imports run format install install-prod upgrade docker-up docker-down docker-down-destroy test test-unit test-cov
+.PHONY: help lint lint-ruff lint-ty lint-imports run migrate format install upgrade docker-up docker-down docker-down-destroy test test-unit test-cov
 
 help:
 	@echo "Available targets:"
 	@echo "  make install                   - Install all dependencies for development"
-	@echo "  make install-prod              - Install all dependencies for production"
 	@echo "  make upgrade                   - Upgrade all dependencies"
 	@echo "  make lint                      - Run ruff, ty, and import-linter checks"
 	@echo "  make lint-imports              - Run import-linter architecture checks"
 	@echo "  make format                    - Auto-fix linting issues with ruff"
-	@echo "  make run                       - Start FastAPI dev server with hot reload"
+	@echo "  make migrate                   - Apply Alembic migrations to the configured database"
+	@echo "  make run                       - Apply migrations, then start FastAPI dev server with hot reload"
 	@echo "  make docker-up                 - Start full project locally"
 	@echo "  make docker-down               - Stop full project locally"
 	@echo "  make docker-down-destroy       - Stop full project locally and destroy volumes"
@@ -17,13 +17,10 @@ help:
 	@echo "  make test-cov                  - Run tests with coverage report"
 
 install:
-	uv sync --group lint --group test --all-packages
-
-install-prod:
-	uv sync
+	uv sync --group lint --group migration --group test --all-packages
 
 upgrade:
-	uv sync --group lint --group test --all-packages -U
+	uv sync --group lint --group migration --group test --all-packages -U
 
 lint: lint-ruff lint-ty lint-imports
 
@@ -31,7 +28,7 @@ lint-ruff:
 	uv run --group lint --all-packages ruff check app tests alembic scenario-tests
 
 lint-ty:
-	uv run --group lint --all-packages ty check app tests alembic scenario-tests
+	uv run --group lint --group migration --all-packages ty check app tests alembic scenario-tests
 
 lint-imports:
 	uv run --group lint --all-packages lint-imports --config .importlinter
@@ -45,7 +42,11 @@ run:
 		cp .env.example .env; \
 	    echo "Fill in the .env file"
 	fi
+	uv run --group migration --env-file .env alembic -c alembic.ini upgrade head
 	uv run --env-file .env python -m app.main
+
+migrate:
+	uv run --group migration --env-file .env alembic -c alembic.ini upgrade head
 
 docker-up:
 	docker compose up --build

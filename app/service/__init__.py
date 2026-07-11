@@ -14,7 +14,11 @@ def service_dependency[RepoT, ServiceT](
     repository_type: Callable[[AsyncSession], RepoT],
 ) -> Callable[[AsyncSession], ServiceT]:
     def dependency(
-        session: Annotated[AsyncSession, Depends(get_session)],
+        # FastAPI 0.139 supports scope; Sonar's dependency model is outdated.
+        session: Annotated[
+            AsyncSession,
+            Depends(get_session, scope="function"),  # NOSONAR
+        ],
     ) -> ServiceT:
         return service_type(repository_type(session))
 

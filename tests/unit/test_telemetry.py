@@ -112,6 +112,6 @@ def test_instrument_fastapi_excludes_health_endpoint(
         {
             "app": app,
             "request_attributes_mapper": telemetry._request_attributes_mapper,
-            "excluded_urls": r".*/health/db(?:\?.*)?$",
+            "excluded_urls": r".*/health(?:\?.*)?$",
         }
     ]

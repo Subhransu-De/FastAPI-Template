@@ -42,6 +42,7 @@ type = protected
 protected_modules =
     app.auth
 allowed_importers =
+    app.main
     app.routes
 
 [importlinter:contract:entity_routes_do_not_access_persistence_directly]

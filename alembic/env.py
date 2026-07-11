@@ -1,11 +1,19 @@
 import logging
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from app.model import Base
-from app.settings import db_settings
+
+try:
+    from app.model import Base
+except ModuleNotFoundError as exc:
+    if exc.name != "app":
+        raise
+    target_metadata = None
+else:
+    target_metadata = Base.metadata
 
 SQLALCHEMY_URL_KEY = "sqlalchemy.url"
 
@@ -16,9 +24,11 @@ if config.config_file_name is not None and not logging.getLogger().handlers:
 
 configured_url = config.get_main_option(SQLALCHEMY_URL_KEY)
 if not configured_url:
-    config.set_main_option(SQLALCHEMY_URL_KEY, db_settings.url)
-
-target_metadata = Base.metadata
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        msg = "DATABASE_URL must be set when sqlalchemy.url is not configured"
+        raise RuntimeError(msg)
+    config.set_main_option(SQLALCHEMY_URL_KEY, database_url)
 
 
 def run_migrations_offline() -> None:

@@ -5,9 +5,16 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.io.entity import EntityCreate, EntityResponse, EntityUpdate
+from app.io.entity import EntityCreate, EntityOrderBy, EntityResponse, EntityUpdate
+from app.model.entity import Entity
 
 pytestmark = pytest.mark.unit
+
+
+def test_entity_order_fields_match_every_table_column_except_id() -> None:
+    table_columns = {column.name for column in Entity.__table__.columns} - {"id"}
+
+    assert {field.value for field in EntityOrderBy} == table_columns
 
 
 def test_entity_create_accepts_valid_payload() -> None:

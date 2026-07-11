@@ -20,7 +20,7 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 | Area                    | Included                                                                                           |
 | ----------------------- | -------------------------------------------------------------------------------------------------- |
 | API                     | FastAPI application with health endpoints and protected CRUD routes for entities.                  |
-| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations applied on startup.         |
+| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations run as a one-shot startup task before the API starts. |
 | Authentication          | OAuth2 authorization-code flow, JWT bearer validation, and a Keycloak-backed Docker setup.         |
 | Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.   |
 | Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.          |
@@ -58,8 +58,9 @@ flowchart LR
     model["app/model<br/>SQLAlchemy models"] --> repository
     database --> postgres[("PostgreSQL")]
 
-    main["app/main.py<br/>Application startup"] --> alembic["Alembic<br/>Migrations"]
+    compose["Docker Compose<br/>startup order"] --> alembic["migrate service<br/>Alembic upgrade head"]
     alembic --> postgres
+    alembic --> main["app/main.py<br/>Application startup"]
 
     settings["app/settings<br/>Environment configuration"] -.-> routes
     settings -.-> database
@@ -92,14 +93,46 @@ Fill in the required values in `.env` before starting the app.
 Development mode:
 
 ```bash
-uv run --env-file .env python -m app.main --reload
+make run
 ```
+
+`make run` applies `alembic upgrade head` with the `migration` dependency group, then starts the FastAPI app.
 
 Docker-based development:
 
 ```bash
 docker compose up --build
 ```
+
+Docker Compose builds the API from `Dockerfile` and the one-shot migration service from `Dockerfile.migration`. Their default image tags include `COMPOSE_PROJECT_NAME`, so parallel worktrees do not overwrite each other's local images; `APP_IMAGE` and `MIGRATION_IMAGE` can still override those tags. Compose starts `migrate` first, waits for `alembic upgrade head` to exit successfully, and then starts the API container. If migrations fail, the API container does not start.
+
+Swagger UI signs users in with the public `fastapi-docs` client using authorization code flow plus PKCE. The API continues to validate the `fastapi-client` audience. A browser client must never receive a client secret; `OIDC_CLIENT_SECRET` is used only by the confidential client in scenario tests.
+
+Compose does not assign host-global container names. To run isolated stacks in parallel, give each one a unique project name, application port, Keycloak port, and public URLs:
+
+```bash
+COMPOSE_PROJECT_NAME=fastapi-feature-a \
+APP_PORT=8081 \
+APP_PUBLIC_URL=http://localhost:8081 \
+KEYCLOAK_PORT=8181 \
+OIDC_PUBLIC_URL=http://localhost:8181 \
+docker compose up --build
+```
+
+The `keycloak-config` one-shot service registers the exact Swagger callback for `APP_PUBLIC_URL`; production deployments should likewise use exact redirect URIs rather than wildcards.
+
+## Customizing the Template
+
+When adopting this repository, update the application name, package metadata, image names, OIDC realm/client identifiers, and Sonar/Snyk project identifiers. Compose service names such as `db` and `keycloak` are internal DNS names and do not need to be renamed for stack isolation.
+
+## Container Images and Production Migrations
+
+Build and push both images before deployment:
+
+- API image: built from `Dockerfile`; default command is `python -m app.main`; installs only application runtime dependencies.
+- Migration image: built from `Dockerfile.migration`; default command is `alembic -c alembic.ini upgrade head`; installs only the `migration` dependency group and only ships the Alembic migration files.
+
+For ECS, run the migration image as a one-off task before updating or starting the service. For EKS, run the migration image as a Kubernetes Job before rolling out the Deployment. In both cases, the migration task/job must use the same production database environment variables as the application release.
 
 ## Testing
 

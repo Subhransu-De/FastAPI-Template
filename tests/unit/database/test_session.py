@@ -71,8 +71,9 @@ async def test_get_session_rolls_back_on_error(monkeypatch):
 
     yielded = await anext(generator)
     assert yielded is session
+    error = RuntimeError("boom")
 
     with pytest.raises(RuntimeError, match="boom"):
-        await generator.athrow(RuntimeError("boom"))
+        await generator.athrow(error)
 
     session.rollback.assert_awaited_once_with()
