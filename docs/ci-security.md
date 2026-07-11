@@ -5,7 +5,7 @@ The following checks are required and fail CI when they find a violation:
 - Gitleaks scans repository history for committed secrets.
 - Hadolint rejects warnings or errors in both Dockerfiles.
 - actionlint validates GitHub Actions workflow syntax and expressions.
-- `uv audit --frozen` checks the locked Python dependency graph for known vulnerabilities without changing the lockfile.
+- `uv audit --locked` verifies the lockfile is current and checks the locked Python dependency graph for known vulnerabilities.
 - Dependency Review blocks pull requests that introduce vulnerable dependencies.
 - Trivy blocks application and migration images containing fixed high- or critical-severity vulnerabilities.
 

@@ -95,7 +95,7 @@ jobs:
           version: "0.11.28"
 
       - name: Audit locked Python dependencies
-        run: uv audit --frozen
+        run: uv audit --locked
 
   dependency-review:
     if: github.event_name == 'pull_request'
