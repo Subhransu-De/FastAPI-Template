@@ -69,3 +69,45 @@ These keys are optional as a group. If one is set, all four must be set; partial
 | `OIDC_TOKEN_ENDPOINT`         | Token endpoint used by Swagger UI.                 |
 
 The overrides bypass network discovery. They are mainly useful for tests, fixed infrastructure, or air-gapped environments.
+
+## Copy-ready local `.env`
+
+This example works with the default Docker Compose stack. The values are local-development credentials and must not be reused in production.
+
+```dotenv
+# Application
+APP_NAME=FastAPI Template
+APP_HOST=127.0.0.1
+PORT=80
+RELOAD=False
+
+# Compose isolation and host-facing addresses
+COMPOSE_PROJECT_NAME=fastapi-template-dev
+APP_PORT=80
+APP_PUBLIC_URL=http://localhost
+KEYCLOAK_PORT=8080
+OIDC_PUBLIC_URL=http://localhost:8080
+APP_IMAGE=fastapi-template:local
+MIGRATION_IMAGE=fastapi-template-migration:local
+
+# Local services
+POSTGRES_PASSWORD=local-postgres
+KEYCLOAK_ADMIN_PASSWORD=local-keycloak-admin
+
+# Database
+# Used by a host-run API; Compose injects its own internal database URL.
+DATABASE_URL=postgresql+psycopg://postgres:local-postgres@localhost:5432/fastapi_db
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=10
+DATABASE_ECHO=False
+DATABASE_POOL_PRE_PING=True
+
+# OIDC
+OIDC_ISSUER_URL=http://localhost:8080/realms/fastapi-realm
+OIDC_CLIENT_ID=fastapi-client
+OIDC_DOCS_CLIENT_ID=fastapi-docs
+OIDC_CLIENT_SECRET=change-me
+OIDC_JWKS_CACHE_TTL_SECONDS=300
+```
+
+Save the copied block as `.env` in the repository root. The four discovery override keys can remain unset for the local stack.
