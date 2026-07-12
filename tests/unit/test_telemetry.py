@@ -30,7 +30,10 @@ def test_configure_otel_uses_token_aware_logfire_export(
         {
             "service_name": telemetry.app_settings.app_name,
             "send_to_logfire": "if-token-present",
-            "console": False,
+            "console": telemetry.logfire.ConsoleOptions(
+                colors="never",
+                show_project_link=False,
+            ),
         }
     ]
 

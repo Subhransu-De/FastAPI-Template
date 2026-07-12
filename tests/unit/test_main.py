@@ -77,7 +77,7 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
     access_token_validator_class = Mock(return_value=access_token_validator)
 
     monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
-    monkeypatch.setattr(module.logger, "info", info)
+    monkeypatch.setattr(module.logfire, "info", info)
     monkeypatch.setattr(module, "resolve_oidc_metadata", resolve_oidc_metadata)
     monkeypatch.setattr(
         module,
@@ -88,7 +88,9 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
     async with module.lifespan(module.app):
         setup_logging.assert_called_once_with()
         info.assert_called_once_with(
-            f"Starting up {module.app_settings.app_name} on port {module.app_settings.port}"
+            "Starting up {service_name} on port {port}",
+            service_name=module.app_settings.app_name,
+            port=module.app_settings.port,
         )
         assert module.app.state.oidc_metadata is metadata
         assert module.app.state.access_token_validator is access_token_validator
