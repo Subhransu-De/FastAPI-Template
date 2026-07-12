@@ -23,7 +23,7 @@ def configure_otel() -> None:
     logfire.configure(
         service_name=app_settings.app_name,
         send_to_logfire="if-token-present",
-        console=False,
+        console=logfire.ConsoleOptions(colors="never", show_project_link=False),
     )
     _configured = True
 
