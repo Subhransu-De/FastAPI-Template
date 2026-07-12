@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import logfire
 import uvicorn
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -26,12 +27,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     )
     _app.openapi_schema = None
     telemetry.instrument_sqlalchemy(get_engine())
-    logger.info(f"Starting up {app_settings.app_name} on port {app_settings.port}")
+    logfire.info(
+        "Starting up {service_name} on port {port}",
+        service_name=app_settings.app_name,
+        port=app_settings.port,
+    )
     try:
         yield
     finally:
         await get_engine().dispose()
-        logger.info("Application shutdown")
+        logfire.info("Application shutdown")
 
 
 app = OIDCOpenAPIFastAPI(

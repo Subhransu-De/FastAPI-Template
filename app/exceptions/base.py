@@ -1,11 +1,10 @@
 from http import HTTPStatus
 
+import logfire
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException
-
-from app.logger import logger
 
 _PROBLEM_JSON_MEDIA_TYPE = "application/problem+json"
 
@@ -69,10 +68,10 @@ def base_exception_handler(request: Request, exc: Exception) -> Response:
                 media_type=_PROBLEM_JSON_MEDIA_TYPE,
             )
         case _:
-            logger.exception(
-                "Unhandled exception while processing %s",
-                request.url,
-                exc=exc,
+            logfire.exception(
+                "Unhandled exception while processing {url}",
+                url=str(request.url),
+                _exc_info=exc,
             )
             return JSONResponse(
                 status_code=500,
