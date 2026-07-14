@@ -15,8 +15,10 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 ) -> None:
     logger_names = ["uvicorn", "uvicorn.access", "uvicorn.error"]
     otel_handler = logging.NullHandler()
+    configure_otel = Mock()
 
     root = logging.getLogger()
+    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
     monkeypatch.setattr(root, "handlers", [logging.NullHandler()])
     monkeypatch.setattr(root, "level", logging.WARNING)
 
@@ -32,6 +34,7 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 
     configuration.setup_logging(otel_handler_factory=lambda: otel_handler)
 
+    configure_otel.assert_called_once_with()
     assert root.handlers == [otel_handler]
     assert root.level == logging.INFO
     assert root.disabled is False

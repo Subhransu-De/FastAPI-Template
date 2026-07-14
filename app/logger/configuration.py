@@ -2,8 +2,8 @@ import logging
 from collections.abc import Callable
 from logging import Handler, Logger
 
-from app.logger.handlers import LOG_LEVEL
-from app.telemetry import get_otel_log_handler
+from app.logger.handlers import LOG_LEVEL, get_logfire_handler
+from app.telemetry import configure_otel
 
 LogHandlerFactory = Callable[[], Handler]
 
@@ -33,8 +33,9 @@ def configure_logger(
 
 
 def setup_logging(
-    otel_handler_factory: LogHandlerFactory = get_otel_log_handler,
+    otel_handler_factory: LogHandlerFactory = get_logfire_handler,
 ) -> None:
+    configure_otel()
     configure_logger(
         logging.getLogger(),
         propagate=True,

@@ -1,5 +1,3 @@
-import importlib
-import logging
 from typing import Any
 
 import logfire
@@ -26,12 +24,6 @@ def configure_otel() -> None:
         console=logfire.ConsoleOptions(colors="never", show_project_link=False),
     )
     _configured = True
-
-
-def get_otel_log_handler() -> logging.Handler:
-    configure_otel()
-    handlers = importlib.import_module("app.logger.handlers")
-    return handlers.get_logfire_handler()
 
 
 def _extract_client_ip(request: Request | WebSocket) -> str | None:
