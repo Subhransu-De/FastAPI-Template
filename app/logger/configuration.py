@@ -35,7 +35,8 @@ def configure_logger(
 def setup_logging(
     otel_handler_factory: LogHandlerFactory = get_logfire_handler,
 ) -> None:
-    configure_otel()
+    if otel_handler_factory is get_logfire_handler:
+        configure_otel()
     configure_logger(
         logging.getLogger(),
         propagate=True,
