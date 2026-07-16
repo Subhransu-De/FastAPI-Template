@@ -15,8 +15,10 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 ) -> None:
     logger_names = ["uvicorn", "uvicorn.access", "uvicorn.error"]
     otel_handler = logging.NullHandler()
+    configure_otel = Mock()
 
     root = logging.getLogger()
+    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
     monkeypatch.setattr(root, "handlers", [logging.NullHandler()])
     monkeypatch.setattr(root, "level", logging.WARNING)
 
@@ -32,6 +34,7 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 
     configuration.setup_logging(otel_handler_factory=lambda: otel_handler)
 
+    configure_otel.assert_not_called()
     assert root.handlers == [otel_handler]
     assert root.level == logging.INFO
     assert root.disabled is False
@@ -42,6 +45,19 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
         assert logger.level == logging.INFO
         assert logger.disabled is False
         assert logger.propagate is False
+
+
+def test_setup_logging_configures_otel_for_default_handler(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    configure_otel = Mock()
+    configure_logger = Mock()
+    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
+    monkeypatch.setattr(configuration, "configure_logger", configure_logger)
+
+    configuration.setup_logging()
+
+    configure_otel.assert_called_once_with()
 
 
 def test_logfire_handler_uses_stock_handler_with_null_fallback() -> None:
