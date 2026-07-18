@@ -10,13 +10,10 @@ locals {
     for arn in values(var.secrets) : arn
     if strcontains(arn, ":secretsmanager:")
   ])
-  ssm_parameter_arns = toset(concat(
-    [
-      for arn in values(var.secrets) : arn
-      if strcontains(arn, ":ssm:")
-    ],
-    var.repository_credentials_parameter_arn == null ? [] : [var.repository_credentials_parameter_arn],
-  ))
+  ssm_parameter_arns = toset([
+    for arn in values(var.secrets) : arn
+    if strcontains(arn, ":ssm:")
+  ])
 
   managed_policy_prefix = "arn:${data.aws_partition.current.partition}:iam::aws:policy"
 }

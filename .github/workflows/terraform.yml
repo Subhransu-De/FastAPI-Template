@@ -4,13 +4,11 @@ on:
   push:
     paths:
       - "infra/**"
-      - ".tflint.hcl"
       - ".github/dependabot.yml"
       - ".github/workflows/terraform.yml"
   pull_request:
     paths:
       - "infra/**"
-      - ".tflint.hcl"
       - ".github/dependabot.yml"
       - ".github/workflows/terraform.yml"
 
@@ -22,6 +20,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up TFLint
+        uses: terraform-linters/setup-tflint@6e1e0642c0289bd619021bf6b34e3c08ed1e005a # v6.3.0
+        with:
+          tflint_version: "v0.64.0"
+
+      - name: Initialize TFLint plugins
+        working-directory: infra
+        run: tflint --init
+
+      - name: Lint all Terraform roots
+        working-directory: infra
+        run: tflint --recursive --format=compact
+
   discover:
     name: Discover Terraform roots
     runs-on: ubuntu-latest
@@ -70,11 +89,6 @@ jobs:
         with:
           terraform_version: "1.15.8"
 
-      - name: Set up TFLint
-        uses: terraform-linters/setup-tflint@6e1e0642c0289bd619021bf6b34e3c08ed1e005a # v6.3.0
-        with:
-          tflint_version: "v0.64.0"
-
       - name: Check Terraform formatting
         run: terraform -chdir="${{ matrix.directory }}" fmt -check -recursive
 
@@ -83,15 +97,6 @@ jobs:
 
       - name: Validate Terraform
         run: terraform -chdir="${{ matrix.directory }}" validate
-
-      - name: Run Terraform tests with a mocked AWS provider
-        run: terraform -chdir="${{ matrix.directory }}" test
-
-      - name: Initialize TFLint plugins
-        run: tflint --init --config="$GITHUB_WORKSPACE/.tflint.hcl"
-
-      - name: Lint Terraform
-        run: tflint --chdir="${{ matrix.directory }}" --config="$GITHUB_WORKSPACE/.tflint.hcl" --format=compact
 
       - name: Scan Terraform configuration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0

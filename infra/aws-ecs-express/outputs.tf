@@ -22,8 +22,3 @@ output "service_name" {
   description = "Name of the ECS Express Mode service."
   value       = aws_ecs_express_gateway_service.app.service_name
 }
-
-output "task_role_arn" {
-  description = "Least-privilege IAM role assumed by application tasks."
-  value       = aws_iam_role.task.arn
-}

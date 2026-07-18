@@ -42,17 +42,6 @@ variable "aws_region" {
   }
 }
 
-variable "command" {
-  description = "Optional command that overrides the image command."
-  type        = list(string)
-  default     = null
-
-  validation {
-    condition     = var.command == null || length(var.command) > 0
-    error_message = "command must be null or contain at least one argument."
-  }
-}
-
 variable "container_image" {
   description = "Container image URI. Use an immutable digest for production deployments."
   type        = string
@@ -184,17 +173,6 @@ variable "project_name" {
   }
 }
 
-variable "repository_credentials_parameter_arn" {
-  description = "Optional SSM parameter ARN containing private registry credentials."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.repository_credentials_parameter_arn == null || can(regex("^arn:[^:]+:ssm:[^:]+:[0-9]{12}:parameter/", var.repository_credentials_parameter_arn))
-    error_message = "repository_credentials_parameter_arn must be an SSM parameter ARN."
-  }
-}
-
 variable "secrets" {
   description = "Map of environment variable names to Secrets Manager secret ARNs or SSM parameter ARNs. Secret values never enter Terraform configuration or state."
   type        = map(string)
@@ -263,16 +241,5 @@ variable "subnet_ids" {
   validation {
     condition     = alltrue([for id in var.subnet_ids : can(regex("^subnet-[0-9a-f]+$", id))])
     error_message = "Every subnet_ids value must be an AWS subnet ID."
-  }
-}
-
-variable "task_role_policy_arns" {
-  description = "Customer-managed policy ARNs granted to application code through its task role. Keep this set least-privileged."
-  type        = set(string)
-  default     = []
-
-  validation {
-    condition     = alltrue([for arn in var.task_role_policy_arns : can(regex("^arn:[^:]+:iam::[0-9]{12}:policy/.+", arn))])
-    error_message = "Every task_role_policy_arns value must be a customer-managed IAM policy ARN."
   }
 }

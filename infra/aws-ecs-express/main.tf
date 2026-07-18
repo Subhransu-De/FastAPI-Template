@@ -16,11 +16,9 @@ resource "aws_ecs_express_gateway_service" "app" {
   infrastructure_role_arn = aws_iam_role.infrastructure.arn
   memory                  = tostring(var.memory)
   service_name            = local.service_name
-  task_role_arn           = aws_iam_role.task.arn
   wait_for_steady_state   = true
 
   primary_container {
-    command        = var.command
     container_port = var.container_port
     image          = var.container_image
 
@@ -35,14 +33,6 @@ resource "aws_ecs_express_gateway_service" "app" {
       content {
         name  = environment.key
         value = environment.value
-      }
-    }
-
-    dynamic "repository_credentials" {
-      for_each = var.repository_credentials_parameter_arn == null ? [] : [var.repository_credentials_parameter_arn]
-
-      content {
-        credentials_parameter = repository_credentials.value
       }
     }
 

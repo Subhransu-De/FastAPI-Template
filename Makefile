@@ -1,4 +1,6 @@
-.PHONY: help lint lint-ruff lint-ty lint-imports run migrate format install upgrade docker-up docker-down docker-down-destroy test test-unit test-cov
+.PHONY: help lint lint-ruff lint-ty lint-imports lint-infra run migrate format install upgrade docker-up docker-down docker-down-destroy test test-unit test-cov
+
+TFLINT_IMAGE ?= ghcr.io/terraform-linters/tflint:v0.64.0
 
 help:
 	@echo "Available targets:"
@@ -6,6 +8,7 @@ help:
 	@echo "  make upgrade                   - Upgrade all dependencies"
 	@echo "  make lint                      - Run ruff, ty, and import-linter checks"
 	@echo "  make lint-imports              - Run import-linter architecture checks"
+	@echo "  make lint-infra                - Run TFLint across every Terraform root under infra"
 	@echo "  make format                    - Auto-fix linting issues with ruff"
 	@echo "  make migrate                   - Apply Alembic migrations to the configured database"
 	@echo "  make run                       - Apply migrations, then start FastAPI dev server with hot reload"
@@ -32,6 +35,9 @@ lint-ty:
 
 lint-imports:
 	uv run --group lint --all-packages lint-imports --config .importlinter
+
+lint-infra:
+	docker run --rm --entrypoint sh --mount "type=bind,source=$(CURDIR),target=/data" $(TFLINT_IMAGE) -c 'cd /data/infra && tflint --init && tflint --recursive --format=compact'
 
 format:
 	uv run --group lint --all-packages ruff check --fix app tests alembic scenario-tests

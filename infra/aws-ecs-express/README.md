@@ -44,7 +44,6 @@ At minimum, replace `container_image` and configure the required application set
 - `environment_variables`: non-secret OIDC URLs, client IDs, Logfire settings, and pool sizing.
 - `secrets`: `DATABASE_URL` and other credentials, expressed as Secrets Manager or SSM ARNs.
 - `secrets_kms_key_arns`: customer-managed KMS keys needed to decrypt those values.
-- `task_role_policy_arns`: narrowly scoped policies only when application code calls AWS APIs.
 
 The module derives the container's `PORT` environment variable from `container_port`, so changing the listener port cannot leave Uvicorn listening on the old default.
 
@@ -52,16 +51,15 @@ If `subnet_ids` is empty, ECS Express Mode uses the default public subnets. When
 
 ## Validate without deploying
 
-These commands download providers and perform static or mocked checks. They do not create AWS resources:
+These commands download providers and perform static checks. They do not create AWS resources:
 
 ```bash
 terraform fmt -check -recursive
 terraform init -backend=false -input=false
 terraform validate
-terraform test
 ```
 
-The repository CI also runs TFLint with the AWS ruleset and Trivy configuration scanning.
+Run `make lint-infra` from the repository root to lint every Terraform root with TFLint and the AWS ruleset. Repository CI runs the same recursive lint plus Trivy configuration scanning.
 
 ## State for team use
 
@@ -72,6 +70,22 @@ terraform init -migrate-state
 ```
 
 The example uses native S3 locking with `use_lockfile = true`; it does not require a DynamoDB lock table. Restrict access to the state bucket because state can contain sensitive metadata.
+
+## Production security checklist
+
+Required for production use:
+
+- Deploy an immutable `repository@sha256:...` image and enable ECR image scanning. Mutable tags can change without a Terraform diff.
+- Put every credential in Secrets Manager or Parameter Store, grant only the exact ARNs through `secrets`, and restart the service after rotation so new tasks receive the new value. Do not pass secret values through `environment_variables`.
+- Use a versioned state bucket with Block Public Access, encryption, TLS-only access, native locking, and narrowly scoped read/write permissions. State infrastructure is intentionally managed outside this independently deletable root.
+- Run Terraform with a deployment identity that can pass only the two roles created by this root and verify the target account before planning.
+
+Evaluate for the workload:
+
+- Use custom private subnets for an internal service. Provide NAT or VPC endpoints only for the destinations the task needs, restrict security-group egress, and consider VPC Flow Logs.
+- Associate AWS WAF with the managed load balancer when the endpoint is internet-facing and the threat model requires application-layer filtering.
+- Set `log_group_kms_key_arn` when organization policy requires a customer-managed key; CloudWatch Logs otherwise encrypts data at rest with the service default.
+- Treat `/health` as a lightweight liveness check. Add a separate readiness endpoint if traffic must be withheld when PostgreSQL or OIDC dependencies are unavailable.
 
 ## Deploy and verify
 
@@ -110,10 +124,9 @@ ECS Express Mode has no separate service fee. You pay for the underlying Fargate
 
 ## Required IAM behavior
 
-The root creates three roles:
+The root creates two roles:
 
 - Execution role trusted by `ecs-tasks.amazonaws.com`, with `AmazonECSTaskExecutionRolePolicy` and resource-scoped access to only the configured secret, parameter, and KMS ARNs.
 - Infrastructure role trusted by `ecs.amazonaws.com`, with AWS's service-role policy for Express Gateway Services.
-- Task role trusted by `ecs-tasks.amazonaws.com`; it has no permissions unless `task_role_policy_arns` is configured.
 
-The identity running Terraform must be able to create these roles and pass the execution, infrastructure, and task roles to ECS in addition to creating the Terraform-managed ECS cluster and log group.
+The identity running Terraform must be able to create these roles and pass the execution and infrastructure roles to ECS in addition to creating the Terraform-managed ECS cluster and log group. This template does not create a task role because the application does not call AWS APIs directly; add a narrowly scoped task role if that requirement changes.

@@ -93,16 +93,3 @@ resource "aws_iam_role_policy_attachment" "infrastructure" {
   role       = aws_iam_role.infrastructure.name
   policy_arn = "${local.managed_policy_prefix}/service-role/AmazonECSInfrastructureRoleforExpressGatewayServices"
 }
-
-resource "aws_iam_role" "task" {
-  name               = "${local.service_name}-task"
-  assume_role_policy = data.aws_iam_policy_document.ecs_tasks_assume_role.json
-  description        = "Least-privilege role for AWS API calls made by the FastAPI application."
-}
-
-resource "aws_iam_role_policy_attachment" "task" {
-  for_each = var.task_role_policy_arns
-
-  role       = aws_iam_role.task.name
-  policy_arn = each.value
-}
