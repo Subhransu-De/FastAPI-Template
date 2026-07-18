@@ -37,7 +37,7 @@ lint-imports:
 	uv run --group lint --all-packages lint-imports --config .importlinter
 
 lint-infra:
-	docker run --rm --entrypoint sh --mount "type=bind,source=$(CURDIR),target=/data" $(TFLINT_IMAGE) -c 'cd /data/infra && tflint --init && tflint --recursive --format=compact'
+	docker run --rm --entrypoint sh --mount "type=bind,source=$(CURDIR),target=/data" $(TFLINT_IMAGE) -c 'cd /data/infra && tflint --init --config=/data/infra/.tflint.hcl && tflint --recursive --config=/data/infra/.tflint.hcl --format=compact'
 
 format:
 	uv run --group lint --all-packages ruff check --fix app tests alembic scenario-tests

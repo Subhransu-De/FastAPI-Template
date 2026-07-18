@@ -26,8 +26,11 @@ variable "autoscaling_target_value" {
   default     = 60
 
   validation {
-    condition     = var.autoscaling_target_value > 0
-    error_message = "autoscaling_target_value must be greater than zero."
+    condition = (
+      var.autoscaling_target_value > 0 &&
+      (var.autoscaling_metric == "REQUEST_COUNT_PER_TARGET" || var.autoscaling_target_value <= 100)
+    )
+    error_message = "autoscaling_target_value must be greater than zero and at most 100 for CPU or memory metrics."
   }
 }
 
@@ -53,9 +56,9 @@ variable "container_image" {
 }
 
 variable "container_port" {
-  description = "TCP port exposed by the FastAPI container."
+  description = "TCP port exposed by the FastAPI container. Use an unprivileged port for this non-root image."
   type        = number
-  default     = 80
+  default     = 8080
 
   validation {
     condition     = var.container_port >= 1 && var.container_port <= 65535
@@ -135,8 +138,8 @@ variable "max_task_count" {
   default     = 4
 
   validation {
-    condition     = var.max_task_count >= 1
-    error_message = "max_task_count must be at least one."
+    condition     = var.max_task_count >= 1 && var.max_task_count >= var.min_task_count
+    error_message = "max_task_count must be at least one and greater than or equal to min_task_count."
   }
 }
 
@@ -146,8 +149,14 @@ variable "memory" {
   default     = 512
 
   validation {
-    condition     = var.memory >= 512 && var.memory <= 8192 && var.memory % 512 == 0
-    error_message = "memory must be between 512 and 8192 MiB in 512 MiB increments."
+    condition = contains(lookup({
+      256  = [512, 1024, 2048]
+      512  = [1024, 2048, 3072, 4096]
+      1024 = [2048, 3072, 4096, 5120, 6144, 7168, 8192]
+      2048 = [4096, 5120, 6144, 7168, 8192]
+      4096 = [8192]
+    }, var.cpu, []), var.memory)
+    error_message = "cpu and memory must form a valid Fargate task size supported by ECS Express Mode."
   }
 }
 

@@ -50,8 +50,8 @@ resource "aws_ecs_express_gateway_service" "app" {
     for_each = length(var.subnet_ids) == 0 && length(var.security_group_ids) == 0 ? [] : [true]
 
     content {
-      security_groups = length(var.security_group_ids) == 0 ? null : sort(tolist(var.security_group_ids))
-      subnets         = length(var.subnet_ids) == 0 ? null : sort(tolist(var.subnet_ids))
+      security_groups = length(var.security_group_ids) == 0 ? null : var.security_group_ids
+      subnets         = length(var.subnet_ids) == 0 ? null : var.subnet_ids
     }
   }
 
@@ -63,22 +63,6 @@ resource "aws_ecs_express_gateway_service" "app" {
   }
 
   lifecycle {
-    precondition {
-      condition     = var.min_task_count <= var.max_task_count
-      error_message = "min_task_count must be less than or equal to max_task_count."
-    }
-
-    precondition {
-      condition = contains({
-        256  = [512, 1024, 2048]
-        512  = [1024, 2048, 3072, 4096]
-        1024 = [2048, 3072, 4096, 5120, 6144, 7168, 8192]
-        2048 = [4096, 5120, 6144, 7168, 8192]
-        4096 = [8192]
-      }[var.cpu], var.memory)
-      error_message = "cpu and memory must form a valid Fargate task size supported by ECS Express Mode."
-    }
-
     precondition {
       condition     = length(setintersection(toset(keys(local.container_environment)), toset(keys(var.secrets)))) == 0
       error_message = "An environment variable name cannot appear in both environment_variables and secrets."

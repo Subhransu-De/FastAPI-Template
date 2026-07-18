@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: terraform-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -35,11 +35,13 @@ jobs:
 
       - name: Initialize TFLint plugins
         working-directory: infra
-        run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tflint --init --config="$GITHUB_WORKSPACE/infra/.tflint.hcl"
 
       - name: Lint all Terraform roots
         working-directory: infra
-        run: tflint --recursive --format=compact
+        run: tflint --recursive --config="$GITHUB_WORKSPACE/infra/.tflint.hcl" --format=compact
 
   discover:
     name: Discover Terraform roots

@@ -3,7 +3,7 @@ project_name    = "fastapi-template"
 environment     = "dev"
 container_image = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/fastapi-template@sha256:replace-me"
 
-container_port   = 80
+container_port    = 8080
 health_check_path = "/health"
 cpu               = 256
 memory            = 512

@@ -46,6 +46,7 @@ At minimum, replace `container_image` and configure the required application set
 - `secrets_kms_key_arns`: customer-managed KMS keys needed to decrypt those values.
 
 The module derives the container's `PORT` environment variable from `container_port`, so changing the listener port cannot leave Uvicorn listening on the old default.
+The default is the unprivileged internal port `8080` because the repository image runs as a non-root user. ECS Express Mode still exposes the service through its managed HTTPS endpoint.
 
 If `subnet_ids` is empty, ECS Express Mode uses the default public subnets. When supplying custom subnets, use at least two Availability Zones. Private subnets produce an internal load balancer and require a path to ECR, CloudWatch Logs, Secrets Manager or SSM, the database, and the OIDC provider through NAT or VPC endpoints.
 

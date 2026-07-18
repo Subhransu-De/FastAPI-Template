@@ -46,7 +46,7 @@ resource "aws_iam_role_policy" "execution_secrets_manager" {
       Sid      = "ReadConfiguredSecrets"
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue"]
-      Resource = sort(tolist(local.secrets_manager_arns))
+      Resource = local.secrets_manager_arns
     }]
   })
 }
@@ -62,7 +62,7 @@ resource "aws_iam_role_policy" "execution_ssm" {
       Sid      = "ReadConfiguredParameters"
       Effect   = "Allow"
       Action   = ["ssm:GetParameters"]
-      Resource = sort(tolist(local.ssm_parameter_arns))
+      Resource = local.ssm_parameter_arns
     }]
   })
 }
@@ -78,7 +78,7 @@ resource "aws_iam_role_policy" "execution_kms" {
       Sid      = "DecryptConfiguredSecrets"
       Effect   = "Allow"
       Action   = ["kms:Decrypt"]
-      Resource = sort(tolist(var.secrets_kms_key_arns))
+      Resource = var.secrets_kms_key_arns
     }]
   })
 }

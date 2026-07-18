@@ -20,3 +20,5 @@ Each directory below is an independent Terraform root. Choose one deployment fla
 5. Delete the unused flavor directories. CI discovers roots dynamically, so deletion does not require matrix maintenance.
 
 Terraform state and plan files can contain sensitive data and are excluded by the repository `.gitignore`. Commit each root's `.terraform.lock.hcl` file so provider selections and checksums remain reproducible.
+
+Dependabot updates Terraform providers and committed lock files under `/infra/*`. It does not update the Terraform CLI version in `.github/workflows/terraform.yml`, the TFLint version shared by that workflow and `Makefile`, or the AWS ruleset version in `infra/.tflint.hcl`; review those pins together during infrastructure maintenance.
