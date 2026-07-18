@@ -1,0 +1,26 @@
+aws_region      = "ap-south-1"
+project_name    = "fastapi-template"
+environment     = "dev"
+container_image = "123456789012.dkr.ecr.ap-south-1.amazonaws.com/fastapi-template@sha256:replace-me"
+
+container_port   = 80
+health_check_path = "/health"
+cpu               = 256
+memory            = 512
+min_task_count     = 1
+max_task_count     = 4
+
+environment_variables = {
+  OIDC_ISSUER_URL    = "https://identity.example.com/realms/fastapi"
+  OIDC_CLIENT_ID     = "fastapi-client"
+  OIDC_DOCS_CLIENT_ID = "fastapi-docs"
+}
+
+secrets = {
+  DATABASE_URL = "arn:aws:secretsmanager:ap-south-1:123456789012:secret:fastapi-template/dev/database-url-AbCdEf"
+}
+
+additional_tags = {
+  Owner      = "platform-team"
+  CostCenter = "engineering"
+}

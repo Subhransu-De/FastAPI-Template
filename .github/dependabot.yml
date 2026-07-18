@@ -48,3 +48,15 @@ updates:
       - "Subhransu-De"
     assignees:
       - "Subhransu-De"
+
+  - package-ecosystem: "terraform"
+    directories:
+      - "/infra/*"
+    schedule:
+      interval: "daily"
+    rebase-strategy: "auto"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "Subhransu-De"
+    assignees:
+      - "Subhransu-De"

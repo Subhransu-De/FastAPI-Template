@@ -20,13 +20,13 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 | Area                    | Included                                                                                           |
 | ----------------------- | -------------------------------------------------------------------------------------------------- |
 | API                     | FastAPI application with health endpoints and protected CRUD routes for entities.                  |
-| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations run as a one-shot startup task before the API starts. |
+| Database                | PostgreSQL, async SQLAlchemy, Psycopg, and one-shot Alembic migrations before API startup.         |
 | Authentication          | OAuth2 authorization-code flow, JWT bearer validation, and a Keycloak-backed Docker setup.         |
 | Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.   |
 | Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.          |
 | Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                        |
-| Quality gates           | Ruff linting, Ty type checks, import-linter architecture checks, coverage enforcement, SonarCloud analysis, and Snyk security status. |
-| Dependency upkeep       | Dependabot is configured for Python, Docker, Docker Compose, and GitHub Actions updates.           |
+| Quality gates           | Ruff, Ty, import-linter, coverage, SonarCloud, Snyk, image scanning, and scenario tests.           |
+| Dependency upkeep       | Dependabot covers Python, Docker, Docker Compose, Terraform, and GitHub Actions.                   |
 
 ## Testing Strategy
 
@@ -133,6 +133,10 @@ Build and push both images before deployment:
 - Migration image: built from `Dockerfile.migration`; default command is `alembic -c alembic.ini upgrade head`; installs only the `migration` dependency group and only ships the Alembic migration files.
 
 For ECS, run the migration image as a one-off task before updating or starting the service. For EKS, run the migration image as a Kubernetes Job before rolling out the Deployment. In both cases, the migration task/job must use the same production database environment variables as the application release.
+
+## Deploying
+
+AWS deployment options live under [`infra/`](infra/README.md). The first available flavor uses [Amazon ECS Express Mode](infra/aws-ecs-express/README.md) to deploy the existing application image with managed HTTPS, load balancing, autoscaling, networking, and CloudWatch logging.
 
 ## Testing
 
