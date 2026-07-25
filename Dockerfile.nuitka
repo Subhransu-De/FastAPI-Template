@@ -49,6 +49,12 @@ LABEL org.opencontainers.image.base.name="python:3.13.13-slim"
 
 WORKDIR /app
 
+# Refresh the pinned base image's OpenSSL packages to the current Debian fix.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y libssl3t64 openssl openssl-provider-legacy \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
 
 COPY --from=builder --chown=app:app /build/main.dist/ /app/
