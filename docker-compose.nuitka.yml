@@ -1,0 +1,6 @@
+services:
+  app:
+    image: ${NUITKA_APP_IMAGE:-${COMPOSE_PROJECT_NAME:-fastapi-template}-app-nuitka:local}
+    build:
+      context: .
+      dockerfile: Dockerfile.nuitka

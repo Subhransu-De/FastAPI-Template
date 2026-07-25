@@ -62,7 +62,7 @@ jobs:
     needs: [gitleaks]
     strategy:
       matrix:
-        dockerfile: [Dockerfile, Dockerfile.migration]
+        dockerfile: [Dockerfile, Dockerfile.migration, Dockerfile.nuitka]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -205,6 +205,9 @@ jobs:
           - image-name: migration
             dockerfile: Dockerfile.migration
             tag: fastapi-template:ci-migration
+          - image-name: app-nuitka
+            dockerfile: Dockerfile.nuitka
+            tag: fastapi-template:ci-app-nuitka
 
     steps:
       - name: Checkout repository
@@ -234,14 +237,22 @@ jobs:
           severity: HIGH,CRITICAL
 
   e2e:
-    name: Scenario tests
+    name: Scenario tests (${{ matrix.runtime-name }})
     runs-on: ubuntu-latest
     needs: [build]
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime-name: standard
+            compose-file: docker-compose.yml:docker-compose.e2e.yml
+          - runtime-name: nuitka
+            compose-file: docker-compose.yml:docker-compose.e2e.yml:docker-compose.nuitka.yml
     env:
       TARGET_BASE_URL: http://localhost
-      COMPOSE_FILE: docker-compose.yml:docker-compose.e2e.yml
+      COMPOSE_FILE: ${{ matrix.compose-file }}
       TOKEN_URL: http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/token
       POSTGRES_PASSWORD: postgres
       KEYCLOAK_ADMIN_PASSWORD: admin
