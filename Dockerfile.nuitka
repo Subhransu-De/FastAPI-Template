@@ -63,8 +63,9 @@ RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell 
 
 COPY --from=builder --chown=app:app /build/main.dist/ /app/
 
-ENV APP_HOST="0.0.0.0"
-ENV PYTHONUNBUFFERED=1
+ENV APP_HOST="0.0.0.0" \
+    LOGFIRE_INSPECT_ARGUMENTS=false \
+    PYTHONUNBUFFERED=1
 
 EXPOSE 80
 
