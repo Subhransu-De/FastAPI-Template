@@ -36,8 +36,6 @@ RUN --mount=type=cache,target=/root/.cache/ccache \
     --include-package=app \
     --include-package=importlib_metadata \
     --include-module=io \
-    --nofollow-import-to=pygments.lexers.* \
-    --noinclude-default-mode=nofollow \
     app/main.py
 
 # CPython initializes io before Nuitka's standalone importer is installed.
