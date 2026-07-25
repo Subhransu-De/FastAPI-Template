@@ -34,10 +34,15 @@ RUN --mount=type=cache,target=/root/.cache/ccache \
     --output-dir=/build \
     --output-filename=fastapi-template \
     --include-package=app \
+    --include-package=importlib_metadata \
     --include-module=io \
     --nofollow-import-to=pygments.lexers.* \
     --noinclude-default-mode=nofollow \
     app/main.py
+
+# CPython initializes io before Nuitka's standalone importer is installed.
+# Keep the source bootstrap beside the binary until Nuitka embeds it reliably.
+RUN cp /usr/local/lib/python3.13/io.py /build/main.dist/io.py
 
 FROM python:3.13.13-slim
 
