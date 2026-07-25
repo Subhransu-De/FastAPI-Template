@@ -127,7 +127,7 @@ jobs:
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install lint dependencies
-        run: uv sync --group lint --all-packages
+        run: uv sync --locked --no-build --group lint --all-packages
 
       - name: Run Ruff
         run: make lint-ruff
@@ -142,7 +142,7 @@ jobs:
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install lint and test dependencies
-        run: uv sync --group lint --group test --all-packages
+        run: uv sync --locked --no-build --group lint --group test --all-packages
 
       - name: Run Ty
         run: make lint-ty
@@ -157,7 +157,7 @@ jobs:
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install lint dependencies
-        run: uv sync --group lint --all-packages
+        run: uv sync --locked --no-build --group lint --all-packages
 
       - name: Run Import Linter
         run: make lint-imports
@@ -179,16 +179,16 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --group test
+        run: uv sync --locked --no-build --python ${{ matrix.python-version }} --group test
 
       - name: Run unit tests
-        run: uv run --python ${{ matrix.python-version }} --group test pytest -m unit
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest -m unit
 
       - name: Run integration tests
-        run: uv run --python ${{ matrix.python-version }} --group test pytest -m integration
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest -m integration
 
       - name: Run tests with coverage
-        run: uv run --python ${{ matrix.python-version }} pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 
   build:
     runs-on: ubuntu-latest
@@ -263,11 +263,11 @@ jobs:
         run: docker compose up --build --wait --wait-timeout 240
 
       - name: Install Scenario Tests dependencies
-        run: uv sync --package scenario-tests
+        run: uv sync --locked --no-build --package scenario-tests
 
       - name: Run scenario tests
         working-directory: scenario-tests
-        run: uv run behave
+        run: uv run --locked --no-build behave
 
       - name: Show Docker Compose logs
         if: failure()
