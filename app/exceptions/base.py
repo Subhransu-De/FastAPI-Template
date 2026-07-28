@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 import logfire
 from fastapi import Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
 from starlette.exceptions import HTTPException
@@ -42,7 +43,7 @@ def base_exception_handler(request: Request, exc: Exception) -> Response:
                     "type": f"{request.base_url}openapi.json",
                     "title": "Bad Request",
                     "status": 400,
-                    "detail": exc.errors(),
+                    "detail": jsonable_encoder(exc.errors()),
                     "instance": str(request.url),
                 },
                 media_type=_PROBLEM_JSON_MEDIA_TYPE,

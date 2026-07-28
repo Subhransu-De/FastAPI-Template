@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_session
 from app.repository.entity import EntityRepository
+from app.repository.petclinic import PetClinicRepository
 from app.service.entity import EntityService
+from app.service.petclinic import PetClinicService
 
 
 def service_dependency[RepoT, ServiceT](
@@ -26,5 +28,11 @@ def service_dependency[RepoT, ServiceT](
 
 
 get_entity_service = service_dependency(EntityService, EntityRepository)
+get_petclinic_service = service_dependency(PetClinicService, PetClinicRepository)
 
-__all__ = ["EntityService", "get_entity_service"]
+__all__ = [
+    "EntityService",
+    "PetClinicService",
+    "get_entity_service",
+    "get_petclinic_service",
+]

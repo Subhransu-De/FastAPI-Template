@@ -3,6 +3,8 @@ from app.exceptions.exceptions import (
     AuthenticationError,
     DatabaseUnavailableError,
     NoEntityFoundError,
+    PetClinicConflictError,
+    PetClinicNotFoundError,
 )
 
 __all__: list[str] = [
@@ -10,5 +12,7 @@ __all__: list[str] = [
     "BaseError",
     "DatabaseUnavailableError",
     "NoEntityFoundError",
+    "PetClinicConflictError",
+    "PetClinicNotFoundError",
     "base_exception_handler",
 ]

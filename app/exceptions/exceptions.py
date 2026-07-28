@@ -29,3 +29,18 @@ class DatabaseUnavailableError(BaseError):
             status_code=503,
             title="Service Unavailable",
         )
+
+
+class PetClinicNotFoundError(BaseError):
+    def __init__(self, resource: str, resource_id: int | None = None) -> None:
+        subject = resource if resource_id is None else f"{resource} '{resource_id}'"
+        super().__init__(
+            message=f"{subject} not found",
+            status_code=404,
+            title="Not Found",
+        )
+
+
+class PetClinicConflictError(BaseError):
+    def __init__(self, message: str) -> None:
+        super().__init__(message=message, status_code=409, title="Conflict")
