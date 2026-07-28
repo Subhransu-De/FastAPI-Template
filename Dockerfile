@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:0.11.29 AS uv
+FROM ghcr.io/astral-sh/uv:0.11.32 AS uv
 
 FROM python:3.13-alpine AS builder
 
@@ -11,12 +11,12 @@ WORKDIR /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --python /usr/local/bin/python --frozen --no-install-project --no-dev
+    uv sync --python /usr/local/bin/python --frozen --no-build --no-install-project --no-dev
 
 COPY . /app
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --python /usr/local/bin/python --frozen --no-dev --no-editable
+    uv sync --python /usr/local/bin/python --frozen --no-build --no-dev --no-editable
 
 FROM python:3.13-alpine
 

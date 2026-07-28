@@ -48,7 +48,7 @@ jobs:
       pull-requests: read
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -65,7 +65,7 @@ jobs:
         dockerfile: [Dockerfile, Dockerfile.migration]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Lint ${{ matrix.dockerfile }}
         uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
@@ -78,7 +78,7 @@ jobs:
     needs: [hadolint]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Lint GitHub Actions workflows
         uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
@@ -96,9 +96,9 @@ jobs:
             working-directory: scenario-tests
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: "0.11.28"
 
@@ -122,12 +122,12 @@ jobs:
     needs: [hadolint]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install lint dependencies
-        run: uv sync --group lint --all-packages
+        run: uv sync --locked --no-build --group lint --all-packages
 
       - name: Run Ruff
         run: make lint-ruff
@@ -137,12 +137,12 @@ jobs:
     needs: [hadolint]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install lint and test dependencies
-        run: uv sync --group lint --group test --all-packages
+        run: uv sync --locked --no-build --group lint --group test --all-packages
 
       - name: Run Ty
         run: make lint-ty
@@ -152,12 +152,12 @@ jobs:
     needs: [hadolint]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install lint dependencies
-        run: uv sync --group lint --all-packages
+        run: uv sync --locked --no-build --group lint --all-packages
 
       - name: Run Import Linter
         run: make lint-imports
@@ -171,24 +171,24 @@ jobs:
         python-version: ["3.13", "3.14"]
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --python ${{ matrix.python-version }} --group test
+        run: uv sync --locked --no-build --python ${{ matrix.python-version }} --group test
 
       - name: Run unit tests
-        run: uv run --python ${{ matrix.python-version }} --group test pytest -m unit
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest -m unit
 
       - name: Run integration tests
-        run: uv run --python ${{ matrix.python-version }} --group test pytest -m integration
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest -m integration
 
       - name: Run tests with coverage
-        run: uv run --python ${{ matrix.python-version }} pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} pytest --cov=app --cov-report=term-missing --cov-fail-under=80
 
   build:
     runs-on: ubuntu-latest
@@ -208,7 +208,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
@@ -252,9 +252,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
       - name: Install Python
         run: uv python install
@@ -263,11 +263,11 @@ jobs:
         run: docker compose up --build --wait --wait-timeout 240
 
       - name: Install Scenario Tests dependencies
-        run: uv sync --package scenario-tests
+        run: uv sync --locked --no-build --package scenario-tests
 
       - name: Run scenario tests
         working-directory: scenario-tests
-        run: uv run behave
+        run: uv run --locked --no-build behave
 
       - name: Show Docker Compose logs
         if: failure()
