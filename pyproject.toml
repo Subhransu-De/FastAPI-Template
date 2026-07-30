@@ -5,7 +5,7 @@ description = "An opinionated FastAPI template with async SQLAlchemy 2.0, Alembi
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.140.0",
+    "fastapi>=0.141.1",
     "httpx>=0.28.1",
     "logfire[fastapi,psycopg,sqlalchemy]>=4.39.0",
     "psycopg[binary]>=3.3.4",
