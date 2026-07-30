@@ -9,6 +9,13 @@ def before_all(context: Any) -> None:
     context.scenario_client = ScenarioTestClient(context.settings)
     context.scenario_client.wait_until_ready()
     context.access_token = context.scenario_client.create_access_token()
+    context.limited_access_token = context.scenario_client.request_access_token(
+        context.settings.limited_username,
+        context.settings.limited_password,
+    )
+    context.limited_user_id = context.scenario_client.get_keycloak_user_id(
+        context.settings.limited_username
+    )
 
 
 def after_all(context: Any) -> None:

@@ -15,3 +15,18 @@ Feature: Entity endpoint scenarios
     Then the entity deletion should succeed
     When I fetch the deleted entity
     Then the deleted entity should not be found
+
+  Scenario: Apply role changes without requiring another login
+    Given the limited user has an unchanged access token
+    When the limited user lists entities
+    Then the limited user should be forbidden
+    When the administrator assigns the entity reader role
+    Then the role assignment should succeed
+    When the administrator assigns the same entity reader role again
+    Then the duplicate role assignment should conflict
+    When the limited user lists entities with the same token
+    Then the limited user should be allowed
+    When the administrator removes the entity reader role
+    Then the role removal should succeed
+    When the limited user lists entities with the same token
+    Then the limited user should be forbidden

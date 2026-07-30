@@ -75,6 +75,11 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
     resolve_oidc_metadata = AsyncMock(return_value=metadata)
     access_token_validator = Mock()
     access_token_validator_class = Mock(return_value=access_token_validator)
+    permission_authorizer = AsyncMock()
+    role_manager = Mock()
+    create_keycloak_clients = Mock(
+        return_value=(permission_authorizer, role_manager)
+    )
 
     monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
     monkeypatch.setattr(module.logfire, "info", info)
@@ -83,6 +88,11 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
         module,
         "AccessTokenValidator",
         access_token_validator_class,
+    )
+    monkeypatch.setattr(
+        module,
+        "create_keycloak_clients",
+        create_keycloak_clients,
     )
 
     async with module.lifespan(module.app):
@@ -94,6 +104,8 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
         )
         assert module.app.state.oidc_metadata is metadata
         assert module.app.state.access_token_validator is access_token_validator
+        assert module.app.state.permission_authorizer is permission_authorizer
+        assert module.app.state.role_manager is role_manager
 
     resolve_oidc_metadata.assert_awaited_once_with(module.authn_settings)
     access_token_validator_class.assert_called_once_with(
@@ -101,7 +113,16 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
         audience=module.authn_settings.client_id,
         jwks_cache_ttl_seconds=module.authn_settings.jwks_cache_ttl_seconds,
     )
+    create_keycloak_clients.assert_called_once_with(
+        realm_url=module.authn_settings.internal_url
+        or module.authn_settings.issuer_url,
+        client_id=module.authn_settings.client_id,
+        client_secret=module.authn_settings.client_secret.get_secret_value(),
+        resource_name=module.authn_settings.authorization_resource,
+        timeout_seconds=module.authn_settings.authorization_timeout_seconds,
+    )
     info.assert_any_call("Application shutdown")
+    permission_authorizer.close.assert_awaited_once_with()
 
 
 def test_main_runs_uvicorn(monkeypatch):

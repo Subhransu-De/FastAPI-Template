@@ -5,6 +5,8 @@ from behave import given, then, when
 HTTP_OK = 200
 HTTP_CREATED = 201
 HTTP_NO_CONTENT = 204
+HTTP_FORBIDDEN = 403
+HTTP_CONFLICT = 409
 HTTP_NOT_FOUND = 404
 
 
@@ -109,4 +111,82 @@ def step_deleted_entity_should_not_be_found(context: Any) -> None:
     require(
         context.deleted_get_response.status_code == HTTP_NOT_FOUND,
         context.deleted_get_response.text,
+    )
+
+
+@given("the limited user has an unchanged access token")
+def step_limited_user_has_token(context: Any) -> None:
+    require(bool(context.limited_access_token))
+    cleanup_response = context.scenario_client.remove_user_role(
+        context.limited_user_id,
+        "role:entity-reader",
+    )
+    require(
+        cleanup_response.status_code == HTTP_NO_CONTENT,
+        cleanup_response.text,
+    )
+
+
+@when("the limited user lists entities")
+@when("the limited user lists entities with the same token")
+def step_limited_user_lists_entities(context: Any) -> None:
+    context.limited_list_response = context.scenario_client.list_entities(
+        context.limited_access_token
+    )
+
+
+@then("the limited user should be forbidden")
+def step_limited_user_should_be_forbidden(context: Any) -> None:
+    require(
+        context.limited_list_response.status_code == HTTP_FORBIDDEN,
+        context.limited_list_response.text,
+    )
+
+
+@when("the administrator assigns the entity reader role")
+@when("the administrator assigns the same entity reader role again")
+def step_administrator_assigns_reader_role(context: Any) -> None:
+    context.role_assignment_response = context.scenario_client.assign_user_role(
+        context.limited_user_id,
+        "role:entity-reader",
+    )
+
+
+@then("the role assignment should succeed")
+def step_role_assignment_should_succeed(context: Any) -> None:
+    require(
+        context.role_assignment_response.status_code == HTTP_CREATED,
+        context.role_assignment_response.text,
+    )
+
+
+@then("the duplicate role assignment should conflict")
+def step_duplicate_role_assignment_should_conflict(context: Any) -> None:
+    require(
+        context.role_assignment_response.status_code == HTTP_CONFLICT,
+        context.role_assignment_response.text,
+    )
+
+
+@then("the limited user should be allowed")
+def step_limited_user_should_be_allowed(context: Any) -> None:
+    require(
+        context.limited_list_response.status_code == HTTP_OK,
+        context.limited_list_response.text,
+    )
+
+
+@when("the administrator removes the entity reader role")
+def step_administrator_removes_reader_role(context: Any) -> None:
+    context.role_removal_response = context.scenario_client.remove_user_role(
+        context.limited_user_id,
+        "role:entity-reader",
+    )
+
+
+@then("the role removal should succeed")
+def step_role_removal_should_succeed(context: Any) -> None:
+    require(
+        context.role_removal_response.status_code == HTTP_NO_CONTENT,
+        context.role_removal_response.text,
     )

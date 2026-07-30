@@ -19,6 +19,7 @@ _INTERNAL_OIDC_URL = "http://keycloak:8080/realms/fastapi-realm"  # NOSONAR
 _AUTHN_ENV = {
     "OIDC_ISSUER_URL": "http://localhost:8080/realms/fastapi-realm",
     "OIDC_CLIENT_ID": "fastapi-client",
+    "OIDC_CLIENT_SECRET": "test-client-secret",
     "OIDC_DOCS_CLIENT_ID": "fastapi-docs",
     "OIDC_JWKS_URI": "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/certs",
     "OIDC_ISSUER": "http://localhost:8080/realms/fastapi-realm",
@@ -90,8 +91,14 @@ class TestAuthNSettings:
         assert settings.issuer_url == _AUTHN_ENV["OIDC_ISSUER_URL"]
         assert settings.internal_url is None
         assert settings.client_id == _AUTHN_ENV["OIDC_CLIENT_ID"]
+        assert (
+            settings.client_secret.get_secret_value()
+            == _AUTHN_ENV["OIDC_CLIENT_SECRET"]
+        )
         assert settings.docs_client_id == _AUTHN_ENV["OIDC_DOCS_CLIENT_ID"]
         assert settings.jwks_cache_ttl_seconds == 300
+        assert settings.authorization_resource == "FastAPI API"
+        assert settings.authorization_timeout_seconds == 5
         assert settings.jwks_uri == _AUTHN_ENV["OIDC_JWKS_URI"]
         assert settings.issuer == _AUTHN_ENV["OIDC_ISSUER"]
         assert (
@@ -148,6 +155,7 @@ class TestAuthNSettings:
             "OIDC_ISSUER_URL": "http://localhost:8080/realms/fastapi-realm",
             "OIDC_INTERNAL_URL": _INTERNAL_OIDC_URL,
             "OIDC_CLIENT_ID": "fastapi-client",
+            "OIDC_CLIENT_SECRET": "test-client-secret",
             "OIDC_DOCS_CLIENT_ID": "fastapi-docs",
         }
         for key in _AUTHN_ENV:
@@ -188,6 +196,7 @@ class TestAuthNSettings:
         monkeypatch.setenv("OIDC_ISSUER_URL", "https://idp.example/realm")
         monkeypatch.setenv("OIDC_INTERNAL_URL", "")
         monkeypatch.setenv("OIDC_CLIENT_ID", "fastapi-client")
+        monkeypatch.setenv("OIDC_CLIENT_SECRET", "test-client-secret")
         monkeypatch.setenv("OIDC_DOCS_CLIENT_ID", "fastapi-docs")
         settings = AuthNSettings(_env_file=None)
         discovery = {
@@ -213,6 +222,10 @@ class TestAuthNSettings:
             monkeypatch.delenv(key, raising=False)
         monkeypatch.setenv("OIDC_ISSUER_URL", _AUTHN_ENV["OIDC_ISSUER_URL"])
         monkeypatch.setenv("OIDC_CLIENT_ID", _AUTHN_ENV["OIDC_CLIENT_ID"])
+        monkeypatch.setenv(
+            "OIDC_CLIENT_SECRET",
+            _AUTHN_ENV["OIDC_CLIENT_SECRET"],
+        )
         monkeypatch.setenv("OIDC_DOCS_CLIENT_ID", _AUTHN_ENV["OIDC_DOCS_CLIENT_ID"])
         monkeypatch.setenv("OIDC_JWKS_URI", _AUTHN_ENV["OIDC_JWKS_URI"])
 

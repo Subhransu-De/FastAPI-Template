@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REQUIRED_ENVIRONMENT_FIELDS = {
     "oidc_client_secret": "OIDC_CLIENT_SECRET",
+    "keycloak_admin_password": "KEYCLOAK_ADMIN_PASSWORD",
     "password": "E2E_PASSWORD",
 }
 
@@ -25,6 +26,18 @@ class ScenarioTestSettings(BaseSettings):
     oidc_client_secret: str = Field(default="", validation_alias="OIDC_CLIENT_SECRET")
     username: str = Field(default="e2e-user", validation_alias="E2E_USERNAME")
     password: str = Field(default="", validation_alias="E2E_PASSWORD")
+    limited_username: str = Field(
+        default="limited-user",
+        validation_alias="E2E_LIMITED_USERNAME",
+    )
+    limited_password: str = Field(
+        default="test-password",
+        validation_alias="E2E_LIMITED_PASSWORD",
+    )
+    keycloak_admin_password: str = Field(
+        default="",
+        validation_alias="KEYCLOAK_ADMIN_PASSWORD",
+    )
     health_endpoint: str = Field(default="/health", validation_alias="HEALTH_ENDPOINT")
 
     @field_validator("target_base_url")
@@ -32,7 +45,7 @@ class ScenarioTestSettings(BaseSettings):
     def strip_target_base_url_trailing_slash(cls, value: str) -> str:
         return value.rstrip("/")
 
-    @field_validator("oidc_client_secret", "password")
+    @field_validator("oidc_client_secret", "keycloak_admin_password", "password")
     @classmethod
     def require_environment_value(cls, value: str, info: ValidationInfo) -> str:
         if value:

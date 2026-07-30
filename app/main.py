@@ -8,7 +8,11 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 
 from app import logger, telemetry
-from app.auth import AccessTokenValidator, OIDCOpenAPIFastAPI
+from app.auth import (
+    AccessTokenValidator,
+    OIDCOpenAPIFastAPI,
+    create_keycloak_clients,
+)
 from app.database.engine import get_engine
 from app.exceptions import AuthenticationError, BaseError, base_exception_handler
 from app.routes import protected_route, public_route
@@ -25,6 +29,15 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         audience=authn_settings.client_id,
         jwks_cache_ttl_seconds=authn_settings.jwks_cache_ttl_seconds,
     )
+    permission_authorizer, role_manager = create_keycloak_clients(
+        realm_url=authn_settings.internal_url or authn_settings.issuer_url,
+        client_id=authn_settings.client_id,
+        client_secret=authn_settings.client_secret.get_secret_value(),
+        resource_name=authn_settings.authorization_resource,
+        timeout_seconds=authn_settings.authorization_timeout_seconds,
+    )
+    _app.state.permission_authorizer = permission_authorizer
+    _app.state.role_manager = role_manager
     _app.openapi_schema = None
     telemetry.instrument_sqlalchemy(get_engine())
     logfire.info(
@@ -35,6 +48,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     try:
         yield
     finally:
+        await permission_authorizer.close()
         await get_engine().dispose()
         logfire.info("Application shutdown")
 

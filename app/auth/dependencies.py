@@ -31,4 +31,5 @@ def authenticate_request(
         "AccessTokenValidator",
         request.app.state.access_token_validator,
     )
+    request.state.access_token = access_token
     request.state.auth_claims = validator.validate(access_token)

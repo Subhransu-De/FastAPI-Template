@@ -2,7 +2,7 @@
 
 Standalone Behave Scenario Tests application for validating the running FastAPI service.
 
-The application expects the target service and Keycloak realm to already be running. It creates an access token in Behave's `before_all` hook and reuses that token across the endpoint scenarios.
+The application expects the target service and Keycloak realm to already be running. It verifies CRUD access and proves that role assignment and removal change a second user's access while that user keeps the same access token.
 
 ## Environment variables
 
@@ -14,6 +14,9 @@ The application expects the target service and Keycloak realm to already be runn
 | `OIDC_CLIENT_SECRET` | Required | OIDC client secret. |
 | `E2E_USERNAME` | `e2e-user` | Test user username. |
 | `E2E_PASSWORD` | Required | Test user password. |
+| `E2E_LIMITED_USERNAME` | `limited-user` | User used to test live role changes. |
+| `E2E_LIMITED_PASSWORD` | `test-password` | Limited user's password. |
+| `KEYCLOAK_ADMIN_PASSWORD` | Required | Used only to resolve the limited user's Keycloak ID. |
 | `HEALTH_ENDPOINT` | `/health` | Endpoint used before scenarios to wait for application readiness. |
 
 ## Run

@@ -6,6 +6,7 @@ services:
   keycloak-config:
     environment:
       OIDC_REALM: fastapi-e2e-realm
+      OIDC_BOOTSTRAP_USERNAME: e2e-user
 
   app:
     environment:

@@ -38,15 +38,19 @@ class ScenarioTestClient:
             message = f"{message}: {last_error}"
         raise RuntimeError(message)
 
-    def create_access_token(self) -> str:
+    def request_access_token(
+        self,
+        username: str,
+        password: str,
+    ) -> str:
         response = httpx.post(
             self.settings.token_url,
             data={
                 "grant_type": "password",
                 "client_id": self.settings.oidc_client_id,
                 "client_secret": self.settings.oidc_client_secret,
-                "username": self.settings.username,
-                "password": self.settings.password,
+                "username": username,
+                "password": password,
             },
             timeout=10.0,
         )
@@ -57,34 +61,115 @@ class ScenarioTestClient:
             message = "Keycloak did not return an access token"
             raise RuntimeError(message)
 
+        return access_token
+
+    def create_access_token(self) -> str:
+        access_token = self.request_access_token(
+            self.settings.username,
+            self.settings.password,
+        )
         self.client.headers.update({"Authorization": f"Bearer {access_token}"})
         return access_token
 
-    def create_entity(self, name: str, description: str | None) -> httpx.Response:
+    def get_keycloak_user_id(self, username: str) -> str:
+        keycloak_base_url, _, realm_path = self.settings.token_url.partition(
+            "/realms/"
+        )
+        realm = realm_path.partition("/")[0]
+        token_response = httpx.post(
+            f"{keycloak_base_url}/realms/master/protocol/openid-connect/token",
+            data={
+                "grant_type": "password",
+                "client_id": "admin-cli",
+                "username": "admin",
+                "password": self.settings.keycloak_admin_password,
+            },
+            timeout=10.0,
+        )
+        token_response.raise_for_status()
+        response = httpx.get(
+            f"{keycloak_base_url}/admin/realms/{realm}/users",
+            params={"username": username, "exact": "true"},
+            headers={
+                "Authorization": (
+                    f"Bearer {token_response.json()['access_token']}"
+                )
+            },
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        users = response.json()
+        if len(users) != 1:
+            message = f"Expected exactly one Keycloak user named '{username}'"
+            raise RuntimeError(message)
+        return str(users[0]["id"])
+
+    @staticmethod
+    def _access_token_header(access_token: str | None) -> dict[str, str] | None:
+        if access_token is None:
+            return None
+        return {"Authorization": f"Bearer {access_token}"}
+
+    def create_entity(
+        self,
+        name: str,
+        description: str | None,
+        access_token: str | None = None,
+    ) -> httpx.Response:
         return self.client.post(
             "/entities/",
             json={"name": name, "description": description},
+            headers=self._access_token_header(access_token),
         )
 
-    def get_entity(self, entity_id: str) -> httpx.Response:
-        return self.client.get(f"/entities/{entity_id}")
+    def get_entity(
+        self,
+        entity_id: str,
+        access_token: str | None = None,
+    ) -> httpx.Response:
+        return self.client.get(
+            f"/entities/{entity_id}",
+            headers=self._access_token_header(access_token),
+        )
 
-    def list_entities(self) -> httpx.Response:
-        return self.client.get("/entities/", params={"limit": 100})
+    def list_entities(self, access_token: str | None = None) -> httpx.Response:
+        return self.client.get(
+            "/entities/",
+            params={"limit": 100},
+            headers=self._access_token_header(access_token),
+        )
 
     def update_entity(
         self,
         entity_id: str,
         name: str,
         description: str | None,
+        access_token: str | None = None,
     ) -> httpx.Response:
         return self.client.put(
             f"/entities/{entity_id}",
             json={"name": name, "description": description},
+            headers=self._access_token_header(access_token),
         )
 
-    def delete_entity(self, entity_id: str) -> httpx.Response:
-        return self.client.delete(f"/entities/{entity_id}")
+    def delete_entity(
+        self,
+        entity_id: str,
+        access_token: str | None = None,
+    ) -> httpx.Response:
+        return self.client.delete(
+            f"/entities/{entity_id}",
+            headers=self._access_token_header(access_token),
+        )
+
+    def assign_user_role(self, user_id: str, role_name: str) -> httpx.Response:
+        return self.client.post(
+            f"/users/{user_id}/roles/",
+            json={"role_name": role_name},
+        )
+
+    def remove_user_role(self, user_id: str, role_name: str) -> httpx.Response:
+        return self.client.delete(f"/users/{user_id}/roles/{role_name}")
 
     @staticmethod
     def response_json(response: httpx.Response) -> Any:

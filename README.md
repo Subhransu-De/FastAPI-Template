@@ -22,6 +22,7 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 | API                     | FastAPI application with health endpoints and protected CRUD routes for entities.                  |
 | Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations run as a one-shot startup task before the API starts. |
 | Authentication          | OAuth2 authorization-code flow, JWT bearer validation, and a Keycloak-backed Docker setup.         |
+| Authorization           | Current-state Keycloak permission checks, composite business roles, and role assignment endpoints. |
 | Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.   |
 | Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.          |
 | Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                        |
@@ -106,7 +107,7 @@ docker compose up --build
 
 Docker Compose builds the API from `Dockerfile` and the one-shot migration service from `Dockerfile.migration`. Their default image tags include `COMPOSE_PROJECT_NAME`, so parallel worktrees do not overwrite each other's local images; `APP_IMAGE` and `MIGRATION_IMAGE` can still override those tags. Compose starts `migrate` first, waits for `alembic upgrade head` to exit successfully, and then starts the API container. If migrations fail, the API container does not start.
 
-Swagger UI signs users in with the public `fastapi-docs` client using authorization code flow plus PKCE. The API continues to validate the `fastapi-client` audience. A browser client must never receive a client secret; `OIDC_CLIENT_SECRET` is used only by the confidential client in scenario tests.
+Swagger UI signs users in with the public `fastapi-docs` client using authorization code flow plus PKCE. The API continues to validate the `fastapi-client` audience. A browser client must never receive a client secret. The API uses `OIDC_CLIENT_SECRET` on the server to authenticate Keycloak Admin requests for role administration; UMA authorization decisions use the user's bearer token.
 
 Compose does not assign host-global container names. To run isolated stacks in parallel, give each one a unique project name, application port, Keycloak port, and public URLs:
 
@@ -120,6 +121,29 @@ docker compose up --build
 ```
 
 The `keycloak-config` one-shot service registers the exact Swagger callback for `APP_PUBLIC_URL`; production deployments should likewise use exact redirect URIs rather than wildcards.
+
+## Roles and Permissions
+
+Protected routes declare their required permission in the FastAPI route decorator. Authentication validates the JWT locally. The authorization dependency then asks Keycloak for a UMA decision on every protected request, so a role or composite-permission change affects the user's next request without another login. A denied decision returns `403`; if Keycloak cannot make the decision, the API fails closed with `503`.
+
+The local Keycloak setup creates these composite business roles:
+
+| Role | Included permissions |
+| --- | --- |
+| `role:entity-reader` | `entity:list`, `entity:read` |
+| `role:entity-editor` | Reader permissions plus `entity:create`, `entity:update` |
+| `role:entity-admin` | Editor permissions plus `entity:delete` |
+| `role:role-admin` | `role:list`, `role:assign`, `role:remove` |
+
+The children of these roles are Keycloak client roles prefixed with `permission:`. Users may have several business roles, and roles may contain the same permission.
+
+Role administration is available to callers with the matching permissions:
+
+- `GET /users/{user_id}/roles/` lists directly assigned business roles.
+- `POST /users/{user_id}/roles/` assigns the `role_name` from the request body.
+- `DELETE /users/{user_id}/roles/{role_name}` removes a role.
+
+Assigning the same role twice through the API returns `409 Conflict`. Permission roles cannot be assigned directly through these endpoints. The application service account receives only the Keycloak realm-management roles needed to view users and manage their role mappings.
 
 ## Customizing the Template
 

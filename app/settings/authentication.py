@@ -3,6 +3,7 @@ from typing import cast
 
 import httpx
 from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic.types import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DISCOVERY_PATH = "/.well-known/openid-configuration"
@@ -31,8 +32,11 @@ class AuthNSettings(BaseSettings):
     issuer_url: str
     internal_url: str | None = None
     client_id: str
+    client_secret: SecretStr
     docs_client_id: str
     jwks_cache_ttl_seconds: int = 300
+    authorization_resource: str = "FastAPI API"
+    authorization_timeout_seconds: int = 5
 
     # A complete override group bypasses discovery for tests and air-gapped runtimes.
     jwks_uri: str | None = None

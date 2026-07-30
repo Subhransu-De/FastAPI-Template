@@ -56,6 +56,9 @@ services:
       APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost}
       OIDC_REALM: fastapi-realm
       OIDC_DOCS_CLIENT_ID: fastapi-docs
+      OIDC_API_CLIENT_ID: fastapi-client
+      OIDC_API_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-change-me}
+      OIDC_BOOTSTRAP_USERNAME: testuser
     volumes:
       - ./.docker/configure_keycloak_client.py:/config/configure_keycloak_client.py:ro
     depends_on:
@@ -82,7 +85,10 @@ services:
       OIDC_ISSUER_URL: ${OIDC_PUBLIC_URL:-http://localhost:8080}/realms/fastapi-realm
       OIDC_INTERNAL_URL: http://keycloak:8080/realms/fastapi-realm
       OIDC_CLIENT_ID: fastapi-client
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-change-me}
       OIDC_DOCS_CLIENT_ID: fastapi-docs
+      OIDC_AUTHORIZATION_RESOURCE: FastAPI API
+      OIDC_AUTHORIZATION_TIMEOUT_SECONDS: 5
       OIDC_JWKS_CACHE_TTL_SECONDS: 300
     depends_on:
       db:

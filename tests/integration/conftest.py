@@ -6,6 +6,7 @@ import time
 from collections.abc import AsyncGenerator, Callable, Iterator
 from os import environ
 from typing import Any
+from unittest.mock import AsyncMock
 
 import httpx
 import jwt as pyjwt
@@ -221,6 +222,8 @@ def make_test_token(
 async def app_client(
     integration_sessionmaker: async_sessionmaker[AsyncSession],
     clean_integration_database: None,
+    permission_authorizer: AsyncMock,
+    role_manager: AsyncMock,
     request: pytest.FixtureRequest,
     _rsa_private_key: RSAPrivateKey,
 ) -> AsyncGenerator[httpx.AsyncClient]:
@@ -237,6 +240,8 @@ async def app_client(
                 raise
 
     app.dependency_overrides[session_module.get_session] = override_get_session
+    app.state.permission_authorizer = permission_authorizer
+    app.state.role_manager = role_manager
 
     headers: dict[str, str] = {}
     if request.node.get_closest_marker("with_auth"):
@@ -251,3 +256,19 @@ async def app_client(
         yield client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def permission_authorizer() -> AsyncMock:
+    authorizer = AsyncMock()
+    authorizer.authorize = AsyncMock()
+    return authorizer
+
+
+@pytest.fixture
+def role_manager() -> AsyncMock:
+    manager = AsyncMock()
+    manager.list_roles = AsyncMock(return_value=[])
+    manager.assign_role = AsyncMock()
+    manager.remove_role = AsyncMock()
+    return manager

@@ -170,6 +170,21 @@
         }
       ],
       "requiredActions": []
+    },
+    {
+      "username": "limited-user",
+      "enabled": true,
+      "email": "limited-user@example.com",
+      "firstName": "Limited",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "test-password",
+          "temporary": false
+        }
+      ],
+      "requiredActions": []
     }
   ]
 }

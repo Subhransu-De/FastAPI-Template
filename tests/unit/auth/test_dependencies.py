@@ -32,4 +32,5 @@ def test_authenticate_request_stores_validated_claims() -> None:
     authenticate_request(request, _VALID_TOKEN)
 
     validator.validate.assert_called_once_with(_VALID_TOKEN)
+    assert request.state.access_token == _VALID_TOKEN
     assert request.state.auth_claims == {"sub": "user-1"}

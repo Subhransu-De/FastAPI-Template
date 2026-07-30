@@ -5,6 +5,8 @@ from uuid import uuid4
 import httpx
 import pytest
 
+from app.auth import Permission
+from app.exceptions import AuthorizationError
 from tests.integration.conftest import WithAuth
 
 pytestmark = pytest.mark.integration
@@ -59,6 +61,66 @@ async def test_entity_routes_require_bearer_authorization(
     response = await app_client.get("/entities/")
 
     _assert_unauthorized(response)
+
+
+@WithAuth
+async def test_entity_route_returns_forbidden_when_permission_is_denied(
+    app_client: httpx.AsyncClient,
+    permission_authorizer: Any,
+) -> None:
+    permission_authorizer.authorize.side_effect = AuthorizationError()
+
+    response = await app_client.get("/entities/")
+
+    problem = _assert_problem_details(
+        response,
+        status_code=403,
+        title="Forbidden",
+    )
+    assert problem["detail"] == "Forbidden"
+
+
+@WithAuth
+@pytest.mark.parametrize(
+    "request_case",
+    [
+        (
+            "post",
+            "/entities/",
+            {"json": {"name": "Permission check"}},
+            Permission.ENTITY_CREATE,
+        ),
+        ("get", "/entities/", {}, Permission.ENTITY_LIST),
+        (
+            "get",
+            f"/entities/{uuid4()}",
+            {},
+            Permission.ENTITY_READ,
+        ),
+        (
+            "put",
+            f"/entities/{uuid4()}",
+            {"json": {"name": "Permission check"}},
+            Permission.ENTITY_UPDATE,
+        ),
+        (
+            "delete",
+            f"/entities/{uuid4()}",
+            {},
+            Permission.ENTITY_DELETE,
+        ),
+    ],
+)
+async def test_each_entity_route_requires_its_declared_permission(
+    app_client: httpx.AsyncClient,
+    permission_authorizer: Any,
+    request_case: tuple[str, str, dict[str, Any], Permission],
+) -> None:
+    method, path, kwargs, permission = request_case
+    await app_client.request(method, path, **kwargs)
+
+    permission_authorizer.authorize.assert_awaited_once()
+    assert permission_authorizer.authorize.await_args.args[1] == (permission,)
 
 
 @pytest.mark.parametrize(
