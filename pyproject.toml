@@ -23,7 +23,7 @@ migration = [
 ]
 lint = [
     "import-linter>=2.13",
-    "ruff>=0.16.0",
+    "ruff>=0.16.1",
     "ty>=0.0.65",
 ]
 test = [
