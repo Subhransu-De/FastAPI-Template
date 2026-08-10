@@ -4,8 +4,7 @@ from unittest.mock import Mock
 import logfire
 import pytest
 
-from app.logger import configuration
-from app.logger.handlers import get_logfire_handler
+from app.observability import logging as observability_logging
 
 pytestmark = pytest.mark.unit
 
@@ -15,10 +14,14 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 ) -> None:
     logger_names = ["uvicorn", "uvicorn.access", "uvicorn.error"]
     otel_handler = logging.NullHandler()
-    configure_otel = Mock()
+    configure_observability = Mock()
 
     root = logging.getLogger()
-    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
+    monkeypatch.setattr(
+        observability_logging,
+        "configure_observability",
+        configure_observability,
+    )
     monkeypatch.setattr(root, "handlers", [logging.NullHandler()])
     monkeypatch.setattr(root, "level", logging.WARNING)
 
@@ -32,9 +35,9 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
         monkeypatch.setattr(logger, "level", logging.WARNING)
         monkeypatch.setattr(logger, "propagate", True)
 
-    configuration.setup_logging(otel_handler_factory=lambda: otel_handler)
+    observability_logging.setup_logging(handler_factory=lambda: otel_handler)
 
-    configure_otel.assert_not_called()
+    configure_observability.assert_not_called()
     assert root.handlers == [otel_handler]
     assert root.level == logging.INFO
     assert root.disabled is False
@@ -47,21 +50,29 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
         assert logger.propagate is False
 
 
-def test_setup_logging_configures_otel_for_default_handler(
+def test_setup_logging_configures_observability_for_default_handler(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    configure_otel = Mock()
+    configure_observability = Mock()
     configure_logger = Mock()
-    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
-    monkeypatch.setattr(configuration, "configure_logger", configure_logger)
+    monkeypatch.setattr(
+        observability_logging,
+        "configure_observability",
+        configure_observability,
+    )
+    monkeypatch.setattr(
+        observability_logging,
+        "configure_logger",
+        configure_logger,
+    )
 
-    configuration.setup_logging()
+    observability_logging.setup_logging()
 
-    configure_otel.assert_called_once_with()
+    configure_observability.assert_called_once_with()
 
 
 def test_logfire_handler_uses_stock_handler_with_null_fallback() -> None:
-    handler = get_logfire_handler()
+    handler = observability_logging.get_logfire_handler()
 
     assert type(handler) is logfire.LogfireLoggingHandler
     assert isinstance(handler.fallback, logging.NullHandler)
@@ -77,7 +88,7 @@ def test_logfire_handler_filters_health_endpoint_access_logs() -> None:
         args=("127.0.0.1:50000", "GET", "/health", "1.1", 200),
         exc_info=None,
     )
-    handler = get_logfire_handler()
+    handler = observability_logging.get_logfire_handler()
     logfire_instance = Mock()
     handler.logfire_instance = logfire_instance
 

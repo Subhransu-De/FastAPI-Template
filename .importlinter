@@ -14,8 +14,7 @@ layers =
     app.database
     app.model
     app.exceptions
-    app.logger
-    app.telemetry
+    app.observability
     app.settings
 
 [importlinter:contract:database_access_is_protected]

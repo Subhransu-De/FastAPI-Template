@@ -76,8 +76,8 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
     access_token_validator = Mock()
     access_token_validator_class = Mock(return_value=access_token_validator)
 
-    monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
-    monkeypatch.setattr(module.logfire, "info", info)
+    monkeypatch.setattr(module.observability, "setup_logging", setup_logging)
+    monkeypatch.setattr(module.logger, "info", info)
     monkeypatch.setattr(module, "resolve_oidc_metadata", resolve_oidc_metadata)
     monkeypatch.setattr(
         module,
@@ -88,9 +88,9 @@ async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
     async with module.lifespan(module.app):
         setup_logging.assert_called_once_with()
         info.assert_called_once_with(
-            "Starting up {service_name} on port {port}",
-            service_name=module.app_settings.app_name,
-            port=module.app_settings.port,
+            "Starting up %s on port %s",
+            module.app_settings.app_name,
+            module.app_settings.port,
         )
         assert module.app.state.oidc_metadata is metadata
         assert module.app.state.access_token_validator is access_token_validator
@@ -110,7 +110,7 @@ def test_main_runs_uvicorn(monkeypatch):
     setup_logging = Mock()
 
     monkeypatch.setattr(module.uvicorn, "run", run)
-    monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
+    monkeypatch.setattr(module.observability, "setup_logging", setup_logging)
 
     module.main()
 

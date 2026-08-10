@@ -6,7 +6,7 @@ from logfire.testing import TestExporter
 from opentelemetry import trace
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
-from app.logger import configuration
+from app.observability import logging as observability_logging
 
 pytestmark = pytest.mark.unit
 
@@ -20,8 +20,8 @@ def test_setup_logging_exports_stdlib_logs_to_otel() -> None:
         additional_span_processors=[SimpleSpanProcessor(exporter)],
     )
 
-    configuration.setup_logging(
-        otel_handler_factory=lambda: logfire.LogfireLoggingHandler(
+    observability_logging.setup_logging(
+        handler_factory=lambda: logfire.LogfireLoggingHandler(
             fallback=logging.NullHandler()
         )
     )

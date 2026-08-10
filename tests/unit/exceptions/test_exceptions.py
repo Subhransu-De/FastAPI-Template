@@ -121,7 +121,7 @@ def test_base_exception_handler_for_unexpected_error(monkeypatch):
     def capture_log(*args, **kwargs):
         logged.append((args, kwargs))
 
-    monkeypatch.setattr("app.exceptions.base.logfire.exception", capture_log)
+    monkeypatch.setattr("app.exceptions.base.logger.error", capture_log)
 
     response = base_exception_handler(request, error)
     body = load_json_body(response)
@@ -129,8 +129,8 @@ def test_base_exception_handler_for_unexpected_error(monkeypatch):
     assert response.status_code == 500
     assert logged == [
         (
-            ("Unhandled exception while processing {url}",),
-            {"url": str(request.url), "_exc_info": error},
+            ("Unhandled exception while processing %s", request.url),
+            {"exc_info": error},
         )
     ]
     assert body == {
