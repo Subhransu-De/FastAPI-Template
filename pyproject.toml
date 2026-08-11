@@ -18,7 +18,7 @@ dependencies = [
 
 [dependency-groups]
 migration = [
-    "alembic[tz]>=1.18.5",
+    "alembic[tz]>=1.19.0",
     "psycopg[binary]>=3.3.4",
 ]
 lint = [
