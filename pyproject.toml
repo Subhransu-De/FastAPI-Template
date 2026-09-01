@@ -24,7 +24,7 @@ migration = [
 lint = [
     "import-linter>=2.13",
     "ruff>=0.16.2",
-    "ty>=0.0.70",
+    "ty>=0.0.73",
 ]
 test = [
     { include-group = "migration" },
