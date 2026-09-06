@@ -18,7 +18,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --python /usr/local/bin/python --frozen --no-build --no-dev --no-editable
 
-FROM python:3.13-alpine
+FROM python:3.13-alpine AS runtime
 
 LABEL org.opencontainers.image.title="FastAPI Template"
 LABEL org.opencontainers.image.description="FastAPI template"
@@ -28,7 +28,8 @@ LABEL org.opencontainers.image.base.name="python:3.13-alpine"
 
 WORKDIR /app
 
-RUN python -m pip uninstall --yes pip && \
+RUN apk upgrade --no-cache && \
+    python -m pip uninstall --yes pip && \
     addgroup -S app && \
     adduser -S -G app -h /app -s /sbin/nologin app
 
