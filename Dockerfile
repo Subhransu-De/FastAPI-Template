@@ -18,7 +18,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --python /usr/local/bin/python --frozen --no-build --no-dev --no-editable
 
-FROM python:3.13-alpine
+FROM python:3.13-alpine AS runtime
 
 LABEL org.opencontainers.image.title="FastAPI Template"
 LABEL org.opencontainers.image.description="FastAPI template"

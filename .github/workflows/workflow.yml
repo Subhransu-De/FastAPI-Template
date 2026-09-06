@@ -222,6 +222,7 @@ jobs:
           tags: ${{ matrix.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          no-cache-filters: runtime
           load: true
 
       - name: Scan ${{ matrix.image-name }} image
