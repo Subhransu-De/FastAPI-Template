@@ -8,7 +8,7 @@ dependencies = [
     "fastapi>=0.141.1",
     "httpx>=0.28.1",
     "logfire[fastapi,psycopg,sqlalchemy]>=4.41.0",
-    "psycopg[binary]>=3.3.4",
+    "psycopg[binary]>=3.3.5",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "pyjwt[crypto]>=2.13.0",
@@ -19,7 +19,7 @@ dependencies = [
 [dependency-groups]
 migration = [
     "alembic[tz]>=1.19.1",
-    "psycopg[binary]>=3.3.4",
+    "psycopg[binary]>=3.3.5",
 ]
 lint = [
     "import-linter>=2.14",
