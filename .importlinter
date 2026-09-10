@@ -127,7 +127,7 @@ modules =
 name = Routes are independent
 type = independence
 broken_contract_guidance =
-    Move shared route behavior to app.routes or a lower-level service instead of importing sibling routes.
+    Move shared route behavior to a neutral module such as app.routes.shared or to a lower-level service.
 modules =
     app.routes.entity
     app.routes.health
