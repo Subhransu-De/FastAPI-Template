@@ -4,6 +4,9 @@ root_package = app
 [importlinter:contract:app_layers]
 name = Application layers
 type = layers
+broken_contract_guidance =
+    Keep dependencies flowing from higher layers to lower layers.
+    Move shared code to the lowest suitable layer or invert the dependency at the boundary.
 layers =
     app.main
     app.routes
@@ -21,6 +24,9 @@ layers =
 [importlinter:contract:database_access_is_protected]
 name = Database access is protected
 type = protected
+broken_contract_guidance =
+    Access database infrastructure through the service layer.
+    Extend allowed_importers only when the architecture intentionally grants direct access.
 protected_modules =
     app.database
 allowed_importers =
@@ -31,6 +37,8 @@ allowed_importers =
 [importlinter:contract:repository_access_is_protected]
 name = Repository access is protected
 type = protected
+broken_contract_guidance =
+    Call repositories from app.service rather than importing them from delivery or infrastructure code.
 protected_modules =
     app.repository
 allowed_importers =
@@ -39,6 +47,8 @@ allowed_importers =
 [importlinter:contract:auth_access_is_protected]
 name = Authentication access is protected
 type = protected
+broken_contract_guidance =
+    Keep authentication wiring in app.main and app.routes, then pass authenticated data inward.
 protected_modules =
     app.auth
 allowed_importers =
@@ -48,6 +58,8 @@ allowed_importers =
 [importlinter:contract:entity_routes_do_not_access_persistence_directly]
 name = Entity routes do not access persistence directly
 type = forbidden
+broken_contract_guidance =
+    Route handlers should call app.service instead of reaching into database or repository modules.
 source_modules =
     app.routes.entity
 forbidden_modules =
@@ -58,6 +70,9 @@ allow_indirect_imports = True
 [importlinter:contract:entity_service_does_not_access_delivery_layer]
 name = Entity service does not access delivery layer
 type = forbidden
+broken_contract_guidance =
+    Pass request and authentication data into the service from the route layer.
+    Keep delivery and database wiring out of business logic.
 source_modules =
     app.service.entity
 forbidden_modules =
@@ -68,6 +83,8 @@ forbidden_modules =
 [importlinter:contract:persistence_does_not_access_application_layers]
 name = Persistence does not access application layers
 type = forbidden
+broken_contract_guidance =
+    Move application orchestration to app.service and keep persistence modules focused on storage concerns.
 source_modules =
     app.repository
     app.model
@@ -81,6 +98,8 @@ forbidden_modules =
 [importlinter:contract:settings_are_foundational]
 name = Settings are foundational
 type = forbidden
+broken_contract_guidance =
+    Keep settings dependency-free; pass configured values into higher-level modules during application wiring.
 source_modules =
     app.settings
 forbidden_modules =
@@ -89,6 +108,8 @@ forbidden_modules =
 [importlinter:contract:schemas_and_models_are_independent]
 name = Schemas and models are independent
 type = independence
+broken_contract_guidance =
+    Move shared definitions to a neutral lower-level module instead of coupling schemas and persistence models.
 modules =
     app.io
     app.model
@@ -96,6 +117,8 @@ modules =
 [importlinter:contract:auth_and_database_are_independent]
 name = Authentication and database are independent
 type = independence
+broken_contract_guidance =
+    Pass authentication and database concerns through their callers instead of coupling these modules directly.
 modules =
     app.auth
     app.database
@@ -103,6 +126,8 @@ modules =
 [importlinter:contract:routes_are_independent]
 name = Routes are independent
 type = independence
+broken_contract_guidance =
+    Move shared route behavior to app.routes or a lower-level service instead of importing sibling routes.
 modules =
     app.routes.entity
     app.routes.health
@@ -110,4 +135,6 @@ modules =
 [importlinter:contract:app_siblings_are_acyclic]
 name = App siblings are acyclic
 type = acyclic_siblings
+broken_contract_guidance =
+    Break the cycle by extracting shared behavior to a lower-level module or making the dependency one-way.
 ancestors = app
