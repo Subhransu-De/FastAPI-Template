@@ -14,6 +14,18 @@ resource "aws_s3_bucket_versioning" "state" {
     status = "Enabled"
   }
 }
+resource "aws_s3_bucket_logging" "state" {
+  count         = var.access_log_bucket == null ? 0 : 1
+  bucket        = aws_s3_bucket.state.id
+  target_bucket = var.access_log_bucket
+  target_prefix = "${aws_s3_bucket.state.id}/"
+  lifecycle {
+    precondition {
+      condition     = var.access_log_bucket != aws_s3_bucket.state.id
+      error_message = "Use a separate bucket to avoid recursive access logging."
+    }
+  }
+}
 resource "aws_s3_bucket_server_side_encryption_configuration" "state" {
   bucket = aws_s3_bucket.state.id
   rule {

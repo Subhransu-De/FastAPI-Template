@@ -18,8 +18,8 @@ jobs:
         env:
           TF_VERSION: "1.13.4"
         run: |
-          curl -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
-          curl -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_SHA256SUMS"
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_SHA256SUMS"
           grep " terraform_${TF_VERSION}_linux_amd64.zip$" "terraform_${TF_VERSION}_SHA256SUMS" | sha256sum -c -
           unzip -q "terraform_${TF_VERSION}_linux_amd64.zip" -d "$RUNNER_TEMP/terraform-bin"
           echo "$RUNNER_TEMP/terraform-bin" >> "$GITHUB_PATH"
@@ -36,8 +36,8 @@ jobs:
         env:
           TFLINT_VERSION: "v0.64.0"
         run: |
-          curl -fsSLO "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_amd64.zip"
-          curl -fsSLO "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/checksums.txt"
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_amd64.zip"
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/checksums.txt"
           grep ' tflint_linux_amd64.zip$' checksums.txt | sha256sum -c -
           unzip -q tflint_linux_amd64.zip -d "$RUNNER_TEMP/tflint-bin"
           echo "$RUNNER_TEMP/tflint-bin" >> "$GITHUB_PATH"
