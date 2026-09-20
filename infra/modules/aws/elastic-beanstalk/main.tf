@@ -30,6 +30,10 @@ locals {
   ] : [])
 }
 data "aws_partition" "current" {}
+data "aws_subnet" "load_balancer" {
+  for_each = var.environment_type == "LoadBalanced" ? toset(var.subnet_ids) : toset([])
+  id       = each.value
+}
 resource "aws_iam_role" "service" {
   name = "${local.name}-eb-service"
   assume_role_policy = jsonencode({
@@ -104,6 +108,12 @@ resource "aws_elastic_beanstalk_environment" "this" {
   version_label       = aws_elastic_beanstalk_application_version.this.name
   solution_stack_name = var.solution_stack_name
   tier                = "WebServer"
+  lifecycle {
+    precondition {
+      condition     = var.environment_type != "LoadBalanced" || length(distinct([for subnet in data.aws_subnet.load_balancer : subnet.availability_zone_id])) >= 2
+      error_message = "LoadBalanced requires subnets in at least two Availability Zones."
+    }
+  }
   setting {
     namespace = "aws:elasticbeanstalk:healthreporting:system"
     name      = "SystemType"
