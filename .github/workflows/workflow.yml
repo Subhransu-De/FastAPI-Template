@@ -62,7 +62,7 @@ jobs:
     needs: [gitleaks]
     strategy:
       matrix:
-        dockerfile: [Dockerfile, Dockerfile.migration]
+        dockerfile: [Dockerfile, Dockerfile.migration, Dockerfile.lambda-web-adapter]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -224,6 +224,10 @@ jobs:
           cache-to: type=gha,mode=max
           no-cache-filters: runtime
           load: true
+
+      - name: Build Lambda Web Adapter image
+        if: matrix.image-name == 'app'
+        run: docker build --build-arg APP_IMAGE=fastapi-template:ci-app -f Dockerfile.lambda-web-adapter -t fastapi-template:ci-lambda .
 
       - name: Scan ${{ matrix.image-name }} image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
