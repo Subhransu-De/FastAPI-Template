@@ -1,0 +1,71 @@
+name: Terraform checks
+
+on:
+  pull_request:
+    paths: ["infra/**", ".github/workflows/terraform.yml"]
+  push:
+    paths: ["infra/**", ".github/workflows/terraform.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install Terraform
+        env:
+          TF_VERSION: "1.13.4"
+        run: |
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_SHA256SUMS"
+          grep " terraform_${TF_VERSION}_linux_amd64.zip$" "terraform_${TF_VERSION}_SHA256SUMS" | sha256sum -c -
+          unzip -q "terraform_${TF_VERSION}_linux_amd64.zip" -d "$RUNNER_TEMP/terraform-bin"
+          echo "$RUNNER_TEMP/terraform-bin" >> "$GITHUB_PATH"
+      - name: Format and validate every root
+        shell: bash
+        run: |
+          terraform fmt -check -recursive infra
+          while IFS= read -r provider; do
+            root="$(dirname "$provider")"
+            terraform -chdir="$root" init -backend=false -input=false -lockfile=readonly
+            terraform -chdir="$root" validate
+          done < <(find infra -name providers.tf -not -path '*/.terraform/*' | sort)
+      - name: Install TFLint
+        env:
+          TFLINT_VERSION: "v0.64.0"
+        run: |
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/tflint_linux_amd64.zip"
+          curl --proto '=https' --proto-redir '=https' -fsSLO "https://github.com/terraform-linters/tflint/releases/download/${TFLINT_VERSION}/checksums.txt"
+          grep ' tflint_linux_amd64.zip$' checksums.txt | sha256sum -c -
+          unzip -q tflint_linux_amd64.zip -d "$RUNNER_TEMP/tflint-bin"
+          echo "$RUNNER_TEMP/tflint-bin" >> "$GITHUB_PATH"
+      - name: Check Beanstalk bundle packaging
+        shell: pwsh
+        run: |
+          $bundle = Join-Path $env:RUNNER_TEMP 'beanstalk.zip'
+          ./infra/aws/elastic-beanstalk/package.ps1 -Image 'example/app:release-001' -OutputPath $bundle -ContainerPort 8080
+          $archive = [IO.Compression.ZipFile]::OpenRead($bundle)
+          try {
+            if ($archive.Entries.Count -ne 1) { throw 'Unexpected bundle contents' }
+            $reader = [IO.StreamReader]::new($archive.GetEntry('Dockerrun.aws.json').Open())
+            try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+            if ($manifest.AWSEBDockerrunVersion -ne '1' -or $manifest.Image.Name -ne 'example/app:release-001' -or $manifest.Ports[0].ContainerPort -ne '8080') { throw 'Invalid Docker manifest' }
+          } finally { $archive.Dispose() }
+          $rejected = $false
+          try { ./infra/aws/elastic-beanstalk/package.ps1 -Image 'example/app:release-002' -OutputPath $bundle } catch { $rejected = $true }
+          if (-not $rejected) { throw 'Existing bundles must not be overwritten' }
+          foreach ($image in @('example/app', 'example/app:latest', 'example/app@sha256:bad', 'example/app:bad tag')) {
+            $rejected = $false
+            try { ./infra/aws/elastic-beanstalk/package.ps1 -Image $image -OutputPath "$bundle.invalid" } catch { $rejected = $true }
+            if (-not $rejected -or (Test-Path -LiteralPath "$bundle.invalid")) { throw 'Invalid image was accepted' }
+          }
+      - name: Lint Terraform
+        run: tflint --recursive --config="$GITHUB_WORKSPACE/infra/.tflint.hcl"
+      - name: Scan infrastructure
+        run: |
+          pipx run --spec checkov==3.3.19 checkov -d infra/bootstrap/aws/state --framework terraform --quiet --compact --skip-check CKV2_AWS_62,CKV2_AWS_61,CKV_AWS_144,CKV_AWS_18,CKV_AWS_145
+          pipx run --spec checkov==3.3.19 checkov -d infra/aws/lightsail --framework terraform --quiet --compact
+          pipx run --spec checkov==3.3.19 checkov -d infra/aws/lambda-web-adapter --framework terraform --quiet --compact --skip-check CKV_AWS_50,CKV_AWS_116,CKV_AWS_117,CKV_AWS_158,CKV_AWS_173,CKV_AWS_272,CKV_AWS_338
+          pipx run --spec checkov==3.3.19 checkov -d infra/aws/elastic-beanstalk --framework terraform --quiet --compact --skip-check CKV_AWS_312,CKV_AWS_340

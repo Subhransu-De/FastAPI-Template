@@ -1,0 +1,22 @@
+module "service" {
+  domain_name           = var.domain_name
+  source                = "../../modules/aws/elastic-beanstalk"
+  project_name          = var.project_name
+  environment           = var.environment
+  environment_variables = var.environment_variables
+  tags                  = var.tags
+  health_check_path     = var.health_check_path
+  source_bundle         = var.source_bundle
+  solution_stack_name   = var.solution_stack_name
+  vpc_id                = var.vpc_id
+  subnet_ids            = var.subnet_ids
+  instance_type         = var.instance_type
+  environment_type      = var.environment_type
+  min_instances         = var.min_instances
+  max_instances         = var.max_instances
+  certificate_arn       = var.certificate_arn
+  container_port        = var.container_port
+  secret_environment    = var.secret_environment
+  secret_kms_key_arns   = var.secret_kms_key_arns
+  log_retention_days    = var.log_retention_days
+}
