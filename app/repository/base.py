@@ -18,7 +18,7 @@ class BaseRepository[ModelType: Base](PrimaryRepository[ModelType]):
         return await self.session.get(self.model, entity_id)
 
     async def find_all(self) -> Sequence[ModelType]:
-        result: Result[tuple[ModelType]] = await self.session.execute(
+        result: Result[ModelType] = await self.session.execute(
             select(self.model)
         )
         return result.scalars().all()
@@ -26,7 +26,7 @@ class BaseRepository[ModelType: Base](PrimaryRepository[ModelType]):
     async def find_all_by_id(self, ids: list[UUID]) -> Sequence[ModelType]:
         if not ids:
             return []
-        result: Result[tuple[ModelType]] = await self.session.execute(
+        result: Result[ModelType] = await self.session.execute(
             select(self.model).where(self.model.id.in_(ids))
         )
         return result.scalars().all()
@@ -40,14 +40,14 @@ class BaseRepository[ModelType: Base](PrimaryRepository[ModelType]):
             query = query.order_by(order_by)
 
         query = query.offset(offset).limit(limit)
-        result: Result[tuple[ModelType]] = await self.session.execute(query)
+        result: Result[ModelType] = await self.session.execute(query)
         return result.scalars().all()
 
     async def find_by(self, **kwargs: Any) -> Sequence[ModelType]:
         query = select(self.model)
         for key, value in kwargs.items():
             query = query.where(getattr(self.model, key) == value)
-        result: Result[tuple[ModelType]] = await self.session.execute(query)
+        result: Result[ModelType] = await self.session.execute(query)
         return result.scalars().all()
 
     async def save(self, entity: ModelType) -> ModelType:
@@ -70,7 +70,7 @@ class BaseRepository[ModelType: Base](PrimaryRepository[ModelType]):
         return updated
 
     async def exists_by_id(self, entity_id: UUID) -> bool:
-        result: Result[tuple[int]] = await self.session.execute(
+        result: Result[int] = await self.session.execute(
             select(func.count())
             .select_from(self.model)
             .where(self.model.id == entity_id)

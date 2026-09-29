@@ -11,8 +11,8 @@ dependencies = [
     "psycopg[binary]>=3.3.6",
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
-    "pyjwt[crypto]>=2.14.0",
-    "sqlalchemy>=2.0.54",
+    "pyjwt[crypto]>=2.15.0",
+    "sqlalchemy[asyncio]>=2.1.1",
     "uvicorn>=0.53.0",
 ]
 
@@ -23,8 +23,8 @@ migration = [
 ]
 lint = [
     "import-linter>=2.15",
-    "ruff>=0.16.8",
-    "ty>=0.0.82",
+    "ruff>=0.16.9",
+    "ty>=0.0.84",
 ]
 test = [
     { include-group = "migration" },
