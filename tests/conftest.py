@@ -3,7 +3,6 @@ import selectors
 import sys
 from typing import Any
 
-import logfire
 import pytest
 
 from app import telemetry
@@ -25,7 +24,6 @@ def anyio_backend() -> str | tuple[str, dict[str, Any]]:
 @pytest.fixture(scope="session", autouse=True)
 def _configure_telemetry_before_any_capture() -> None:
     telemetry.configure_otel(TEST_APP_NAME)
-    logfire.configure(send_to_logfire=False, console=False)
 
 
 @pytest.fixture

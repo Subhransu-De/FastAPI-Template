@@ -29,6 +29,7 @@ def upgrade() -> None:
             existing_type=sa.DateTime(),
             existing_nullable=False,
             existing_server_default=sa.text("now()"),
+            postgresql_using=f"{column} AT TIME ZONE 'UTC'",
         )
 
 
@@ -41,4 +42,5 @@ def downgrade() -> None:
             existing_type=sa.DateTime(timezone=True),
             existing_nullable=False,
             existing_server_default=sa.text("now()"),
+            postgresql_using=f"{column} AT TIME ZONE 'UTC'",
         )

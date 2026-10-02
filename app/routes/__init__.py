@@ -15,6 +15,7 @@ protected_route = APIRouter(
     responses=problem_responses(
         HTTPStatus.UNAUTHORIZED,
         HTTPStatus.UNPROCESSABLE_CONTENT,
+        HTTPStatus.SERVICE_UNAVAILABLE,
     ),
 )
 protected_route.include_router(entity_route)

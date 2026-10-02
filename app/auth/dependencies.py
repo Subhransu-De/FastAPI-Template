@@ -33,7 +33,6 @@ def get_token_validator(request: Request) -> AccessTokenValidator:
 
 
 def authenticate_request(
-    request: Request,
     access_token: Annotated[str | None, Depends(_oauth2_authorization_code)],
     validator: Annotated[AccessTokenValidator, Depends(get_token_validator)],
 ) -> AuthClaims:
@@ -42,7 +41,6 @@ def authenticate_request(
 
     claims = validator.validate(access_token)
     telemetry.record_auth_attributes(
-        request,
         telemetry.AuthAttributes(
             client_id=claims.azp,
             audience=claims.aud,

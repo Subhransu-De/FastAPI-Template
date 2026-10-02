@@ -1,7 +1,9 @@
 import re
 
+import logfire
 import pytest
 from fastapi import Request
+from logfire.testing import CaptureLogfire
 
 from app import telemetry
 
@@ -37,46 +39,55 @@ def test_configure_otel_configures_logfire_once_per_service(
     assert calls[0]["send_to_logfire"] == "if-token-present"
 
 
-def test_request_attributes_mapper_keeps_errors_client_ip_and_auth() -> None:
-    request = _request()
-    telemetry.record_auth_attributes(
-        request,
-        telemetry.AuthAttributes(
-            client_id="api-client",
-            audience=("api", "docs"),
-            issuer="https://idp.example",
-        ),
-    )
+def test_request_attributes_mapper_keeps_errors_and_client_ip_only() -> None:
     attributes: dict[str, object] = {
         "values": {"payload": {"description": "private"}},
         "errors": [{"loc": ["body", "name"], "msg": "missing"}],
     }
 
-    mapped = telemetry._request_attributes_mapper(request, attributes)
+    mapped = telemetry._request_attributes_mapper(_request(), attributes)
 
     assert mapped == {
         "errors": [{"loc": ["body", "name"], "msg": "missing"}],
         "client.ip": "203.0.113.42",
-        "oidc.client_id": "api-client",
-        "oidc.audience": ["api", "docs"],
-        "oidc.issuer": "https://idp.example",
     }
-    assert "values" not in mapped
 
 
-def test_request_attributes_mapper_ignores_requests_without_auth() -> None:
-    mapped = telemetry._request_attributes_mapper(_request(), {})
-
-    assert mapped == {"client.ip": "203.0.113.42"}
-
-
-def test_request_attributes_mapper_ignores_foreign_state_values() -> None:
+def test_request_attributes_mapper_ignores_values_left_on_request_state() -> None:
     mapped = telemetry._request_attributes_mapper(
         _request(auth_attributes={"client_id": "spoofed"}),
         {},
     )
 
-    assert "oidc.client_id" not in mapped
+    assert mapped == {"client.ip": "203.0.113.42"}
+
+
+def test_record_auth_attributes_tags_the_active_span(capfire: CaptureLogfire) -> None:
+    with logfire.span("request"):
+        telemetry.record_auth_attributes(
+            telemetry.AuthAttributes(
+                client_id="api-client",
+                audience=("api", "docs"),
+                issuer="https://idp.example",
+            )
+        )
+
+    (span,) = capfire.exporter.exported_spans_as_dict()
+    assert span["attributes"]["oidc.client_id"] == "api-client"
+    assert span["attributes"]["oidc.audience"] == ("api", "docs")
+    assert span["attributes"]["oidc.issuer"] == "https://idp.example"
+
+
+def test_record_auth_attributes_is_a_no_op_without_an_active_span(
+    capfire: CaptureLogfire,
+) -> None:
+    telemetry.record_auth_attributes(
+        telemetry.AuthAttributes(
+            client_id=None, audience="api", issuer="https://idp.example"
+        )
+    )
+
+    assert capfire.exporter.exported_spans_as_dict() == []
 
 
 @pytest.mark.parametrize(

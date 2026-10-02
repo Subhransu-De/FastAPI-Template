@@ -10,7 +10,12 @@ from starlette.exceptions import HTTPException
 
 from app import logger, telemetry
 from app.auth import AccessTokenValidator, OIDCOpenAPIFastAPI
-from app.database import SessionMaker, create_engine, create_sessionmaker
+from app.database import (
+    SessionMaker,
+    create_engine,
+    create_probe_engine,
+    create_sessionmaker,
+)
 from app.exceptions import BaseError, base_exception_handler
 from app.routes import protected_route, public_route
 from app.settings import Settings, resolve_oidc_metadata
@@ -18,6 +23,7 @@ from app.settings import Settings, resolve_oidc_metadata
 
 class LifespanState(TypedDict):
     sessionmaker: SessionMaker
+    probe_sessionmaker: SessionMaker
     access_validator: AccessTokenValidator
 
 
@@ -29,6 +35,7 @@ async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncIterator[LifespanState]:
     app.oidc_metadata = oidc_metadata
     app.openapi_schema = None
     engine = create_engine(settings.database)
+    probe_engine = create_probe_engine(settings.database)
     logfire.info(
         "Starting up {service_name} on port {port}",
         service_name=settings.app.app_name,
@@ -37,6 +44,7 @@ async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncIterator[LifespanState]:
     try:
         yield {
             "sessionmaker": create_sessionmaker(engine),
+            "probe_sessionmaker": create_sessionmaker(probe_engine),
             "access_validator": AccessTokenValidator(
                 oidc_metadata,
                 audience=settings.oidc.client_id,
@@ -47,6 +55,7 @@ async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncIterator[LifespanState]:
             ),
         }
     finally:
+        await probe_engine.dispose()
         await engine.dispose()
         logfire.info("Application shutdown")
 

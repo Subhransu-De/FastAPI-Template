@@ -2,7 +2,12 @@ import pytest
 from fastapi import Request
 from sqlalchemy import select
 
-from app.database import SessionMaker, get_session, get_sessionmaker
+from app.database import (
+    SessionMaker,
+    get_probe_sessionmaker,
+    get_session,
+    get_sessionmaker,
+)
 from app.exceptions import MissingLifespanStateError
 from app.model.entity import Entity
 
@@ -67,3 +72,20 @@ async def test_get_session_rolls_back_when_the_request_fails(
         await generator.athrow(failure)
 
     assert await _count_entities(sqlite_sessionmaker) == 0
+
+
+async def test_get_probe_sessionmaker_reads_its_own_lifespan_state(
+    sqlite_sessionmaker: SessionMaker,
+) -> None:
+    request = _request_with_state(probe_sessionmaker=sqlite_sessionmaker)
+
+    assert get_probe_sessionmaker(request) is sqlite_sessionmaker
+
+
+async def test_get_probe_sessionmaker_does_not_fall_back_to_the_request_pool(
+    sqlite_sessionmaker: SessionMaker,
+) -> None:
+    request = _request_with_state(sessionmaker=sqlite_sessionmaker)
+
+    with pytest.raises(MissingLifespanStateError, match="probe_sessionmaker"):
+        get_probe_sessionmaker(request)

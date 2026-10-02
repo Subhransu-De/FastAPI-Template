@@ -5,6 +5,7 @@ from functools import cache
 import logfire
 from fastapi import FastAPI, Request, WebSocket
 from fastapi.telemetry import TelemetryConfig
+from opentelemetry import trace
 from starlette.types import Scope
 
 HEALTH_ENDPOINT_PATHS: tuple[str, ...] = ("/health", "/health/ready")
@@ -32,16 +33,19 @@ def configure_otel(service_name: str) -> None:
     )
 
 
-def record_auth_attributes(request: Request, attributes: AuthAttributes) -> None:
-    request.state.auth_attributes = attributes
-
-
-def _auth_attributes(request: Request | WebSocket) -> AuthAttributes | None:
-    try:
-        attributes = request.state.auth_attributes
-    except AttributeError:
-        return None
-    return attributes if isinstance(attributes, AuthAttributes) else None
+def record_auth_attributes(attributes: AuthAttributes) -> None:
+    span = trace.get_current_span()
+    if not span.is_recording():
+        return
+    if attributes.client_id:
+        span.set_attribute("oidc.client_id", attributes.client_id)
+    span.set_attribute(
+        "oidc.audience",
+        list(attributes.audience)
+        if isinstance(attributes.audience, tuple)
+        else attributes.audience,
+    )
+    span.set_attribute("oidc.issuer", attributes.issuer)
 
 
 def _request_attributes_mapper(
@@ -54,15 +58,6 @@ def _request_attributes_mapper(
 
     if request.client is not None:
         mapped_attributes["client.ip"] = request.client.host
-
-    auth = _auth_attributes(request)
-    if auth is not None:
-        if auth.client_id:
-            mapped_attributes["oidc.client_id"] = auth.client_id
-        mapped_attributes["oidc.audience"] = (
-            list(auth.audience) if isinstance(auth.audience, tuple) else auth.audience
-        )
-        mapped_attributes["oidc.issuer"] = auth.issuer
     return mapped_attributes
 
 

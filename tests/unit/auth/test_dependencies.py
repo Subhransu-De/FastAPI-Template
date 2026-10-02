@@ -1,7 +1,8 @@
+import logfire
 import pytest
 from fastapi import Request
+from logfire.testing import CaptureLogfire
 
-from app import telemetry
 from app.auth import (
     AccessTokenValidator,
     AuthClaims,
@@ -73,23 +74,23 @@ def test_get_token_validator_rejects_unexpected_state_values() -> None:
 
 
 def test_authenticate_request_requires_an_access_token() -> None:
-    request = _request_with_state()
     validator = _StubValidator()
 
     with pytest.raises(AuthenticationError):
-        authenticate_request(request, None, validator)
+        authenticate_request(None, validator)
 
 
-def test_authenticate_request_returns_claims_and_records_telemetry() -> None:
+def test_authenticate_request_returns_claims_and_tags_the_request_span(
+    capfire: CaptureLogfire,
+) -> None:
     validator = _StubValidator()
-    request = _request_with_state()
 
-    claims = authenticate_request(request, _VALID_TOKEN, validator)
+    with logfire.span("request"):
+        claims = authenticate_request(_VALID_TOKEN, validator)
 
     assert claims is _CLAIMS
     assert validator.tokens == [_VALID_TOKEN]
-    assert telemetry._auth_attributes(request) == telemetry.AuthAttributes(
-        client_id="docs-client",
-        audience=("api-client", "docs-client"),
-        issuer=_METADATA.issuer,
-    )
+    (span,) = capfire.exporter.exported_spans_as_dict()
+    assert span["attributes"]["oidc.client_id"] == "docs-client"
+    assert span["attributes"]["oidc.audience"] == ("api-client", "docs-client")
+    assert span["attributes"]["oidc.issuer"] == _METADATA.issuer

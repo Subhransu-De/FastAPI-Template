@@ -41,7 +41,8 @@ app.settings      pydantic-settings models and the Settings root
 - No `getattr`, `setattr`, `hasattr`, `delattr`, `cast` or `Any` in `app/`. `tests/architecture/test_type_discipline.py` fails otherwise. The only allowlisted exception is the OpenAPI document post-processing in `app/auth/openapi.py`.
 - `ty` runs with `--error-on-warning`. A warning is a failure.
 - Nothing happens at import time. `Settings.from_env()` is called only in `app.main.main()` and `app.main.app_from_env()`. Tests build `Settings` explicitly with `tests.support.build_settings`.
-- Resources live in the lifespan. The engine, session factory and token validator are created in `app.main.lifespan` and read back through `get_sessionmaker` and `get_token_validator`, which are the only places that touch `request.state`.
+- Resources live in the lifespan. The engine, the readiness probe's single-connection engine, the session factories and the token validator are created in `app.main.lifespan` and read back through `get_sessionmaker`, `get_probe_sessionmaker` and `get_token_validator`, which are the only places that touch `request.state`. Request-scoped telemetry goes on the active span through `telemetry.record_auth_attributes`, never on `request.state`.
+- Migrations that change column types say how existing values convert. Timestamp conversions use `AT TIME ZONE 'UTC'` so the session time zone cannot shift stored instants.
 - Errors are RFC 9457 Problem Details. Raise a `BaseError` subclass from `app.exceptions`; never build a `JSONResponse` in a route. Declare the error statuses a route can return with `problem_responses(...)` so they appear in OpenAPI.
 - The OpenAPI document is a contract. `tests/contract/openapi.json` must match the served document. Change the API, review the diff, run `make openapi-snapshot`.
 - Models and migrations agree. `tests/integration/test_migrations.py` runs `alembic check` and a downgrade round trip.

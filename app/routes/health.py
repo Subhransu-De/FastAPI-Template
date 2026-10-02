@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.database import SessionMaker, get_sessionmaker
+from app.database import SessionMaker, get_probe_sessionmaker
 from app.exceptions import DatabaseUnavailableError, problem_responses
 from app.io.health import HealthResponse
 
@@ -25,7 +25,7 @@ async def health() -> HealthResponse:
     responses=problem_responses(HTTPStatus.SERVICE_UNAVAILABLE),
 )
 async def readiness(
-    sessionmaker: Annotated[SessionMaker, Depends(get_sessionmaker)],
+    sessionmaker: Annotated[SessionMaker, Depends(get_probe_sessionmaker)],
 ) -> HealthResponse:
     try:
         async with (

@@ -33,6 +33,8 @@ async def test_lifespan_yields_typed_state_and_publishes_oidc_metadata(
 
     async with lifespan(app) as state:
         assert isinstance(state["sessionmaker"], async_sessionmaker)
+        assert isinstance(state["probe_sessionmaker"], async_sessionmaker)
+        assert state["probe_sessionmaker"] is not state["sessionmaker"]
         assert isinstance(state["access_validator"], AccessTokenValidator)
         assert app.oidc_metadata == settings.oidc.metadata_override()
 
