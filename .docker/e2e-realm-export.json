@@ -79,8 +79,12 @@
       "implicitFlowEnabled": false,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["*"],
-      "webOrigins": ["*"],
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -120,8 +124,12 @@
       "implicitFlowEnabled": false,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
-      "redirectUris": ["http://localhost/docs/oauth2-redirect"],
-      "webOrigins": ["http://localhost"],
+      "redirectUris": [
+        "http://localhost/docs/oauth2-redirect"
+      ],
+      "webOrigins": [
+        "http://localhost"
+      ],
       "protocol": "openid-connect",
       "attributes": {
         "pkce.code.challenge.method": "S256"
@@ -169,7 +177,20 @@
           "temporary": false
         }
       ],
-      "requiredActions": []
+      "requiredActions": [],
+      "realmRoles": [
+        "entities:write"
+      ]
     }
-  ]
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "entities:write",
+        "description": "May create, update and delete entities",
+        "composite": false,
+        "clientRole": false
+      }
+    ]
+  }
 }

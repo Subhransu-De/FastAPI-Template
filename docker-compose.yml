@@ -84,6 +84,12 @@ services:
       OIDC_CLIENT_ID: fastapi-client
       OIDC_DOCS_CLIENT_ID: fastapi-docs
       OIDC_JWKS_CACHE_TTL_SECONDS: 300
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 15s
     depends_on:
       db:
         condition: service_healthy

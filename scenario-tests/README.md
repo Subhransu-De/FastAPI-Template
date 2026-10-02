@@ -10,11 +10,11 @@ The application expects the target service and Keycloak realm to already be runn
 | --- | --- | --- |
 | `TARGET_BASE_URL` | `http://localhost` | Base URL for the running FastAPI application. |
 | `TOKEN_URL` | `http://localhost:8080/realms/fastapi-e2e-realm/protocol/openid-connect/token` | Keycloak token endpoint. |
-| `OIDC_CLIENT_ID` | `fastapi-client` | OIDC client used by the Scenario Testss. |
+| `OIDC_CLIENT_ID` | `fastapi-client` | OIDC client used by the Scenario Tests. |
 | `OIDC_CLIENT_SECRET` | Required | OIDC client secret. |
 | `E2E_USERNAME` | `e2e-user` | Test user username. |
 | `E2E_PASSWORD` | Required | Test user password. |
-| `HEALTH_ENDPOINT` | `/health` | Endpoint used before scenarios to wait for application readiness. |
+| `HEALTH_ENDPOINT` | `/health/ready` | Endpoint used before scenarios to wait for application readiness. |
 
 ## Run
 

@@ -1,31 +1,28 @@
-from unittest.mock import AsyncMock, Mock
+from collections.abc import AsyncGenerator
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.pool import StaticPool
+
+from app.database import SessionMaker, create_sessionmaker
+from app.model import Base
 
 
 @pytest.fixture
-def mock_session() -> AsyncMock:
-    session = AsyncMock(spec=AsyncSession)
-    session.commit = AsyncMock()
-    session.rollback = AsyncMock()
-    session.flush = AsyncMock()
-    session.refresh = AsyncMock()
-    session.get = AsyncMock()
-    session.execute = AsyncMock()
-    session.add = Mock()
-    session.add_all = Mock()
-    session.merge = AsyncMock()
-    return session
+async def sqlite_engine() -> AsyncGenerator[AsyncEngine]:
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+    )
+    async with engine.begin() as connection:
+        await connection.run_sync(Base.metadata.create_all)
+    try:
+        yield engine
+    finally:
+        await engine.dispose()
 
 
 @pytest.fixture
-def mock_entity_repository() -> AsyncMock:
-    repo = AsyncMock()
-    repo.save = AsyncMock()
-    repo.find_by_id = AsyncMock()
-    repo.find_all_paginated = AsyncMock()
-    repo.update = AsyncMock()
-    repo.delete_by_id = AsyncMock()
-    repo.exists_by_id = AsyncMock()
-    return repo
+def sqlite_sessionmaker(sqlite_engine: AsyncEngine) -> SessionMaker:
+    return create_sessionmaker(sqlite_engine)

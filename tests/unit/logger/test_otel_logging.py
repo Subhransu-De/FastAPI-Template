@@ -2,24 +2,15 @@ import logging
 
 import logfire
 import pytest
-from logfire.testing import TestExporter
+from logfire.testing import CaptureLogfire
 from opentelemetry import trace
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
 from app.logger import configuration
 
 pytestmark = pytest.mark.unit
 
 
-def test_setup_logging_exports_stdlib_logs_to_otel() -> None:
-    exporter = TestExporter()
-    logfire.configure(
-        send_to_logfire=False,
-        console=False,
-        service_name="fastapi-template-test",
-        additional_span_processors=[SimpleSpanProcessor(exporter)],
-    )
-
+def test_setup_logging_exports_stdlib_logs_to_otel(capfire: CaptureLogfire) -> None:
     configuration.setup_logging(
         otel_handler_factory=lambda: logfire.LogfireLoggingHandler(
             fallback=logging.NullHandler()
@@ -34,7 +25,7 @@ def test_setup_logging_exports_stdlib_logs_to_otel() -> None:
         )
     logging.getLogger("uvicorn.access").warning("uvicorn access captured")
 
-    exported = exporter.exported_spans_as_dict(parse_json_attributes=True)
+    exported = capfire.exporter.exported_spans_as_dict(parse_json_attributes=True)
     logs = [
         record
         for record in exported

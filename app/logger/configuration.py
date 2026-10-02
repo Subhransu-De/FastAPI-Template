@@ -3,7 +3,6 @@ from collections.abc import Callable
 from logging import Handler, Logger
 
 from app.logger.handlers import LOG_LEVEL, get_logfire_handler
-from app.telemetry import configure_otel
 
 LogHandlerFactory = Callable[[], Handler]
 
@@ -16,17 +15,13 @@ _CONFIGURED_LOGGER_NAMES = (
 )
 
 
-def _build_handlers(otel_handler_factory: LogHandlerFactory) -> list[Handler]:
-    return [otel_handler_factory()]
-
-
 def configure_logger(
     log: Logger,
     *,
     propagate: bool,
     otel_handler_factory: LogHandlerFactory,
 ) -> None:
-    log.handlers = _build_handlers(otel_handler_factory)
+    log.handlers = [otel_handler_factory()]
     log.setLevel(LOG_LEVEL)
     log.disabled = False
     log.propagate = propagate
@@ -35,8 +30,6 @@ def configure_logger(
 def setup_logging(
     otel_handler_factory: LogHandlerFactory = get_logfire_handler,
 ) -> None:
-    if otel_handler_factory is get_logfire_handler:
-        configure_otel()
     configure_logger(
         logging.getLogger(),
         propagate=True,

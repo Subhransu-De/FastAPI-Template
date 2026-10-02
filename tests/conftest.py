@@ -1,22 +1,31 @@
-import os
+import asyncio
+import selectors
+import sys
+from typing import Any
 
-os.environ.setdefault(
-    "DATABASE_URL", "postgresql+psycopg://user:pass@localhost:5432/test"
-)
-os.environ.setdefault("OIDC_ISSUER_URL", "http://localhost:8080/realms/fastapi-realm")
-os.environ.setdefault("OIDC_CLIENT_ID", "fastapi-client")
-os.environ.setdefault("OIDC_DOCS_CLIENT_ID", "fastapi-docs")
-os.environ.setdefault("OIDC_CLIENT_SECRET", "test-client-credential")
-os.environ.setdefault(
-    "OIDC_JWKS_URI",
-    "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/certs",
-)
-os.environ.setdefault("OIDC_ISSUER", "http://localhost:8080/realms/fastapi-realm")
-os.environ.setdefault(
-    "OIDC_AUTHORIZATION_ENDPOINT",
-    "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/auth",
-)
-os.environ.setdefault(
-    "OIDC_TOKEN_ENDPOINT",
-    "http://localhost:8080/realms/fastapi-realm/protocol/openid-connect/token",
-)
+import pytest
+
+from app import telemetry
+from app.settings import Settings
+from tests.support import TEST_APP_NAME, build_settings
+
+
+def selector_event_loop() -> asyncio.AbstractEventLoop:
+    return asyncio.SelectorEventLoop(selectors.SelectSelector())
+
+
+@pytest.fixture
+def anyio_backend() -> str | tuple[str, dict[str, Any]]:
+    if sys.platform == "win32":
+        return "asyncio", {"loop_factory": selector_event_loop}
+    return "asyncio"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _configure_telemetry_before_any_capture() -> None:
+    telemetry.configure_otel(TEST_APP_NAME)
+
+
+@pytest.fixture
+def settings() -> Settings:
+    return build_settings()
