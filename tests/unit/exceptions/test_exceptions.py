@@ -16,6 +16,7 @@ from app.exceptions import (
     ErrorHandling,
     ForbiddenError,
     ProblemDetails,
+    empty_responses,
     problem_responses,
     render_validation_problem,
 )
@@ -66,6 +67,10 @@ def test_problem_responses_declare_the_problem_details_model() -> None:
         404: {"model": ProblemDetails, "description": "Not Found"},
         403: {"model": ProblemDetails, "description": "Forbidden"},
     }
+
+
+def test_empty_responses_declare_a_description_without_a_body() -> None:
+    assert empty_responses(HTTPStatus.NOT_FOUND) == {404: {"description": "Not Found"}}
 
 
 def test_handler_maps_validation_errors_to_unprocessable_content() -> None:
@@ -156,9 +161,7 @@ def test_handler_serializes_problem_extension_members() -> None:
 
 def test_handler_returns_an_empty_body_when_the_error_asks_for_one() -> None:
     class SilentNotFoundError(BaseError):
-        @override
-        def response(self, request: Request) -> Response:
-            return Response(status_code=self.status_code, headers=self.headers)
+        has_body = False
 
     error = SilentNotFoundError(
         "hidden", status_code=404, headers={"Cache-Control": "no-store"}

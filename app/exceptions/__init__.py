@@ -2,6 +2,7 @@ from app.exceptions.base import (
     PROBLEM_JSON_MEDIA_TYPE,
     BaseError,
     ProblemDetails,
+    empty_responses,
     problem_response,
     problem_responses,
 )
@@ -29,6 +30,7 @@ __all__: list[str] = [
     "NoEntityFoundError",
     "ProblemDetails",
     "ValidationRenderer",
+    "empty_responses",
     "problem_response",
     "problem_responses",
     "render_validation_problem",

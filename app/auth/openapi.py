@@ -6,11 +6,15 @@ from starlette.types import Lifespan
 
 from app import telemetry
 from app.auth.dependencies import OIDC_SCHEME_NAME
-from app.exceptions import PROBLEM_JSON_MEDIA_TYPE
+from app.exceptions import PROBLEM_JSON_MEDIA_TYPE, ProblemDetails
 from app.settings import OIDCMetadata, Settings
 
 _JSON_MEDIA_TYPE = "application/json"
 _ERROR_STATUS_PREFIXES = ("4", "5")
+_GENERATED_VALIDATION_STATUS = str(HTTPStatus.UNPROCESSABLE_CONTENT.value)
+_GENERATED_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
+_GENERATED_VALIDATION_SCHEMAS = ("HTTPValidationError", "ValidationError")
+_PROBLEM_DETAILS_REF = "#/components/schemas/ProblemDetails"
 
 
 def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
@@ -24,16 +28,38 @@ def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
                     content[PROBLEM_JSON_MEDIA_TYPE] = content.pop(_JSON_MEDIA_TYPE)
 
 
-def _declare_validation_status(schema: dict[str, Any], status: HTTPStatus) -> None:
-    default = str(HTTPStatus.UNPROCESSABLE_CONTENT.value)
+def _is_generated_validation_response(response: dict[str, Any]) -> bool:
+    return any(
+        media.get("schema") == {"$ref": _GENERATED_VALIDATION_REF}
+        for media in response.get("content", {}).values()
+    )
+
+
+def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) -> None:
+    rewritten = False
     for operations in schema.get("paths", {}).values():
         for operation in operations.values():
             responses = operation.get("responses", {})
-            if default not in responses:
+            generated = responses.get(_GENERATED_VALIDATION_STATUS)
+            if generated is None or not _is_generated_validation_response(generated):
                 continue
-            response = responses.pop(default)
-            response["description"] = status.phrase
-            responses.setdefault(str(status.value), response)
+            del responses[_GENERATED_VALIDATION_STATUS]
+            rewritten = True
+            declared = responses.get(str(status.value))
+            responses[str(status.value)] = {
+                "description": status.phrase
+                if declared is None
+                else f"{declared['description']} or {generated['description']}",
+                "content": {
+                    PROBLEM_JSON_MEDIA_TYPE: {"schema": {"$ref": _PROBLEM_DETAILS_REF}}
+                },
+            }
+    if not rewritten:
+        return
+    components = schema.setdefault("components", {}).setdefault("schemas", {})
+    for name in _GENERATED_VALIDATION_SCHEMAS:
+        components.pop(name, None)
+    components.setdefault("ProblemDetails", ProblemDetails.model_json_schema())
 
 
 def _use_discovered_oidc_endpoints(
@@ -77,8 +103,7 @@ class OIDCOpenAPIFastAPI(FastAPI):
             return self.openapi_schema
         schema = super().openapi()
         _use_problem_json_for_error_responses(schema)
-        if self.validation_status != HTTPStatus.UNPROCESSABLE_CONTENT:
-            _declare_validation_status(schema, self.validation_status)
+        _declare_validation_responses(schema, self.validation_status)
         if self.oidc_metadata is not None:
             _use_discovered_oidc_endpoints(schema, self.oidc_metadata)
         return schema

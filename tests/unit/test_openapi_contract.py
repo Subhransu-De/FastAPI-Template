@@ -2,11 +2,12 @@ import json
 import os
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 
 import pytest
 from asgi_lifespan import LifespanManager
 
-from app.exceptions import ErrorHandling
+from app.exceptions import ErrorHandling, problem_responses
 from app.main import create_app
 from app.settings import Settings
 
@@ -14,6 +15,7 @@ pytestmark = pytest.mark.unit
 
 SNAPSHOT_PATH = Path("tests/contract/openapi.json")
 UPDATE_SNAPSHOT_ENV = "UPDATE_OPENAPI_SNAPSHOT"
+PROBLEM_REF = {"$ref": "#/components/schemas/ProblemDetails"}
 
 
 def _render(schema: dict[str, object]) -> str:
@@ -61,20 +63,40 @@ async def test_openapi_document_declares_problem_details_for_error_responses(
                 assert content["schema"] == problem_ref, (path, method, status)
 
 
+async def _schema_with_validation_status(
+    settings: Settings, status: HTTPStatus
+) -> dict[str, Any]:
+    app = create_app(settings, ErrorHandling(validation_status=status))
+
+    @app.post("/probe", responses=problem_responses(HTTPStatus.UNPROCESSABLE_CONTENT))
+    async def probe() -> None:
+        return None
+
+    async with LifespanManager(app):
+        return app.openapi()
+
+
 async def test_openapi_document_declares_the_configured_validation_status(
     settings: Settings,
 ) -> None:
-    app = create_app(settings, ErrorHandling(validation_status=HTTPStatus.BAD_REQUEST))
-    async with LifespanManager(app):
-        schema = app.openapi()
+    schema = await _schema_with_validation_status(settings, HTTPStatus.BAD_REQUEST)
 
     create_responses = schema["paths"]["/entities/"]["post"]["responses"]
     assert "422" not in create_responses
     assert create_responses["400"] == {
-        "content": {
-            "application/problem+json": {
-                "schema": {"$ref": "#/components/schemas/ProblemDetails"}
-            }
-        },
+        "content": {"application/problem+json": {"schema": PROBLEM_REF}},
         "description": "Bad Request",
+    }
+    assert "422" in schema["paths"]["/probe"]["post"]["responses"]
+
+
+async def test_openapi_document_merges_validation_into_a_declared_status(
+    settings: Settings,
+) -> None:
+    schema = await _schema_with_validation_status(settings, HTTPStatus.NOT_FOUND)
+
+    get_responses = schema["paths"]["/entities/{entity_id}"]["get"]["responses"]
+    assert get_responses["404"] == {
+        "content": {"application/problem+json": {"schema": PROBLEM_REF}},
+        "description": "Not Found or Validation Error",
     }
