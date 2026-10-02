@@ -1,11 +1,15 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, overload
 
 from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.model.base import IntegerPrimaryKey, UUIDPrimaryKey
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,6 +19,20 @@ class Ordering:
 
 
 class Repository[ModelType: UUIDPrimaryKey | IntegerPrimaryKey, KeyType]:
+    @overload
+    def __init__[UUIDModel: UUIDPrimaryKey](
+        self: "Repository[UUIDModel, UUID]",
+        model: type[UUIDModel],
+        session: AsyncSession,
+    ) -> None: ...
+
+    @overload
+    def __init__[IntegerModel: IntegerPrimaryKey](
+        self: "Repository[IntegerModel, int]",
+        model: type[IntegerModel],
+        session: AsyncSession,
+    ) -> None: ...
+
     def __init__(self, model: type[ModelType], session: AsyncSession) -> None:
         self.model = model
         self.session = session
