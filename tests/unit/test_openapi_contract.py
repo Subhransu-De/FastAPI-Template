@@ -78,9 +78,18 @@ async def _schema_with_validation_status(
 ) -> dict[str, Any]:
     app = create_app(settings, ErrorHandling(validation_status=status))
 
-    @app.post("/probe", responses=problem_responses(HTTPStatus.UNPROCESSABLE_CONTENT))
-    async def probe() -> None:
-        return None
+    @app.post(
+        "/probe",
+        responses={
+            **problem_responses(HTTPStatus.UNPROCESSABLE_CONTENT),
+            400: {
+                "description": "Flagged",
+                "content": {"application/json": {"schema": True}},
+            },
+        },
+    )
+    async def probe(limit: int) -> None:
+        del limit
 
     @app.get(
         "/probe/{item}",
@@ -107,7 +116,14 @@ async def test_openapi_document_declares_the_configured_validation_status(
         "content": {"application/problem+json": {"schema": PROBLEM_REF}},
         "description": "Bad Request",
     }
-    assert "422" in schema["paths"]["/probe"]["post"]["responses"]
+    probe_responses = schema["paths"]["/probe"]["post"]["responses"]
+    assert "422" in probe_responses
+    assert probe_responses["400"] == {
+        "content": {
+            "application/problem+json": {"schema": {"anyOf": [True, PROBLEM_REF]}}
+        },
+        "description": "Flagged or Validation Error",
+    }
 
 
 async def test_openapi_document_keeps_declarations_at_the_validation_status(

@@ -16,6 +16,7 @@ _GENERATED_VALIDATION_STATUS = str(HTTPStatus.UNPROCESSABLE_CONTENT.value)
 _GENERATED_VALIDATION_REF = "#/components/schemas/HTTPValidationError"
 _GENERATED_VALIDATION_SCHEMAS = ("HTTPValidationError", "ValidationError")
 _PROBLEM_DETAILS_REF = "#/components/schemas/ProblemDetails"
+_VALIDATION_DESCRIPTION = "Validation Error"
 
 
 def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
@@ -40,9 +41,10 @@ def _add_problem_details(response: dict[str, Any]) -> None:
     problem_ref = {"$ref": _PROBLEM_DETAILS_REF}
     media = response.setdefault("content", {}).setdefault(PROBLEM_JSON_MEDIA_TYPE, {})
     declared = media.get("schema")
+    alternatives = declared.get("anyOf", []) if isinstance(declared, dict) else []
     if declared is None:
         media["schema"] = problem_ref
-    elif declared != problem_ref and problem_ref not in declared.get("anyOf", []):
+    elif declared != problem_ref and problem_ref not in alternatives:
         media["schema"] = {"anyOf": [declared, problem_ref]}
 
 
@@ -61,17 +63,18 @@ def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) ->
     rewritten = False
     for operations in schema.get("paths", {}).values():
         for operation in operations.values():
-            responses = operation.get("responses", {})
-            generated = responses.get(_GENERATED_VALIDATION_STATUS)
-            if generated is None or not _is_generated_validation_response(generated):
+            if not operation.get("parameters") and "requestBody" not in operation:
                 continue
-            del responses[_GENERATED_VALIDATION_STATUS]
+            responses = operation.setdefault("responses", {})
+            generated = responses.get(_GENERATED_VALIDATION_STATUS)
+            if generated is not None and _is_generated_validation_response(generated):
+                del responses[_GENERATED_VALIDATION_STATUS]
             rewritten = True
             declared = responses.get(str(status.value))
             if declared is None:
                 declared = responses[str(status.value)] = {"description": status.phrase}
             else:
-                declared["description"] += f" or {generated['description']}"
+                declared["description"] += f" or {_VALIDATION_DESCRIPTION}"
             _add_problem_details(declared)
     if not rewritten:
         return
