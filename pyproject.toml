@@ -5,7 +5,7 @@ description = "An opinionated FastAPI template with async SQLAlchemy 2.0, Alembi
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fastapi>=0.141.1",
+    "fastapi>=0.142.2",
     "httpx>=0.28.1",
     "logfire[fastapi,psycopg,sqlalchemy]>=5.1.1",
     "psycopg[binary]>=3.3.6",
@@ -35,6 +35,10 @@ test = [
     "pytest-cov>=7.1.0",
     "pytest-httpserver>=1.1.3",
     "testcontainers[postgres]>=4.15.0",
+    "asgi-lifespan>=2.1.0",
+    "pytest-randomly>=3.16",
+    "pytest-timeout>=2.4",
+    "hypothesis>=6.150",
 ]
 
 [tool.uv.workspace]
@@ -64,6 +68,8 @@ markers = [
     "with_auth: inject a signed Bearer token into every request made by the test",
 ]
 addopts = "-v --strict-markers"
+timeout = 30
+filterwarnings = ["error"]
 
 [tool.coverage.run]
 branch = true
@@ -71,9 +77,9 @@ source = ["app"]
 
 [tool.coverage.report]
 show_missing = true
+fail_under = 90
 exclude_also = [
-    "@abstractmethod",
-    "pass",
+    "^\\s*\\.\\.\\.$",
 ]
 
 [tool.mutmut]

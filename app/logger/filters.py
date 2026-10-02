@@ -1,9 +1,10 @@
 import logging
 
-HEALTH_ENDPOINT_PATH = "/health"
+from app.telemetry import HEALTH_ENDPOINT_PATHS
+
 _UVICORN_ACCESS_PATH_ARG_INDEX = 2
 
-__all__ = ["HEALTH_ENDPOINT_PATH", "HealthEndpointFilter"]
+__all__ = ["HealthEndpointFilter"]
 
 
 def _record_path(record: logging.LogRecord) -> str | None:
@@ -14,9 +15,9 @@ def _record_path(record: logging.LogRecord) -> str | None:
             return path.split("?", maxsplit=1)[0]
 
     message = record.getMessage()
-    marker = f" {HEALTH_ENDPOINT_PATH}"
-    if marker in message:
-        return HEALTH_ENDPOINT_PATH
+    for path in HEALTH_ENDPOINT_PATHS:
+        if f" {path} " in message:
+            return path
 
     return None
 
@@ -26,4 +27,4 @@ class HealthEndpointFilter(logging.Filter):
         if record.name != "uvicorn.access":
             return True
 
-        return _record_path(record) != HEALTH_ENDPOINT_PATH
+        return _record_path(record) not in HEALTH_ENDPOINT_PATHS

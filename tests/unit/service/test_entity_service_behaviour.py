@@ -1,191 +1,149 @@
-from unittest.mock import AsyncMock
-from uuid import uuid4
+from collections.abc import Sequence
+from uuid import UUID, uuid4
 
 import pytest
 
 from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityOrderBy, EntityUpdate, OrderDirection
 from app.model.entity import Entity
-from app.service import get_entity_service
+from app.repository import Ordering
 from app.service.entity import EntityService
 
 pytestmark = pytest.mark.unit
 
 
-@pytest.fixture
-def session() -> AsyncMock:
-    return AsyncMock()
+class InMemoryEntityStore:
+    def __init__(self) -> None:
+        self.entities: dict[UUID, Entity] = {}
+        self.page_requests: list[tuple[int, int, Ordering | None]] = []
+
+    async def save(self, entity: Entity) -> Entity:
+        if entity.id is None:
+            entity.id = uuid4()
+        self.entities[entity.id] = entity
+        return entity
+
+    async def find_by_id(self, entity_id: UUID) -> Entity | None:
+        return self.entities.get(entity_id)
+
+    async def find_all_paginated(
+        self,
+        offset: int = 0,
+        limit: int = 25,
+        ordering: Ordering | None = None,
+    ) -> Sequence[Entity]:
+        self.page_requests.append((offset, limit, ordering))
+        return list(self.entities.values())[offset : offset + limit]
+
+    async def update(self, entity: Entity) -> Entity:
+        self.entities[entity.id] = entity
+        return entity
+
+    async def delete_by_id(self, entity_id: UUID) -> bool:
+        return self.entities.pop(entity_id, None) is not None
 
 
 @pytest.fixture
-def repository() -> AsyncMock:
-    return AsyncMock()
+def store() -> InMemoryEntityStore:
+    return InMemoryEntityStore()
 
 
 @pytest.fixture
-def service(session: AsyncMock, repository: AsyncMock) -> EntityService:
-    return EntityService(repository)
+def service(store: InMemoryEntityStore) -> EntityService:
+    return EntityService(store)
 
 
-def test_get_entity_service_returns_bound_session(session: AsyncMock) -> None:
-    service = get_entity_service(session)
-
-    assert isinstance(service, EntityService)
-    assert service.repo.session is session
-
-
-async def test_create_builds_entity_and_saves(
+async def test_create_persists_a_new_entity(
     service: EntityService,
-    session: AsyncMock,
-    repository: AsyncMock,
+    store: InMemoryEntityStore,
 ) -> None:
-    repository.save.side_effect = lambda entity: entity
+    created = await service.create(EntityCreate(name="Created", description="Desc"))
 
-    result = await service.create(EntityCreate(name="Created", description="Desc"))
-
-    repository.save.assert_awaited_once()
-    saved_entity = repository.save.await_args.args[0]
-    assert isinstance(saved_entity, Entity)
-    assert saved_entity.name == "Created"
-    assert saved_entity.description == "Desc"
-    session.commit.assert_not_awaited()
-    assert result is saved_entity
+    assert created.name == "Created"
+    assert created.description == "Desc"
+    assert store.entities[created.id] is created
 
 
-async def test_get_by_id_returns_repository_result(
+async def test_get_by_id_returns_the_stored_entity(
     service: EntityService,
-    repository: AsyncMock,
+    store: InMemoryEntityStore,
 ) -> None:
-    entity_id = uuid4()
-    entity = Entity(id=entity_id, name="Fetched", description=None)
-    repository.find_by_id.return_value = entity
+    entity = await store.save(Entity(name="Fetched", description=None))
 
-    result = await service.get_by_id(entity_id)
-
-    repository.find_by_id.assert_awaited_once_with(entity_id)
-    assert result is entity
+    assert await service.get_by_id(entity.id) is entity
 
 
-async def test_get_all_passes_pagination_and_default_order(
+async def test_get_by_id_raises_not_found_when_missing(service: EntityService) -> None:
+    missing_id = uuid4()
+
+    with pytest.raises(NoEntityFoundError):
+        await service.get_by_id(missing_id)
+
+
+async def test_get_all_passes_pagination_and_default_ordering(
     service: EntityService,
-    repository: AsyncMock,
+    store: InMemoryEntityStore,
 ) -> None:
-    repository.find_all_paginated.return_value = []
-
     result = await service.get_all(offset=10, limit=5)
 
-    repository.find_all_paginated.assert_awaited_once()
-    call = repository.find_all_paginated.await_args
-    assert call.kwargs["offset"] == 10
-    assert call.kwargs["limit"] == 5
-    assert str(call.kwargs["order_by"]) == "entities.created_at ASC"
     assert result == []
+    assert store.page_requests == [
+        (10, 5, Ordering(column=Entity.created_at, descending=False))
+    ]
 
 
 @pytest.mark.parametrize("order_by", list(EntityOrderBy))
 @pytest.mark.parametrize("direction", list(OrderDirection))
-async def test_get_all_allows_one_safe_entity_order_column(
+async def test_get_all_orders_by_one_known_column(
     service: EntityService,
-    repository: AsyncMock,
+    store: InMemoryEntityStore,
     order_by: EntityOrderBy,
     direction: OrderDirection,
 ) -> None:
-    repository.find_all_paginated.return_value = []
-
     await service.get_all(order_by=order_by, order_direction=direction)
 
-    clause = repository.find_all_paginated.await_args.kwargs["order_by"]
-    assert str(clause) == f"entities.{order_by.value} {direction.value.upper()}"
+    (_, _, ordering) = store.page_requests[0]
+    assert ordering is not None
+    assert ordering.column.key == order_by.value
+    assert ordering.descending is (direction is OrderDirection.DESC)
+
+
+async def test_update_replaces_every_writable_field(
+    service: EntityService,
+    store: InMemoryEntityStore,
+) -> None:
+    entity = await store.save(Entity(name="Original", description="Original desc"))
+
+    result = await service.update(entity.id, EntityUpdate(name="Updated"))
+
+    assert result is entity
+    assert entity.name == "Updated"
+    assert entity.description is None
 
 
 async def test_update_raises_not_found_when_entity_does_not_exist(
     service: EntityService,
-    session: AsyncMock,
-    repository: AsyncMock,
 ) -> None:
-    entity_id = uuid4()
-    repository.find_by_id.return_value = None
+    missing_id = uuid4()
     update = EntityUpdate(name="Updated")
 
     with pytest.raises(NoEntityFoundError):
-        await service.update(entity_id, update)
-
-    repository.update.assert_not_awaited()
-    session.commit.assert_not_awaited()
+        await service.update(missing_id, update)
 
 
-async def test_update_applies_payload_fields(
+async def test_delete_removes_the_entity(
     service: EntityService,
-    session: AsyncMock,
-    repository: AsyncMock,
+    store: InMemoryEntityStore,
 ) -> None:
-    entity_id = uuid4()
-    entity = Entity(id=entity_id, name="Original", description="Original desc")
-    repository.find_by_id.return_value = entity
-    repository.update.side_effect = lambda updated: updated
+    entity = await store.save(Entity(name="Delete me", description=None))
 
-    result = await service.update(
-        entity_id,
-        EntityUpdate(name="Updated", description="New desc"),
-    )
+    await service.delete(entity.id)
 
-    repository.update.assert_awaited_once_with(entity)
-    session.commit.assert_not_awaited()
-    assert result is entity
-    assert entity.name == "Updated"
-    assert entity.description == "New desc"
+    assert entity.id not in store.entities
 
 
-async def test_update_can_clear_nullable_fields(
-    service: EntityService,
-    repository: AsyncMock,
-) -> None:
-    entity_id = uuid4()
-    entity = Entity(id=entity_id, name="Original", description="Original desc")
-    repository.find_by_id.return_value = entity
-    repository.update.side_effect = lambda updated: updated
-
-    result = await service.update(
-        entity_id, EntityUpdate(name="Original", description=None)
-    )
-
-    repository.update.assert_awaited_once_with(entity)
-    assert result is entity
-    assert entity.name == "Original"
-    assert entity.description is None
-
-
-async def test_delete_deletes_by_id(
-    service: EntityService,
-    session: AsyncMock,
-    repository: AsyncMock,
-) -> None:
-    entity_id = uuid4()
-    repository.delete_by_id.return_value = True
-
-    await service.delete(entity_id)
-
-    repository.delete_by_id.assert_awaited_once_with(entity_id)
-    session.commit.assert_not_awaited()
-
-
-async def test_get_by_id_raises_not_found_when_missing(
-    service: EntityService,
-    repository: AsyncMock,
-) -> None:
-    entity_id = uuid4()
-    repository.find_by_id.return_value = None
+async def test_delete_raises_not_found_when_missing(service: EntityService) -> None:
+    missing_id = uuid4()
 
     with pytest.raises(NoEntityFoundError):
-        await service.get_by_id(entity_id)
-
-
-async def test_delete_raises_not_found_when_missing(
-    service: EntityService,
-    repository: AsyncMock,
-) -> None:
-    entity_id = uuid4()
-    repository.delete_by_id.return_value = False
-
-    with pytest.raises(NoEntityFoundError):
-        await service.delete(entity_id)
+        await service.delete(missing_id)

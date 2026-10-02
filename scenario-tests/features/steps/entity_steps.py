@@ -79,7 +79,9 @@ def step_update_entity_with_no_description(context: Any, name: str) -> None:
 
 @then("the entity update should succeed")
 def step_entity_update_should_succeed(context: Any) -> None:
-    require(context.update_response.status_code == HTTP_OK, context.update_response.text)
+    require(
+        context.update_response.status_code == HTTP_OK, context.update_response.text
+    )
     entity = context.scenario_client.response_json(context.update_response)
     require(entity["id"] == context.entity_id)
     require(entity["name"] == context.expected_name)

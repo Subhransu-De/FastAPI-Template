@@ -11,6 +11,7 @@ __all__ = [
     "get_logfire_handler",
 ]
 
+
 def get_logfire_handler() -> logfire.LogfireLoggingHandler:
     handler = logfire.LogfireLoggingHandler(
         level=LOG_LEVEL,
