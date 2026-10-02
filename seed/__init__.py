@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 
-from sqlalchemy import Column, Connection, MetaData, Table, cast, func, select
+from sqlalchemy import Column, Connection, MetaData, Table, cast, func, select, text
 from sqlalchemy.dialects.postgresql import REGCLASS, insert
 
 type Row = Mapping[str, object]
@@ -15,10 +15,16 @@ def seed(connection: Connection, fixtures: Fixtures) -> dict[str, int]:
         rows = fixtures.get(table.name)
         if not rows:
             continue
+        _lock_against_writers(connection, table)
         statement = insert(table).on_conflict_do_nothing().returning(*table.c)
         inserted[table.name] = len(connection.execute(statement, list(rows)).all())
         _advance_sequences(connection, table)
     return inserted
+
+
+def _lock_against_writers(connection: Connection, table: Table) -> None:
+    table_name = connection.dialect.identifier_preparer.format_table(table)
+    connection.execute(text(f"LOCK TABLE {table_name} IN SHARE ROW EXCLUSIVE MODE"))
 
 
 def _advance_sequences(connection: Connection, table: Table) -> None:
