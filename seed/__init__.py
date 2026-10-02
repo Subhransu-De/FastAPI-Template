@@ -52,9 +52,11 @@ def seed(connection: Connection, fixtures: Fixtures) -> dict[str, int]:
         _require_conflict_keys(seeded_table, rows)
         _lock_against_writers(connection, seeded_table)
         before = _sequence_positions(connection, seeded_table)
+        for position in before:
+            _restart_past_ids(connection, seeded_table, position, rows)
         inserted[seeded_table.name] = _insert_rows(connection, seeded_table, rows)
         for position in before:
-            _restart_past_stored_ids(connection, seeded_table, position)
+            _restart_past_ids(connection, seeded_table, position, ())
     return inserted
 
 
@@ -150,23 +152,40 @@ def _sequence_position(
     return _SequencePosition(column, sequence, increment, minimum, maximum, next_value)
 
 
-def _restart_past_stored_ids(
-    connection: Connection, seeded_table: Table, before: _SequencePosition
+def _restart_past_ids(
+    connection: Connection,
+    seeded_table: Table,
+    before: _SequencePosition,
+    rows: Sequence[Row],
 ) -> None:
-    furthest = func.max if before.increment > 0 else func.min
+    column = before.column
+    ascending = before.increment > 0
     stored = connection.scalar(
-        select(furthest(before.column))
+        select(func.max(column) if ascending else func.min(column))
         .select_from(seeded_table)
-        .where(before.column.between(before.minimum, before.maximum))
+        .where(column.between(before.minimum, before.maximum))
     )
+    ids = [
+        value
+        for row in rows
+        if isinstance(value := row.get(column.name), int)
+        and before.minimum <= value <= before.maximum
+    ]
+    if stored is not None:
+        ids.append(stored)
     target = before.next_value
-    if stored is not None and (stored - target) * before.increment >= 0:
-        steps = (stored - target) // before.increment + 1
-        advanced = target + steps * before.increment
-        if before.minimum <= advanced <= before.maximum:
-            target = advanced
-    after = _sequence_position(connection, before.column, before.sequence)
-    if target != after.next_value:
+    if ids:
+        reached = max(ids) if ascending else min(ids)
+        if (reached - target) * before.increment >= 0:
+            target += ((reached - target) // before.increment + 1) * before.increment
+            if not before.minimum <= target <= before.maximum:
+                msg = (
+                    f"{seeded_table.name}.{column.name} has no sequence value left "
+                    f"after ID {reached}"
+                )
+                raise ValueError(msg)
+    current = _sequence_position(connection, column, before.sequence)
+    if target != current.next_value:
         connection.execute(
             text(f"ALTER SEQUENCE {before.sequence} RESTART WITH {int(target)}")
         )
