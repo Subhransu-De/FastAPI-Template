@@ -2,14 +2,23 @@ from collections.abc import Mapping
 from http import HTTPStatus
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict
+from pydantic.config import JsonDict
 
 PROBLEM_JSON_MEDIA_TYPE = "application/problem+json"
 
 
+def _omit_implied_additional_properties(schema: JsonDict) -> None:
+    schema.pop("additionalProperties", None)
+
+
 class ProblemDetails(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(
+        frozen=True,
+        extra="allow",
+        json_schema_extra=_omit_implied_additional_properties,
+    )
 
     type: str = "about:blank"
     title: str
@@ -59,3 +68,6 @@ class BaseError(Exception):
             detail=self.message,
             instance=str(request.url),
         )
+
+    def response(self, request: Request) -> Response:
+        return problem_response(self.problem(request), self.headers)

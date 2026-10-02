@@ -17,7 +17,7 @@ from app.database import (
     create_probe_engine,
     create_sessionmaker,
 )
-from app.exceptions import BaseError, base_exception_handler
+from app.exceptions import BaseError, ErrorHandling
 from app.routes import protected_route, public_route
 from app.settings import Settings, resolve_oidc_metadata
 
@@ -61,9 +61,17 @@ async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncIterator[LifespanState]:
         logfire.info("Application shutdown")
 
 
-def create_app(settings: Settings) -> OIDCOpenAPIFastAPI:
+def create_app(
+    settings: Settings,
+    error_handling: ErrorHandling | None = None,
+) -> OIDCOpenAPIFastAPI:
+    error_handling = error_handling or ErrorHandling()
     telemetry.configure_otel(settings.app.app_name)
-    app = OIDCOpenAPIFastAPI(settings=settings, lifespan=lifespan)
+    app = OIDCOpenAPIFastAPI(
+        settings=settings,
+        lifespan=lifespan,
+        validation_status=error_handling.validation_status,
+    )
     telemetry.instrument_fastapi(app)
     telemetry.instrument_sqlalchemy()
 
@@ -75,7 +83,7 @@ def create_app(settings: Settings) -> OIDCOpenAPIFastAPI:
         HTTPException,
         Exception,
     ):
-        app.add_exception_handler(exception_type, base_exception_handler)
+        app.add_exception_handler(exception_type, error_handling.handle)
 
     app.include_router(public_route)
     app.include_router(protected_route)

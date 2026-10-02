@@ -12,18 +12,24 @@ from app.exceptions.exceptions import (
     MissingLifespanStateError,
     NoEntityFoundError,
 )
-from app.exceptions.handlers import base_exception_handler
+from app.exceptions.handlers import (
+    ErrorHandling,
+    ValidationRenderer,
+    render_validation_problem,
+)
 
 __all__: list[str] = [
     "PROBLEM_JSON_MEDIA_TYPE",
     "AuthenticationError",
     "BaseError",
     "DatabaseUnavailableError",
+    "ErrorHandling",
     "ForbiddenError",
     "MissingLifespanStateError",
     "NoEntityFoundError",
     "ProblemDetails",
-    "base_exception_handler",
+    "ValidationRenderer",
     "problem_response",
     "problem_responses",
+    "render_validation_problem",
 ]

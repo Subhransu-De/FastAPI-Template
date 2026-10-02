@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import Any
 
 from fastapi import FastAPI
@@ -23,6 +24,18 @@ def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
                     content[PROBLEM_JSON_MEDIA_TYPE] = content.pop(_JSON_MEDIA_TYPE)
 
 
+def _declare_validation_status(schema: dict[str, Any], status: HTTPStatus) -> None:
+    default = str(HTTPStatus.UNPROCESSABLE_CONTENT.value)
+    for operations in schema.get("paths", {}).values():
+        for operation in operations.values():
+            responses = operation.get("responses", {})
+            if default not in responses:
+                continue
+            response = responses.pop(default)
+            response["description"] = status.phrase
+            responses.setdefault(str(status.value), response)
+
+
 def _use_discovered_oidc_endpoints(
     schema: dict[str, Any],
     metadata: OIDCMetadata,
@@ -43,6 +56,7 @@ class OIDCOpenAPIFastAPI(FastAPI):
         *,
         settings: Settings,
         lifespan: Lifespan["OIDCOpenAPIFastAPI"] | None = None,
+        validation_status: HTTPStatus = HTTPStatus.UNPROCESSABLE_CONTENT,
     ) -> None:
         super().__init__(
             title=settings.app.app_name,
@@ -55,6 +69,7 @@ class OIDCOpenAPIFastAPI(FastAPI):
             },
         )
         self.settings = settings
+        self.validation_status = validation_status
         self.oidc_metadata: OIDCMetadata | None = None
 
     def openapi(self) -> dict[str, Any]:
@@ -62,6 +77,8 @@ class OIDCOpenAPIFastAPI(FastAPI):
             return self.openapi_schema
         schema = super().openapi()
         _use_problem_json_for_error_responses(schema)
+        if self.validation_status != HTTPStatus.UNPROCESSABLE_CONTENT:
+            _declare_validation_status(schema, self.validation_status)
         if self.oidc_metadata is not None:
             _use_discovered_oidc_endpoints(schema, self.oidc_metadata)
         return schema

@@ -1,5 +1,6 @@
 import json
-from typing import cast
+from http import HTTPStatus
+from typing import cast, override
 
 import pytest
 from fastapi import Request
@@ -12,10 +13,11 @@ from starlette.exceptions import HTTPException
 from app.exceptions import (
     AuthenticationError,
     BaseError,
+    ErrorHandling,
     ForbiddenError,
     ProblemDetails,
-    base_exception_handler,
     problem_responses,
+    render_validation_problem,
 )
 
 pytestmark = pytest.mark.unit
@@ -58,8 +60,6 @@ def test_base_error_builds_problem_details() -> None:
 
 
 def test_problem_responses_declare_the_problem_details_model() -> None:
-    from http import HTTPStatus
-
     responses = problem_responses(HTTPStatus.NOT_FOUND, HTTPStatus.FORBIDDEN)
 
     assert responses == {
@@ -81,7 +81,7 @@ def test_handler_maps_validation_errors_to_unprocessable_content() -> None:
         ]
     )
 
-    response = base_exception_handler(request, exc)
+    response = ErrorHandling().handle(request, exc)
     body = load_json_body(response)
 
     assert response.status_code == 422
@@ -95,11 +95,87 @@ def test_handler_maps_validation_errors_to_unprocessable_content() -> None:
     assert detail[0]["loc"] == ["body", "name"]
 
 
+def test_handler_uses_the_configured_validation_status_and_renderer() -> None:
+    def render(
+        request: Request, exc: RequestValidationError, status: HTTPStatus
+    ) -> ProblemDetails:
+        problem = render_validation_problem(request, exc, status)
+        return problem.model_copy(
+            update={
+                "detail": "Request is invalid",
+                "fields": [".".join(map(str, e["loc"])) for e in exc.errors()],
+            }
+        )
+
+    exc = RequestValidationError(
+        [{"type": "missing", "loc": ("body", "name"), "msg": "Field required"}]
+    )
+    handling = ErrorHandling(
+        validation_status=HTTPStatus.BAD_REQUEST, render_validation=render
+    )
+
+    response = handling.handle(make_request("/entities"), exc)
+
+    assert response.status_code == 400
+    assert response.media_type == "application/problem+json"
+    assert load_json_body(response) == {
+        "type": "https://testserver/openapi.json",
+        "title": "Bad Request",
+        "status": 400,
+        "detail": "Request is invalid",
+        "instance": "https://testserver/entities",
+        "fields": ["body.name"],
+    }
+
+
+def test_handler_serializes_problem_extension_members() -> None:
+    class TimestampedError(BaseError):
+        @override
+        def problem(self, request: Request) -> ProblemDetails:
+            return ProblemDetails(
+                title=self.title,
+                status=self.status_code,
+                detail=self.message,
+                instance=str(request.url),
+                timestamp="2026-01-01T00:00:00Z",
+            )
+
+    error = TimestampedError("conflict", status_code=409, title="Conflict")
+
+    response = ErrorHandling().handle(make_request("/entities"), error)
+
+    assert load_json_body(response) == {
+        "type": "about:blank",
+        "title": "Conflict",
+        "status": 409,
+        "detail": "conflict",
+        "instance": "https://testserver/entities",
+        "timestamp": "2026-01-01T00:00:00Z",
+    }
+
+
+def test_handler_returns_an_empty_body_when_the_error_asks_for_one() -> None:
+    class SilentNotFoundError(BaseError):
+        @override
+        def response(self, request: Request) -> Response:
+            return Response(status_code=self.status_code, headers=self.headers)
+
+    error = SilentNotFoundError(
+        "hidden", status_code=404, headers={"Cache-Control": "no-store"}
+    )
+
+    response = ErrorHandling().handle(make_request("/entities/123"), error)
+
+    assert response.status_code == 404
+    assert response.body == b""
+    assert response.headers["cache-control"] == "no-store"
+
+
 def test_handler_maps_base_errors() -> None:
     request = make_request("/entities/123")
     exc = BaseError("not found", status_code=404, title="Not Found")
 
-    response = base_exception_handler(request, exc)
+    response = ErrorHandling().handle(request, exc)
 
     assert response.status_code == 404
     assert load_json_body(response) == {
@@ -114,7 +190,7 @@ def test_handler_maps_base_errors() -> None:
 def test_handler_keeps_authentication_challenge_headers() -> None:
     request = make_request("/entities")
 
-    response = base_exception_handler(request, AuthenticationError())
+    response = ErrorHandling().handle(request, AuthenticationError())
 
     assert response.status_code == 401
     assert response.headers.get("www-authenticate") == "Bearer"
@@ -129,7 +205,7 @@ def test_handler_keeps_authentication_challenge_headers() -> None:
 
 
 def test_handler_maps_forbidden_errors() -> None:
-    response = base_exception_handler(make_request(), ForbiddenError("entities:write"))
+    response = ErrorHandling().handle(make_request(), ForbiddenError("entities:write"))
 
     assert response.status_code == 403
     assert load_json_body(response)["detail"] == "Role 'entities:write' is required"
@@ -157,7 +233,7 @@ def test_handler_maps_database_failures_to_service_unavailable(
 
     monkeypatch.setattr("app.exceptions.handlers.logfire.exception", capture_log)
 
-    response = base_exception_handler(request, error)
+    response = ErrorHandling().handle(request, error)
 
     assert response.status_code == 503
     assert load_json_body(response) == {
@@ -187,7 +263,7 @@ def test_handler_hides_unexpected_error_details(
 
     monkeypatch.setattr("app.exceptions.handlers.logfire.exception", capture_log)
 
-    response = base_exception_handler(request, error)
+    response = ErrorHandling().handle(request, error)
 
     assert response.status_code == 500
     assert response.media_type == "application/problem+json"
@@ -209,7 +285,7 @@ def test_handler_hides_unexpected_error_details(
 def test_handler_maps_framework_http_errors() -> None:
     request = make_request("/missing")
 
-    response = base_exception_handler(request, HTTPException(status_code=404))
+    response = ErrorHandling().handle(request, HTTPException(status_code=404))
 
     assert response.status_code == 404
     assert response.media_type == "application/problem+json"

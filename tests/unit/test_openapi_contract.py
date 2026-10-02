@@ -1,10 +1,12 @@
 import json
 import os
+from http import HTTPStatus
 from pathlib import Path
 
 import pytest
 from asgi_lifespan import LifespanManager
 
+from app.exceptions import ErrorHandling
 from app.main import create_app
 from app.settings import Settings
 
@@ -57,3 +59,22 @@ async def test_openapi_document_declares_problem_details_for_error_responses(
                     continue
                 content = response["content"]["application/problem+json"]
                 assert content["schema"] == problem_ref, (path, method, status)
+
+
+async def test_openapi_document_declares_the_configured_validation_status(
+    settings: Settings,
+) -> None:
+    app = create_app(settings, ErrorHandling(validation_status=HTTPStatus.BAD_REQUEST))
+    async with LifespanManager(app):
+        schema = app.openapi()
+
+    create_responses = schema["paths"]["/entities/"]["post"]["responses"]
+    assert "422" not in create_responses
+    assert create_responses["400"] == {
+        "content": {
+            "application/problem+json": {
+                "schema": {"$ref": "#/components/schemas/ProblemDetails"}
+            }
+        },
+        "description": "Bad Request",
+    }
