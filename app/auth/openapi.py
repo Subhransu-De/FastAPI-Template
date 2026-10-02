@@ -63,12 +63,12 @@ def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) ->
     rewritten = False
     for operations in schema.get("paths", {}).values():
         for operation in operations.values():
-            if not operation.get("parameters") and "requestBody" not in operation:
-                continue
             responses = operation.setdefault("responses", {})
             generated = responses.get(_GENERATED_VALIDATION_STATUS)
             if generated is not None and _is_generated_validation_response(generated):
                 del responses[_GENERATED_VALIDATION_STATUS]
+            elif not operation.get("parameters") and "requestBody" not in operation:
+                continue
             rewritten = True
             declared = responses.get(str(status.value))
             if declared is None:

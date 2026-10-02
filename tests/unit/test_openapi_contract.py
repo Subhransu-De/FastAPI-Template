@@ -2,10 +2,11 @@ import json
 import os
 from http import HTTPStatus
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import pytest
 from asgi_lifespan import LifespanManager
+from fastapi import Header
 from pydantic import BaseModel
 
 from app.exceptions import ErrorHandling, problem_responses
@@ -101,6 +102,10 @@ async def _schema_with_validation_status(
     async def probe_item(item: int) -> ValidationError:
         return ValidationError(reason=str(item))
 
+    @app.get("/hidden")
+    async def hidden(token: Annotated[str, Header(include_in_schema=False)]) -> None:
+        del token
+
     async with LifespanManager(app):
         return app.openapi()
 
@@ -116,6 +121,9 @@ async def test_openapi_document_declares_the_configured_validation_status(
         "content": {"application/problem+json": {"schema": PROBLEM_REF}},
         "description": "Bad Request",
     }
+    hidden_responses = schema["paths"]["/hidden"]["get"]["responses"]
+    assert "422" not in hidden_responses
+    assert hidden_responses["400"] == create_responses["400"]
     probe_responses = schema["paths"]["/probe"]["post"]["responses"]
     assert "422" in probe_responses
     assert probe_responses["400"] == {
