@@ -6,6 +6,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import Response
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from starlette.exceptions import HTTPException
 
 from app.exceptions import (
@@ -134,8 +135,19 @@ def test_handler_maps_forbidden_errors() -> None:
     assert load_json_body(response)["detail"] == "Role 'entities:write' is required"
 
 
-def test_handler_maps_database_connection_failures_to_service_unavailable(
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(
+            OperationalError("SELECT 1", {}, ConnectionRefusedError()),
+            id="connection-refused",
+        ),
+        pytest.param(PoolTimeoutError("QueuePool limit reached"), id="pool-timeout"),
+    ],
+)
+def test_handler_maps_database_failures_to_service_unavailable(
     monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
 ) -> None:
     request = make_request("/entities")
     logged: list[tuple[tuple[object, ...], dict[str, object]]] = []
@@ -144,7 +156,6 @@ def test_handler_maps_database_connection_failures_to_service_unavailable(
         logged.append((args, kwargs))
 
     monkeypatch.setattr("app.exceptions.handlers.logfire.exception", capture_log)
-    error = OperationalError("SELECT 1", {}, ConnectionRefusedError())
 
     response = base_exception_handler(request, error)
 

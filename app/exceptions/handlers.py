@@ -6,6 +6,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import Response
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from starlette.exceptions import HTTPException
 
 from app.exceptions.base import BaseError, ProblemDetails, problem_response
@@ -41,7 +42,7 @@ def base_exception_handler(request: Request, exc: Exception) -> Response:
             )
         case BaseError():
             return problem_response(exc.problem(request), exc.headers)
-        case OperationalError():
+        case OperationalError() | PoolTimeoutError():
             logfire.exception(
                 "Database unavailable while processing {url}",
                 url=str(request.url),

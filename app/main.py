@@ -6,6 +6,7 @@ import logfire
 import uvicorn
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from starlette.exceptions import HTTPException
 
 from app import logger, telemetry
@@ -70,6 +71,7 @@ def create_app(settings: Settings) -> OIDCOpenAPIFastAPI:
         BaseError,
         RequestValidationError,
         OperationalError,
+        PoolTimeoutError,
         HTTPException,
         Exception,
     ):

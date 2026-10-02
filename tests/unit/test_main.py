@@ -4,6 +4,7 @@ import httpx
 import pytest
 from asgi_lifespan import LifespanManager
 from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app import main as main_module
@@ -101,15 +102,25 @@ async def test_unexpected_errors_become_problem_details_without_leaking(
     assert len(logged) == 1
 
 
-async def test_database_connection_failures_become_service_unavailable(
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(
+            OperationalError("SELECT 1", {}, ConnectionRefusedError()),
+            id="connection-refused",
+        ),
+        pytest.param(PoolTimeoutError("QueuePool limit reached"), id="pool-timeout"),
+    ],
+)
+async def test_database_failures_become_service_unavailable(
     settings: Settings,
     monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
 ) -> None:
     monkeypatch.setattr(
         "app.exceptions.handlers.logfire.exception",
         lambda *_args, **_kwargs: None,
     )
-    error = OperationalError("SELECT 1", {}, ConnectionRefusedError())
 
     response = await _probe(settings, error)
 
