@@ -16,6 +16,8 @@ from sqlalchemy.dialects.postgresql import REGCLASS, insert
 type Row = Mapping[str, object]
 type Fixtures = Mapping[str, Sequence[Row]]
 
+_PG_CLASS = table("pg_class", Column("oid"), Column("relname"), Column("relnamespace"))
+_PG_NAMESPACE = table("pg_namespace", Column("oid"), Column("nspname"))
 _PG_SEQUENCE = table("pg_sequence", Column("seqrelid"), Column("seqincrement"))
 
 
@@ -29,9 +31,7 @@ def seed(connection: Connection, fixtures: Fixtures) -> dict[str, int]:
             continue
         _reject_always_identity_values(seeded_table, rows)
         _lock_against_writers(connection, seeded_table)
-        inserted[seeded_table.name] = sum(
-            _insert_row(connection, seeded_table, row) for row in rows
-        )
+        inserted[seeded_table.name] = _insert_rows(connection, seeded_table, rows)
         _advance_sequences(connection, seeded_table)
     return inserted
 
@@ -54,14 +54,16 @@ def _reject_always_identity_values(seeded_table: Table, rows: Sequence[Row]) -> 
             raise ValueError(msg)
 
 
-def _insert_row(connection: Connection, seeded_table: Table, row: Row) -> int:
-    statement = (
-        insert(seeded_table)
-        .values(row)
-        .on_conflict_do_nothing()
-        .returning(*seeded_table.c)
+def _insert_rows(
+    connection: Connection, seeded_table: Table, rows: Sequence[Row]
+) -> int:
+    batches: dict[frozenset[str], list[Row]] = {}
+    for row in rows:
+        batches.setdefault(frozenset(row), []).append(row)
+    statement = insert(seeded_table).on_conflict_do_nothing().returning(*seeded_table.c)
+    return sum(
+        len(connection.execute(statement, batch).all()) for batch in batches.values()
     )
-    return len(connection.execute(statement).all())
 
 
 def _advance_sequences(connection: Connection, seeded_table: Table) -> None:
@@ -80,17 +82,27 @@ def _advance_sequence(
     column: Column[object],
     sequence: str,
 ) -> None:
-    sequence_id = cast(sequence, REGCLASS)
-    increment = connection.scalar(
-        select(_PG_SEQUENCE.c.seqincrement).where(
-            _PG_SEQUENCE.c.seqrelid == sequence_id
+    schema, name, increment = connection.execute(
+        select(
+            _PG_NAMESPACE.c.nspname,
+            _PG_CLASS.c.relname,
+            _PG_SEQUENCE.c.seqincrement,
         )
+        .join_from(
+            _PG_CLASS, _PG_NAMESPACE, _PG_CLASS.c.relnamespace == _PG_NAMESPACE.c.oid
+        )
+        .join(_PG_SEQUENCE, _PG_SEQUENCE.c.seqrelid == _PG_CLASS.c.oid)
+        .where(_PG_CLASS.c.oid == cast(sequence, REGCLASS))
+    ).one()
+    state = table(name, Column("last_value"), Column("is_called"), schema=schema)
+    last_value, is_called = connection.execute(
+        select(state.c.last_value, state.c.is_called)
+    ).one()
+    next_value = last_value + increment if is_called else last_value
+    furthest = func.max if increment > 0 else func.min
+    stored = connection.scalar(select(furthest(column)).select_from(seeded_table))
+    if stored is None or (next_value - stored) * increment > 0:
+        return
+    connection.execute(
+        text(f"ALTER SEQUENCE {sequence} RESTART WITH {int(stored + increment)}")
     )
-    furthest, further = (
-        (func.max, func.greatest)
-        if increment is None or increment > 0
-        else (func.min, func.least)
-    )
-    stored = select(furthest(column)).select_from(seeded_table).scalar_subquery()
-    last_value = func.coalesce(func.pg_sequence_last_value(sequence_id), stored)
-    connection.execute(select(func.setval(sequence_id, further(stored, last_value))))
