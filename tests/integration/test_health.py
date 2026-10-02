@@ -13,6 +13,15 @@ async def test_health_returns_application_status(
     assert response.json() == {"status": "up"}
 
 
+async def test_readiness_checks_the_database(
+    app_client: httpx.AsyncClient,
+) -> None:
+    response = await app_client.get("/health/ready")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "up"}
+
+
 async def test_unknown_route_returns_problem_details(
     app_client: httpx.AsyncClient,
 ) -> None:

@@ -1,34 +1,30 @@
-from unittest.mock import MagicMock, patch
-
 import pytest
+from sqlalchemy.pool import QueuePool
 
-import app.database.engine as engine_module
+from app.database import create_engine
+from app.settings import DatabaseSettings
 
 pytestmark = pytest.mark.unit
 
 
-def test_get_engine_creates_engine_with_settings(monkeypatch):
-    monkeypatch.setattr(engine_module, "_engine", None)
-    mock_engine = MagicMock()
+async def test_create_engine_applies_database_settings() -> None:
+    settings = DatabaseSettings(
+        _env_file=None,
+        url="postgresql+psycopg://user:pass@localhost:5432/test",
+        pool_size=7,
+        max_overflow=3,
+        echo=True,
+        pool_pre_ping=False,
+    )
 
-    with patch(
-        "app.database.engine.create_async_engine", return_value=mock_engine
-    ) as mock_create:
-        result = engine_module.get_engine()
-
-    assert result is mock_engine
-    mock_create.assert_called_once()
-
-
-def test_get_engine_returns_same_instance_on_second_call(monkeypatch):
-    monkeypatch.setattr(engine_module, "_engine", None)
-    mock_engine = MagicMock()
-
-    with patch(
-        "app.database.engine.create_async_engine", return_value=mock_engine
-    ) as mock_create:
-        first = engine_module.get_engine()
-        second = engine_module.get_engine()
-
-    assert first is second
-    mock_create.assert_called_once()
+    engine = create_engine(settings)
+    try:
+        pool = engine.pool
+        assert isinstance(pool, QueuePool)
+        assert engine.url.render_as_string(hide_password=False) == settings.url
+        assert pool.size() == 7
+        assert pool._max_overflow == 3
+        assert engine.echo is True
+        assert pool._pre_ping is False
+    finally:
+        await engine.dispose()

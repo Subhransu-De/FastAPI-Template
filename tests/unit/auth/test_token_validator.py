@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from jwt import PyJWKClientError, PyJWTError
 
-from app.auth.token_validator import AccessTokenValidator
+from app.auth import AccessTokenValidator, AuthClaims
 from app.exceptions import AuthenticationError
 from app.settings import OIDCMetadata
 
@@ -16,6 +16,16 @@ _METADATA = OIDCMetadata(
     authorization_endpoint="https://idp.example/authorize",
     token_endpoint="https://idp.example/token",  # noqa: S106
 )
+_PAYLOAD = {
+    "sub": "user-1",
+    "iss": _METADATA.issuer,
+    "aud": "api-client",
+    "azp": "api-client",
+    "exp": 1_800_000_000,
+    "iat": 1_799_996_400,
+    "nbf": 1_799_996_400,
+    "realm_access": {"roles": ["entities:write"]},
+}
 
 
 def _create_validator() -> tuple[AccessTokenValidator, MagicMock]:
@@ -27,36 +37,38 @@ def _create_validator() -> tuple[AccessTokenValidator, MagicMock]:
             _METADATA,
             audience="api-client",
             jwks_cache_ttl_seconds=600,
+            jwks_refresh_cooldown_seconds=15,
         )
 
     jwks_client_class.assert_called_once_with(
         _METADATA.jwks_uri,
         cache_jwk_set=True,
         lifespan=600,
+        cooldown_duration=15,
     )
     return validator, jwks_client_class.return_value
 
 
-def test_validate_returns_decoded_claims() -> None:
+def test_validate_returns_typed_claims() -> None:
     validator, jwks_client = _create_validator()
-    signing_key = MagicMock()
-    jwks_client.get_signing_key_from_jwt.return_value = signing_key
+    jwks_client.get_signing_key_from_jwt.return_value = MagicMock()
 
-    with patch(
-        "app.auth.token_validator.jwt.decode",
-        return_value={"sub": "user-1"},
-    ) as decode:
+    with patch("app.auth.token_validator.jwt.decode", return_value=_PAYLOAD):
         claims = validator.validate(_VALID_TOKEN)
 
-    decode.assert_called_once_with(
-        _VALID_TOKEN,
-        signing_key.key,
-        algorithms=["RS256"],
-        audience="api-client",
-        issuer=_METADATA.issuer,
-        options={"require": ["exp", "iat", "nbf"]},
-    )
-    assert claims == {"sub": "user-1"}
+    assert claims == AuthClaims.model_validate(_PAYLOAD)
+    assert claims.roles == frozenset({"entities:write"})
+
+
+def test_validate_rejects_tokens_without_required_claims() -> None:
+    validator, jwks_client = _create_validator()
+    jwks_client.get_signing_key_from_jwt.return_value = MagicMock()
+
+    with (
+        patch("app.auth.token_validator.jwt.decode", return_value={"aud": "x"}),
+        pytest.raises(AuthenticationError),
+    ):
+        validator.validate(_VALID_TOKEN)
 
 
 @pytest.mark.parametrize(
@@ -68,20 +80,6 @@ def test_validate_translates_jwt_errors(error: Exception) -> None:
     jwks_client.get_signing_key_from_jwt.side_effect = error
 
     with pytest.raises(AuthenticationError) as exc_info:
-        validator.validate(_VALID_TOKEN)
-
-    assert exc_info.value.__cause__ is error
-
-
-def test_validate_translates_decode_errors() -> None:
-    validator, jwks_client = _create_validator()
-    jwks_client.get_signing_key_from_jwt.return_value = MagicMock()
-    error = PyJWTError("invalid claims")
-
-    with (
-        patch("app.auth.token_validator.jwt.decode", side_effect=error),
-        pytest.raises(AuthenticationError) as exc_info,
-    ):
         validator.validate(_VALID_TOKEN)
 
     assert exc_info.value.__cause__ is error

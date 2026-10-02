@@ -1,30 +1,39 @@
 from collections.abc import AsyncGenerator
+from typing import Annotated
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from fastapi import Depends, Request
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from app.database.engine import get_engine
+from app.exceptions import MissingLifespanStateError
 
+SESSIONMAKER_STATE_KEY = "sessionmaker"
 
-class _SessionMakerProxy:
-    def __init__(self) -> None:
-        self._sessionmaker = None
-
-    def __call__(self, *args: object, **kwargs: object) -> AsyncSession:
-        if self._sessionmaker is None:
-            self._sessionmaker = async_sessionmaker(
-                bind=get_engine(),
-                expire_on_commit=False,
-                autocommit=False,
-                autoflush=False,
-            )
-        return self._sessionmaker(*args, **kwargs)
+type SessionMaker = async_sessionmaker[AsyncSession]
 
 
-AsyncSessionLocal = _SessionMakerProxy()
+def create_sessionmaker(engine: AsyncEngine) -> SessionMaker:
+    return async_sessionmaker(
+        bind=engine,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
 
 
-async def get_session() -> AsyncGenerator[AsyncSession]:
-    async with AsyncSessionLocal() as session:
+def get_sessionmaker(request: Request) -> SessionMaker:
+    try:
+        sessionmaker = request.state.sessionmaker
+    except AttributeError as error:
+        raise MissingLifespanStateError(SESSIONMAKER_STATE_KEY) from error
+    if not isinstance(sessionmaker, async_sessionmaker):
+        raise MissingLifespanStateError(SESSIONMAKER_STATE_KEY)
+    return sessionmaker
+
+
+async def get_session(
+    sessionmaker: Annotated[SessionMaker, Depends(get_sessionmaker)],
+) -> AsyncGenerator[AsyncSession]:
+    async with sessionmaker() as session:
         try:
             yield session
             await session.commit()

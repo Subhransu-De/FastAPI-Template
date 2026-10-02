@@ -1,98 +1,87 @@
-from typing import Any
+import re
+from dataclasses import dataclass
+from functools import cache
 
 import logfire
 from fastapi import FastAPI, Request, WebSocket
-from sqlalchemy.engine import Engine
-from sqlalchemy.ext.asyncio import AsyncEngine
+from fastapi.telemetry import TelemetryConfig
+from starlette.types import Scope
 
-from app.settings import app_settings
+HEALTH_ENDPOINT_PATHS: tuple[str, ...] = ("/health", "/health/ready")
 
-_configured = False
-_instrumented_fastapi_apps: set[int] = set()
-_instrumented_sqlalchemy_engines: set[int] = set()
-_FASTAPI_EXCLUDED_URLS = r".*/health(?:\?.*)?$"
+_FASTAPI_EXCLUDED_URLS = (
+    ".*(?:"
+    + "|".join(re.escape(path) for path in HEALTH_ENDPOINT_PATHS)
+    + r")(?:\?.*)?$"
+)
 
 
-def configure_otel() -> None:
-    global _configured
-    if _configured:
-        return
+@dataclass(frozen=True, slots=True)
+class AuthAttributes:
+    client_id: str | None
+    audience: str | tuple[str, ...]
+    issuer: str
 
+
+@cache
+def configure_otel(service_name: str) -> None:
     logfire.configure(
-        service_name=app_settings.app_name,
+        service_name=service_name,
         send_to_logfire="if-token-present",
         console=logfire.ConsoleOptions(colors="never", show_project_link=False),
     )
-    _configured = True
 
 
-def _extract_client_ip(request: Request | WebSocket) -> str | None:
-    forwarded_for = request.headers.get("x-forwarded-for")
-    if forwarded_for:
-        return forwarded_for.split(",", maxsplit=1)[0].strip()
+def record_auth_attributes(request: Request, attributes: AuthAttributes) -> None:
+    request.state.auth_attributes = attributes
 
-    if request.client is None:
+
+def _auth_attributes(request: Request | WebSocket) -> AuthAttributes | None:
+    try:
+        attributes = request.state.auth_attributes
+    except AttributeError:
         return None
-
-    return request.client.host
-
-
-def _add_auth_attributes(
-    request: Request | WebSocket,
-    attributes: dict[str, Any],
-) -> None:
-    claims = getattr(request.state, "auth_claims", None)
-    if not isinstance(claims, dict):
-        return
-
-    client_id = claims.get("azp") or claims.get("client_id")
-    audience = claims.get("aud")
-    issuer = claims.get("iss")
-
-    if client_id:
-        attributes["oidc.client_id"] = client_id
-    if audience:
-        attributes["oidc.audience"] = audience
-    if issuer:
-        attributes["oidc.issuer"] = issuer
+    return attributes if isinstance(attributes, AuthAttributes) else None
 
 
 def _request_attributes_mapper(
     request: Request | WebSocket,
-    attributes: dict[str, Any],
-) -> dict[str, Any]:
-    mapped_attributes: dict[str, Any] = {}
+    attributes: dict[str, object],
+) -> dict[str, object]:
+    mapped_attributes: dict[str, object] = {}
     if errors := attributes.get("errors"):
         mapped_attributes["errors"] = errors
 
-    client_ip = _extract_client_ip(request)
-    if client_ip:
-        mapped_attributes["client.ip"] = client_ip
+    if request.client is not None:
+        mapped_attributes["client.ip"] = request.client.host
 
-    _add_auth_attributes(request, mapped_attributes)
+    auth = _auth_attributes(request)
+    if auth is not None:
+        if auth.client_id:
+            mapped_attributes["oidc.client_id"] = auth.client_id
+        mapped_attributes["oidc.audience"] = (
+            list(auth.audience) if isinstance(auth.audience, tuple) else auth.audience
+        )
+        mapped_attributes["oidc.issuer"] = auth.issuer
     return mapped_attributes
 
 
 def instrument_fastapi(app: FastAPI) -> None:
-    configure_otel()
-    app_id = id(app)
-    if app_id in _instrumented_fastapi_apps:
-        return
-
     logfire.instrument_fastapi(
         app,
         request_attributes_mapper=_request_attributes_mapper,
         excluded_urls=_FASTAPI_EXCLUDED_URLS,
     )
-    _instrumented_fastapi_apps.add(app_id)
 
 
-def instrument_sqlalchemy(engine: AsyncEngine | Engine) -> None:
-    configure_otel()
-    instrumented_engine = engine.sync_engine if isinstance(engine, AsyncEngine) else engine
-    engine_id = id(instrumented_engine)
-    if engine_id in _instrumented_sqlalchemy_engines:
-        return
+@cache
+def instrument_sqlalchemy() -> None:
+    logfire.instrument_sqlalchemy(skip_dep_check=True)
 
-    logfire.instrument_sqlalchemy(engine=instrumented_engine)
-    _instrumented_sqlalchemy_engines.add(engine_id)
+
+def _is_health_probe(scope: Scope) -> bool:
+    return scope.get("path") in HEALTH_ENDPOINT_PATHS
+
+
+def native_telemetry_config() -> TelemetryConfig:
+    return {"auto_configure": False, "exclude": _is_health_probe}

@@ -1,7 +1,6 @@
 from uuid import UUID as PYUUID
 from uuid import uuid4
 
-from pydantic import BaseModel
 from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import UUID
@@ -19,7 +18,3 @@ class Base(DeclarativeBase):
             "pk": "pk_%(table_name)s",
         }
     )
-
-    def apply_changes(self, data: BaseModel) -> None:
-        for field, value in data.model_dump(exclude_unset=True).items():
-            setattr(self, field, value)

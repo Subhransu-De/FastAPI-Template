@@ -6,12 +6,14 @@
 
 ## Application
 
-| Key        | Required by | Meaning                                                        |
-| ---------- | ----------- | -------------------------------------------------------------- |
-| `APP_NAME` | Optional    | Name shown in FastAPI metadata.                                |
-| `APP_HOST` | Optional    | Host interface for a host-run API. Default: `127.0.0.1`.       |
-| `PORT`     | Optional    | API listening port. Default: `80`.                             |
-| `RELOAD`   | Optional    | Enables Uvicorn reload for host development. Default: `False`. |
+| Key                   | Required by | Meaning                                                                                                   |
+| --------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| `APP_NAME`            | Optional    | Name shown in FastAPI metadata.                                                                           |
+| `APP_HOST`            | Optional    | Host interface for a host-run API. Default: `127.0.0.1`.                                                  |
+| `PORT`                | Optional    | API listening port. Default: `80`.                                                                        |
+| `RELOAD`              | Optional    | Enables Uvicorn reload for host development. Default: `False`.                                            |
+| `PROXY_HEADERS`       | Optional    | Makes Uvicorn honour `X-Forwarded-*` headers from trusted proxies. Default: `False`.                      |
+| `FORWARDED_ALLOW_IPS` | Optional    | Proxies whose forwarded headers are trusted; Uvicorn syntax, `*` trusts every peer. Default: `127.0.0.1`. |
 
 ## Compose
 
@@ -46,14 +48,15 @@ KEYCLOAK_ADMIN_PASSWORD=local-keycloak
 
 ## OIDC
 
-| Key                           | Required by         | Meaning                                                                                           |
-| ----------------------------- | ------------------- | ------------------------------------------------------------------------------------------------- |
-| `OIDC_ISSUER_URL`             | **Host run**        | Public realm URL used for discovery and issuer validation.                                        |
-| `OIDC_INTERNAL_URL`           | Optional            | Internal URL used to fetch discovery metadata and signing keys while retaining the public issuer. |
-| `OIDC_CLIENT_ID`              | **Host run**        | Audience expected in API access tokens.                                                           |
-| `OIDC_DOCS_CLIENT_ID`         | **Host run**        | Public PKCE client used by Swagger UI.                                                            |
-| `OIDC_CLIENT_SECRET`          | Scenario tests only | Confidential client credential; the main API and Swagger UI do not use it.                        |
-| `OIDC_JWKS_CACHE_TTL_SECONDS` | Optional            | Signing-key cache duration in seconds. Default: `300`.                                            |
+| Key                                  | Required by         | Meaning                                                                                                                             |
+| ------------------------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `OIDC_ISSUER_URL`                    | **Host run**        | Public realm URL used for discovery and issuer validation.                                                                          |
+| `OIDC_INTERNAL_URL`                  | Optional            | Internal URL used to fetch discovery metadata and signing keys while retaining the public issuer.                                   |
+| `OIDC_CLIENT_ID`                     | **Host run**        | Audience expected in API access tokens.                                                                                             |
+| `OIDC_DOCS_CLIENT_ID`                | **Host run**        | Public PKCE client used by Swagger UI.                                                                                              |
+| `OIDC_CLIENT_SECRET`                 | Scenario tests only | Confidential client credential; the main API and Swagger UI do not use it.                                                          |
+| `OIDC_JWKS_CACHE_TTL_SECONDS`        | Optional            | Signing-key cache duration in seconds. Default: `300`.                                                                              |
+| `OIDC_JWKS_REFRESH_COOLDOWN_SECONDS` | Optional            | Seconds before the signing keys are refetched again after a token with an unknown key id. `0` refetches immediately. Default: `30`. |
 
 Compose supplies the issuer and client IDs for its local realm.
 

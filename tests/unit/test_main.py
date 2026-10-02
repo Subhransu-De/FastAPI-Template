@@ -1,54 +1,90 @@
-import importlib
-import runpy
-import sys
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import Mock
 
 import httpx
 import pytest
-from fastapi import FastAPI
-from starlette.exceptions import HTTPException
+from asgi_lifespan import LifespanManager
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.exceptions import base_exception_handler
-from app.settings import OIDCMetadata
+from app import main as main_module
+from app.auth import AccessTokenValidator, OIDCOpenAPIFastAPI
+from app.main import app_from_env, create_app, lifespan
+from app.settings import Settings
+from tests.support import TEST_DOCS_CLIENT_ID
 
 pytestmark = pytest.mark.unit
 
 
-def test_swagger_uses_public_pkce_client_without_a_secret() -> None:
-    module = importlib.import_module("app.main")
+def test_create_app_configures_a_public_pkce_docs_client(settings: Settings) -> None:
+    app = create_app(settings)
 
-    assert module.app.swagger_ui_init_oauth == {
-        "clientId": "fastapi-docs",
+    assert app.title == settings.app.app_name
+    assert app.swagger_ui_init_oauth == {
+        "clientId": TEST_DOCS_CLIENT_ID,
         "scopes": "openid",
         "usePkceWithAuthorizationCodeGrant": True,
     }
 
 
-def test_main_registers_problem_details_handlers() -> None:
-    module = importlib.import_module("app.main")
+async def test_lifespan_yields_typed_state_and_publishes_oidc_metadata(
+    settings: Settings,
+) -> None:
+    app = create_app(settings)
 
-    assert module.app.exception_handlers[HTTPException] is base_exception_handler
-    assert module.app.exception_handlers[Exception] is base_exception_handler
+    async with lifespan(app) as state:
+        assert isinstance(state["sessionmaker"], async_sessionmaker)
+        assert isinstance(state["access_validator"], AccessTokenValidator)
+        assert app.oidc_metadata == settings.oidc.metadata_override()
 
 
-async def test_catch_all_returns_problem_details_for_unknown_error() -> None:
-    test_app = FastAPI()
-    test_app.add_exception_handler(Exception, base_exception_handler)
+async def test_requests_reach_the_lifespan_owned_validator(
+    settings: Settings,
+) -> None:
+    app = create_app(settings)
 
-    @test_app.get("/failure")
-    async def failure() -> None:
-        message = "sensitive diagnostic"
-        raise RuntimeError(message)
+    async with LifespanManager(app) as manager:
+        transport = httpx.ASGITransport(app=manager.app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="https://testserver"
+        ) as client:
+            response = await client.get(
+                "/entities/", headers={"Authorization": "Bearer not-a-jwt"}
+            )
 
-    transport = httpx.ASGITransport(
-        app=test_app,
-        raise_app_exceptions=False,
+    assert response.status_code == 401
+    assert response.headers["WWW-Authenticate"] == "Bearer"
+    assert response.json()["title"] == "Unauthorized"
+
+
+async def _probe(
+    settings: Settings,
+    error: Exception,
+) -> httpx.Response:
+    app = create_app(settings)
+
+    @app.get("/probe")
+    async def probe() -> None:
+        raise error
+
+    async with LifespanManager(app) as manager:
+        transport = httpx.ASGITransport(app=manager.app, raise_app_exceptions=False)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="https://testserver"
+        ) as client:
+            return await client.get("/probe")
+
+
+async def test_unexpected_errors_become_problem_details_without_leaking(
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    logged: list[tuple[object, ...]] = []
+    monkeypatch.setattr(
+        "app.exceptions.handlers.logfire.exception",
+        lambda *args, **_kwargs: logged.append(args),
     )
-    async with httpx.AsyncClient(
-        transport=transport,
-        base_url="https://testserver",
-    ) as client:
-        response = await client.get("/failure")
+
+    response = await _probe(settings, RuntimeError("sensitive diagnostic"))
 
     assert response.status_code == 500
     assert response.headers["content-type"] == "application/problem+json"
@@ -57,83 +93,64 @@ async def test_catch_all_returns_problem_details_for_unknown_error() -> None:
         "title": "Internal Server Error",
         "status": 500,
         "detail": "An unexpected error occurred.",
-        "instance": "https://testserver/failure",
+        "instance": "https://testserver/probe",
+    }
+    assert "sensitive diagnostic" not in response.text
+    assert len(logged) == 1
+
+
+async def test_database_connection_failures_become_service_unavailable(
+    settings: Settings,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.exceptions.handlers.logfire.exception",
+        lambda *_args, **_kwargs: None,
+    )
+    error = OperationalError("SELECT 1", {}, ConnectionRefusedError())
+
+    response = await _probe(settings, error)
+
+    assert response.status_code == 503
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json() == {
+        "type": "https://testserver/openapi.json",
+        "title": "Service Unavailable",
+        "status": 503,
+        "detail": "The database is unavailable.",
+        "instance": "https://testserver/probe",
     }
 
 
-async def test_lifespan_runs_startup_and_shutdown(monkeypatch):
-    module = importlib.import_module("app.main")
+def test_app_from_env_builds_the_application_from_settings(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Settings,
+) -> None:
+    monkeypatch.setattr(main_module.Settings, "from_env", lambda: settings)
 
-    setup_logging = Mock()
-    info = Mock()
-    metadata = OIDCMetadata(
-        jwks_uri="https://idp.example/jwks",
-        issuer="https://idp.example",
-        authorization_endpoint="https://idp.example/authorize",
-        token_endpoint="https://idp.example/token",  # noqa: S106
-    )
-    resolve_oidc_metadata = AsyncMock(return_value=metadata)
-    access_token_validator = Mock()
-    access_token_validator_class = Mock(return_value=access_token_validator)
+    app = app_from_env()
 
-    monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
-    monkeypatch.setattr(module.logfire, "info", info)
-    monkeypatch.setattr(module, "resolve_oidc_metadata", resolve_oidc_metadata)
-    monkeypatch.setattr(
-        module,
-        "AccessTokenValidator",
-        access_token_validator_class,
-    )
-
-    async with module.lifespan(module.app):
-        setup_logging.assert_called_once_with()
-        info.assert_called_once_with(
-            "Starting up {service_name} on port {port}",
-            service_name=module.app_settings.app_name,
-            port=module.app_settings.port,
-        )
-        assert module.app.state.oidc_metadata is metadata
-        assert module.app.state.access_token_validator is access_token_validator
-
-    resolve_oidc_metadata.assert_awaited_once_with(module.authn_settings)
-    access_token_validator_class.assert_called_once_with(
-        metadata,
-        audience=module.authn_settings.client_id,
-        jwks_cache_ttl_seconds=module.authn_settings.jwks_cache_ttl_seconds,
-    )
-    info.assert_any_call("Application shutdown")
+    assert isinstance(app, OIDCOpenAPIFastAPI)
+    assert app.settings is settings
 
 
-def test_main_runs_uvicorn(monkeypatch):
-    module = importlib.import_module("app.main")
+def test_main_runs_uvicorn_with_the_application_factory(
+    monkeypatch: pytest.MonkeyPatch,
+    settings: Settings,
+) -> None:
     run = Mock()
-    setup_logging = Mock()
+    monkeypatch.setattr(main_module.Settings, "from_env", lambda: settings)
+    monkeypatch.setattr(main_module.uvicorn, "run", run)
 
-    monkeypatch.setattr(module.uvicorn, "run", run)
-    monkeypatch.setattr(module.logger, "setup_logging", setup_logging)
+    main_module.main()
 
-    module.main()
-
-    setup_logging.assert_called_once_with()
     run.assert_called_once_with(
-        "app.main:app",
-        host=module.app_settings.host,
-        port=module.app_settings.port,
-        reload=module.app_settings.reload,
+        "app.main:app_from_env",
+        factory=True,
+        host=settings.app.host,
+        port=settings.app.port,
+        reload=settings.app.reload,
         log_config=None,
+        proxy_headers=settings.app.proxy_headers,
+        forwarded_allow_ips=settings.app.forwarded_allow_ips,
     )
-
-
-def test_running_module_as_script_calls_main(monkeypatch):
-    run = Mock()
-    existing_module = sys.modules.pop("app.main", None)
-
-    monkeypatch.setattr("uvicorn.run", run)
-
-    try:
-        runpy.run_module("app.main", run_name="__main__")
-    finally:
-        if existing_module is not None:
-            sys.modules["app.main"] = existing_module
-
-    run.assert_called_once()

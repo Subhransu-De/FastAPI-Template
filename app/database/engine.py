@@ -1,18 +1,14 @@
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.ext import asyncio as sqlalchemy_asyncio
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.settings import db_settings
-
-_engine: AsyncEngine | None = None
+from app.settings import DatabaseSettings
 
 
-def get_engine() -> AsyncEngine:
-    global _engine
-    if _engine is None:
-        _engine = create_async_engine(
-            db_settings.url,
-            pool_size=db_settings.pool_size,
-            max_overflow=db_settings.max_overflow,
-            echo=db_settings.echo,
-            pool_pre_ping=db_settings.pool_pre_ping,
-        )
-    return _engine
+def create_engine(settings: DatabaseSettings) -> AsyncEngine:
+    return sqlalchemy_asyncio.create_async_engine(
+        settings.url,
+        pool_size=settings.pool_size,
+        max_overflow=settings.max_overflow,
+        echo=settings.echo,
+        pool_pre_ping=settings.pool_pre_ping,
+    )

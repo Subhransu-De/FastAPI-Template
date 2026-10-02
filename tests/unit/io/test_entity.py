@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -17,49 +16,42 @@ def test_entity_order_fields_match_every_table_column_except_id() -> None:
     assert {field.value for field in EntityOrderBy} == table_columns
 
 
-def test_entity_create_accepts_valid_payload() -> None:
-    payload = EntityCreate(name="Test entity", description="Description")
+@pytest.mark.parametrize("schema", [EntityCreate, EntityUpdate])
+def test_request_schemas_reject_unknown_fields(
+    schema: type[EntityCreate] | type[EntityUpdate],
+) -> None:
+    with pytest.raises(ValidationError, match="extra_forbidden"):
+        schema.model_validate({"name": "Valid", "unknown_field": "typo"})
 
-    assert payload.name == "Test entity"
-    assert payload.description == "Description"
 
+def test_entity_response_rejects_naive_timestamps() -> None:
+    naive = datetime(2026, 1, 1, 12, 0, 0)  # noqa: DTZ001
 
-def test_entity_create_rejects_empty_name() -> None:
     with pytest.raises(ValidationError):
-        EntityCreate(name="", description=None)
+        EntityResponse(
+            id=uuid4(),
+            name="Naive",
+            description=None,
+            created_at=naive,
+            updated_at=naive,
+        )
 
 
-def test_entity_update_requires_name() -> None:
-    with pytest.raises(ValidationError):
-        EntityUpdate.model_validate({"description": "Updated description"})
-
-
-def test_entity_update_rejects_empty_name() -> None:
-    with pytest.raises(ValidationError):
-        EntityUpdate(name="")
-
-
-def test_entity_update_rejects_null_name() -> None:
-    with pytest.raises(ValidationError):
-        EntityUpdate.model_validate({"name": None})
-
-
-def test_entity_response_validates_from_entity_like_object() -> None:
-    entity_id = uuid4()
-    created_at = datetime.now(UTC)
-    updated_at = datetime.now(UTC)
-    entity = SimpleNamespace(
-        id=entity_id,
+def test_entity_response_validates_from_a_persisted_entity() -> None:
+    entity = Entity(
+        id=uuid4(),
         name="Persisted entity",
-        description="Persisted description",
-        created_at=created_at,
-        updated_at=updated_at,
+        description=None,
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC),
     )
 
     response = EntityResponse.model_validate(entity)
 
-    assert response.id == entity_id
-    assert response.name == "Persisted entity"
-    assert response.description == "Persisted description"
-    assert response.created_at == created_at
-    assert response.updated_at == updated_at
+    assert response.model_dump() == {
+        "id": entity.id,
+        "name": "Persisted entity",
+        "description": None,
+        "created_at": entity.created_at,
+        "updated_at": entity.updated_at,
+    }

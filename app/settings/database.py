@@ -14,6 +14,3 @@ class DatabaseSettings(BaseSettings):
     max_overflow: int = 10
     echo: bool = False
     pool_pre_ping: bool = True
-
-
-db_settings = DatabaseSettings()

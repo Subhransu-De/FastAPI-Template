@@ -1,79 +1,63 @@
-from unittest.mock import AsyncMock, Mock
-
 import pytest
+from fastapi import Request
+from sqlalchemy import select
 
-import app.database.session as session_module
+from app.database import SessionMaker, get_session, get_sessionmaker
+from app.exceptions import MissingLifespanStateError
+from app.model.entity import Entity
 
 pytestmark = pytest.mark.unit
 
 
-class DummySessionContext:
-    def __init__(self, session):
-        self.session = session
-
-    async def __aenter__(self):
-        return self.session
-
-    async def __aexit__(self, exc_type, exc, tb):
-        return False
+def _request_with_state(**state: object) -> Request:
+    return Request({"type": "http", "state": state})
 
 
-def test_session_maker_proxy_initializes_once(monkeypatch):
-    proxy = session_module._SessionMakerProxy()
-    session_factory = Mock(side_effect=["session-1", "session-2"])
-    async_sessionmaker = Mock(return_value=session_factory)
-    get_engine = Mock(return_value="engine")
+async def test_get_sessionmaker_reads_lifespan_state(
+    sqlite_sessionmaker: SessionMaker,
+) -> None:
+    request = _request_with_state(sessionmaker=sqlite_sessionmaker)
 
-    monkeypatch.setattr(session_module, "async_sessionmaker", async_sessionmaker)
-    monkeypatch.setattr(session_module, "get_engine", get_engine)
-
-    first = proxy()
-    second = proxy()
-
-    get_engine.assert_called_once_with()
-    async_sessionmaker.assert_called_once_with(
-        bind="engine",
-        expire_on_commit=False,
-        autocommit=False,
-        autoflush=False,
-    )
-    assert session_factory.call_count == 2
-    assert first == "session-1"
-    assert second == "session-2"
+    assert get_sessionmaker(request) is sqlite_sessionmaker
 
 
-async def test_get_session_yields_session(monkeypatch):
-    session = AsyncMock()
-    session_factory = Mock(return_value=DummySessionContext(session))
+def test_get_sessionmaker_fails_when_lifespan_did_not_run() -> None:
+    with pytest.raises(MissingLifespanStateError, match="sessionmaker"):
+        get_sessionmaker(_request_with_state())
 
-    monkeypatch.setattr(session_module, "AsyncSessionLocal", session_factory)
 
-    generator = session_module.get_session()
+def test_get_sessionmaker_rejects_unexpected_state_values() -> None:
+    with pytest.raises(MissingLifespanStateError, match="sessionmaker"):
+        get_sessionmaker(_request_with_state(sessionmaker=object()))
 
-    yielded = await anext(generator)
-    assert yielded is session
 
+async def _count_entities(sessionmaker: SessionMaker) -> int:
+    async with sessionmaker() as session:
+        result = await session.execute(select(Entity))
+        return len(result.scalars().all())
+
+
+async def test_get_session_commits_when_the_request_succeeds(
+    sqlite_sessionmaker: SessionMaker,
+) -> None:
+    generator = get_session(sqlite_sessionmaker)
+
+    session = await anext(generator)
+    session.add(Entity(name="Committed", description=None))
     with pytest.raises(StopAsyncIteration):
         await anext(generator)
 
-    session_factory.assert_called_once_with()
-    session.commit.assert_awaited_once_with()
-    session.rollback.assert_not_awaited()
+    assert await _count_entities(sqlite_sessionmaker) == 1
 
 
-async def test_get_session_rolls_back_on_error(monkeypatch):
-    session = AsyncMock()
-    session_factory = Mock(return_value=DummySessionContext(session))
+async def test_get_session_rolls_back_when_the_request_fails(
+    sqlite_sessionmaker: SessionMaker,
+) -> None:
+    generator = get_session(sqlite_sessionmaker)
 
-    monkeypatch.setattr(session_module, "AsyncSessionLocal", session_factory)
-
-    generator = session_module.get_session()
-
-    yielded = await anext(generator)
-    assert yielded is session
-    error = RuntimeError("boom")
-
+    session = await anext(generator)
+    session.add(Entity(name="Rolled back", description=None))
     with pytest.raises(RuntimeError, match="boom"):
-        await generator.athrow(error)
+        await generator.athrow(RuntimeError("boom"))
 
-    session.rollback.assert_awaited_once_with()
+    assert await _count_entities(sqlite_sessionmaker) == 0

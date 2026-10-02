@@ -1,8 +1,8 @@
-from typing import Any
-
 import jwt
 from jwt import PyJWKClient, PyJWKClientError, PyJWTError
+from pydantic import ValidationError
 
+from app.auth.claims import AuthClaims
 from app.exceptions import AuthenticationError
 from app.settings import OIDCMetadata
 
@@ -14,6 +14,7 @@ class AccessTokenValidator:
         *,
         audience: str,
         jwks_cache_ttl_seconds: int,
+        jwks_refresh_cooldown_seconds: int,
     ) -> None:
         self._issuer = metadata.issuer
         self._audience = audience
@@ -21,12 +22,13 @@ class AccessTokenValidator:
             metadata.jwks_uri,
             cache_jwk_set=True,
             lifespan=jwks_cache_ttl_seconds,
+            cooldown_duration=jwks_refresh_cooldown_seconds,
         )
 
-    def validate(self, token: str) -> dict[str, Any]:
+    def validate(self, token: str) -> AuthClaims:
         try:
             signing_key = self._jwks_client.get_signing_key_from_jwt(token)
-            return jwt.decode(
+            payload = jwt.decode(
                 token,
                 signing_key.key,
                 algorithms=["RS256"],
@@ -34,5 +36,6 @@ class AccessTokenValidator:
                 issuer=self._issuer,
                 options={"require": ["exp", "iat", "nbf"]},
             )
-        except (PyJWTError, PyJWKClientError) as error:
+            return AuthClaims.model_validate(payload)
+        except (PyJWTError, PyJWKClientError, ValidationError) as error:
             raise AuthenticationError from error
