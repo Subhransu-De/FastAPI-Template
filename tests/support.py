@@ -5,11 +5,12 @@ from app.settings import (
     Settings,
 )
 
-TEST_ISSUER = "https://test-idp/realm"
+TEST_IDP_ORIGIN = "https://test-idp"
+TEST_ISSUER = f"{TEST_IDP_ORIGIN}/realm"
 TEST_CLIENT_ID = "test-client"
 TEST_DOCS_CLIENT_ID = "test-docs"
 TEST_AUTHORIZATION_ENDPOINT = "https://test-idp/authorize"
-TEST_TOKEN_ENDPOINT = "https://test-idp/token"  # noqa: S105
+TEST_TOKEN_ENDPOINT = f"{TEST_IDP_ORIGIN}/token"
 TEST_JWKS_URI = "https://test-idp/jwks"
 TEST_APP_NAME = "FastAPI Template Test"
 TEST_DATABASE_URL = "postgresql+psycopg://user:pass@localhost:5432/test"

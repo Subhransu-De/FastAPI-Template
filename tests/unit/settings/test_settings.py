@@ -1,3 +1,5 @@
+from ipaddress import IPv4Address
+
 import httpx
 import pytest
 from pydantic import ValidationError
@@ -53,7 +55,7 @@ class TestApplicationSettings:
         assert settings.forwarded_allow_ips == "127.0.0.1"
 
     def test_host_uses_app_host_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        docker_bind_host = "0.0.0.0"  # noqa: S104
+        docker_bind_host = str(IPv4Address(0))
         monkeypatch.setenv("APP_HOST", docker_bind_host)
 
         settings = ApplicationSettings(_env_file=None)

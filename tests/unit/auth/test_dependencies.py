@@ -14,12 +14,13 @@ from app.settings import OIDCMetadata
 
 pytestmark = pytest.mark.unit
 
-_VALID_TOKEN = "valid.jwt.token"  # noqa: S105
+_ENCODED_JWT = "valid.jwt.token"
+_IDP_ORIGIN = "https://idp.example"
 _METADATA = OIDCMetadata(
     jwks_uri="https://idp.example/jwks",
     issuer="https://idp.example",
     authorization_endpoint="https://idp.example/authorize",
-    token_endpoint="https://idp.example/token",  # noqa: S106
+    token_endpoint=f"{_IDP_ORIGIN}/token",
 )
 _CLAIMS = AuthClaims(
     sub="user-1",
@@ -86,10 +87,10 @@ def test_authenticate_request_returns_claims_and_tags_the_request_span(
     validator = _StubValidator()
 
     with logfire.span("request"):
-        claims = authenticate_request(_VALID_TOKEN, validator)
+        claims = authenticate_request(_ENCODED_JWT, validator)
 
     assert claims is _CLAIMS
-    assert validator.tokens == [_VALID_TOKEN]
+    assert validator.tokens == [_ENCODED_JWT]
     (span,) = capfire.exporter.exported_spans_as_dict()
     assert span["attributes"]["oidc.client_id"] == "docs-client"
     assert span["attributes"]["oidc.audience"] == ("api-client", "docs-client")

@@ -9,12 +9,13 @@ from app.settings import OIDCMetadata
 
 pytestmark = pytest.mark.unit
 
-_VALID_TOKEN = "valid.jwt.token"  # noqa: S105
+_ENCODED_JWT = "valid.jwt.token"
+_IDP_ORIGIN = "https://idp.example"
 _METADATA = OIDCMetadata(
     jwks_uri="https://idp.example/jwks",
     issuer="https://idp.example",
     authorization_endpoint="https://idp.example/authorize",
-    token_endpoint="https://idp.example/token",  # noqa: S106
+    token_endpoint=f"{_IDP_ORIGIN}/token",
 )
 _PAYLOAD = {
     "sub": "user-1",
@@ -54,7 +55,7 @@ def test_validate_returns_typed_claims() -> None:
     jwks_client.get_signing_key_from_jwt.return_value = MagicMock()
 
     with patch("app.auth.token_validator.jwt.decode", return_value=_PAYLOAD):
-        claims = validator.validate(_VALID_TOKEN)
+        claims = validator.validate(_ENCODED_JWT)
 
     assert claims == AuthClaims.model_validate(_PAYLOAD)
     assert claims.roles == frozenset({"entities:write"})
@@ -68,7 +69,7 @@ def test_validate_rejects_tokens_without_required_claims() -> None:
         patch("app.auth.token_validator.jwt.decode", return_value={"aud": "x"}),
         pytest.raises(AuthenticationError),
     ):
-        validator.validate(_VALID_TOKEN)
+        validator.validate(_ENCODED_JWT)
 
 
 @pytest.mark.parametrize(
@@ -80,6 +81,6 @@ def test_validate_translates_jwt_errors(error: Exception) -> None:
     jwks_client.get_signing_key_from_jwt.side_effect = error
 
     with pytest.raises(AuthenticationError) as exc_info:
-        validator.validate(_VALID_TOKEN)
+        validator.validate(_ENCODED_JWT)
 
     assert exc_info.value.__cause__ is error

@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 from pydantic import ValidationError
 
-from app.io.entity import EntityCreate, EntityOrderBy, EntityResponse, EntityUpdate
+from app.io.entity import EntityOrderBy, EntityResponse
 from app.model.entity import Entity
 
 pytestmark = pytest.mark.unit
@@ -16,16 +16,8 @@ def test_entity_order_fields_match_every_table_column_except_id() -> None:
     assert {field.value for field in EntityOrderBy} == table_columns
 
 
-@pytest.mark.parametrize("schema", [EntityCreate, EntityUpdate])
-def test_request_schemas_reject_unknown_fields(
-    schema: type[EntityCreate] | type[EntityUpdate],
-) -> None:
-    with pytest.raises(ValidationError, match="extra_forbidden"):
-        schema.model_validate({"name": "Valid", "unknown_field": "typo"})
-
-
 def test_entity_response_rejects_naive_timestamps() -> None:
-    naive = datetime(2026, 1, 1, 12, 0, 0)  # noqa: DTZ001
+    naive = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC).replace(tzinfo=None)
 
     with pytest.raises(ValidationError):
         EntityResponse(

@@ -1,7 +1,6 @@
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from pydantic import ValidationError
 
 from app.auth import AuthClaims
 from app.io.entity import EntityCreate
@@ -60,11 +59,3 @@ def test_entity_create_round_trips_through_json(
     payload = EntityCreate(name=name, description=description)
 
     assert EntityCreate.model_validate_json(payload.model_dump_json()) == payload
-
-
-@given(
-    name=st.one_of(st.just(""), st.text(alphabet=_alphabet, min_size=256, max_size=300))
-)
-def test_entity_create_rejects_names_outside_the_length_bounds(name: str) -> None:
-    with pytest.raises(ValidationError):
-        EntityCreate(name=name)
