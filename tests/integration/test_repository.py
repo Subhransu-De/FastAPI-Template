@@ -1,11 +1,13 @@
 from collections.abc import AsyncGenerator
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import String
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from app.database import SessionMaker
-from app.model.entity import Entity
+from app.model import Entity, IntegerPrimaryKey
 from app.repository import Ordering, Repository
 
 pytestmark = pytest.mark.integration
@@ -22,12 +24,12 @@ async def session(
 
 
 @pytest.fixture
-def repository(session: AsyncSession) -> Repository[Entity]:
+def repository(session: AsyncSession) -> Repository[Entity, UUID]:
     return Repository(Entity, session)
 
 
 @pytest.fixture
-async def three_entities(repository: Repository[Entity]) -> list[Entity]:
+async def three_entities(repository: Repository[Entity, UUID]) -> list[Entity]:
     entities = [
         Entity(name="Alpha", description="First"),
         Entity(name="Beta", description=None),
@@ -38,7 +40,7 @@ async def three_entities(repository: Repository[Entity]) -> list[Entity]:
 
 
 async def test_save_all_assigns_ids_and_aware_timestamps(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
 ) -> None:
     entities = [Entity(name="Alpha", description=None), Entity(name="Beta")]
 
@@ -55,7 +57,7 @@ async def test_save_all_assigns_ids_and_aware_timestamps(
 
 
 async def test_lookups_by_id(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
     three_entities: list[Entity],
 ) -> None:
     alpha, beta, gamma = three_entities
@@ -69,7 +71,7 @@ async def test_lookups_by_id(
 
 
 async def test_find_by_applies_every_predicate(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
     three_entities: list[Entity],
 ) -> None:
     _, beta, gamma = three_entities
@@ -86,7 +88,7 @@ async def test_find_by_applies_every_predicate(
 
 
 async def test_pagination_applies_offset_limit_and_ordering(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
     three_entities: list[Entity],
 ) -> None:
     ascending = await repository.find_all_paginated(
@@ -103,14 +105,14 @@ async def test_pagination_applies_offset_limit_and_ordering(
 
 
 async def test_empty_id_collections_short_circuit(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
 ) -> None:
     assert await repository.find_all_by_id([]) == []
     assert await repository.delete_all_by_id([]) == 0
 
 
 async def test_update_merges_and_refreshes_entity(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
 ) -> None:
     entity = await repository.save(Entity(name="Original", description="Before"))
     entity.name = "Updated"
@@ -126,7 +128,7 @@ async def test_update_merges_and_refreshes_entity(
 
 
 async def test_deletes_return_real_database_row_counts(
-    repository: Repository[Entity],
+    repository: Repository[Entity, UUID],
 ) -> None:
     first = await repository.save(Entity(name="Delete one", description=None))
     second = await repository.save(Entity(name="Delete many", description=None))
@@ -136,3 +138,50 @@ async def test_deletes_return_real_database_row_counts(
     assert await repository.delete_by_id(first.id) is False
     assert await repository.delete_all_by_id([second.id, uuid4()]) == 1
     assert await repository.find_by_id(second.id) is None
+
+
+class _IntegerKeyBase(DeclarativeBase):
+    pass
+
+
+class Counter(IntegerPrimaryKey, _IntegerKeyBase):
+    __tablename__ = "integer_key_counters"
+
+    label: Mapped[str] = mapped_column(String(50))
+
+
+@pytest.fixture
+async def counter_repository(
+    integration_engine: AsyncEngine,
+    session: AsyncSession,
+) -> AsyncGenerator[Repository[Counter, int]]:
+    async with integration_engine.begin() as connection:
+        await connection.run_sync(_IntegerKeyBase.metadata.create_all)
+    try:
+        yield Repository(Counter, session)
+    finally:
+        await session.rollback()
+        async with integration_engine.begin() as connection:
+            await connection.run_sync(_IntegerKeyBase.metadata.drop_all)
+
+
+async def test_integer_keyed_model_round_trips_through_repository(
+    counter_repository: Repository[Counter, int],
+) -> None:
+    first, second = await counter_repository.save_all(
+        [Counter(label="first"), Counter(label="second")]
+    )
+
+    assert isinstance(first.id, int)
+    assert second.id > first.id
+    assert await counter_repository.find_by_id(first.id) is first
+    assert await counter_repository.exists_by_id(second.id + 1) is False
+
+    first.label = "renamed"
+    updated = await counter_repository.update(first)
+    assert updated.label == "renamed"
+
+    assert await counter_repository.delete_by_id(first.id) is True
+    assert await counter_repository.find_by_id(first.id) is None
+    assert await counter_repository.delete_all_by_id([second.id, second.id + 1]) == 1
+    assert list(await counter_repository.find_all()) == []
