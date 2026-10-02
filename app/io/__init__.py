@@ -1,3 +1,4 @@
+from app.io.base import CamelModel, CamelResponse
 from app.io.entity import (
     EntityCreate,
     EntityOrderBy,
@@ -8,6 +9,8 @@ from app.io.entity import (
 from app.io.health import HealthResponse
 
 __all__ = [
+    "CamelModel",
+    "CamelResponse",
     "EntityCreate",
     "EntityOrderBy",
     "EntityResponse",

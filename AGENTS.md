@@ -56,10 +56,10 @@ Follow this order. Each step has a gate that fails until the next step is done.
 
 1. Model in `app/model/<name>.py`, registered in `app/model/__init__.py`.
 2. Migration: `uv run --group migration alembic revision --autogenerate -m "<message>"`, then read the generated file before committing it.
-3. Schemas in `app/io/<name>.py`: create, update and response models. Responses use `ConfigDict(from_attributes=True)`.
+3. Schemas in `app/io/<name>.py`: create, update and response models. Responses use `ConfigDict(from_attributes=True)`. For a camelCase API, subclass `CamelModel` for request bodies and `CamelResponse` for responses from `app.io`. Fields stay snake_case in Python. JSON uses camelCase in both directions, and snake_case keys in a request body are rejected.
 4. Repository in `app/repository/<name>.py` as a `Repository[<Model>]` subclass. Add typed query methods there, never `**kwargs`.
 5. Service in `app/service/<name>.py` with a `Protocol` naming the repository methods it uses, and a `get_<name>_service` dependency in `app/service/__init__.py`.
-6. Routes in `app/routes/<name>.py`. Protect writes with `Depends(require_role(...))` and declare every error status with `problem_responses(...)`. Include the router in `app/routes/__init__.py`.
+6. Routes in `app/routes/<name>.py`. Protect writes with `Depends(require_role(...))` and declare every error status with `problem_responses(...)`. Include the router in `app/routes/__init__.py`. For a camelCase path parameter, keep the argument snake_case and write the alias inline in the signature, as `user_id: Annotated[UUID, Path(alias="userId")]` for the path `/{userId}`. Ruff's `FAST003` matches the alias only when `Path(alias=...)` appears in the signature, so do not move it into a type alias.
 7. Tests: unit tests for the service with an in-memory store, integration tests for the API and repository, and `make openapi-snapshot`.
 8. Keycloak: if a new role is required, add it to both realm exports in `.docker/` and to the local users.
 
