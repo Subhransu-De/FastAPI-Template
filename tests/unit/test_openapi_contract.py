@@ -25,6 +25,10 @@ class ValidationError(BaseModel):
     reason: str
 
 
+class HTTPValidationError(BaseModel):
+    rule: str
+
+
 class Rejection(BaseModel):
     code: str
 
@@ -102,6 +106,10 @@ async def _schema_with_validation_status(
     async def probe_item(item: int) -> ValidationError:
         return ValidationError(reason=str(item))
 
+    @app.get("/declared", responses={422: {"model": HTTPValidationError}})
+    async def declared() -> None:
+        return None
+
     @app.get("/hidden")
     async def hidden(token: Annotated[str, Header(include_in_schema=False)]) -> None:
         del token
@@ -120,6 +128,16 @@ async def test_openapi_document_declares_the_configured_validation_status(
     assert create_responses["400"] == {
         "content": {"application/problem+json": {"schema": PROBLEM_REF}},
         "description": "Bad Request",
+    }
+    declared_responses = schema["paths"]["/declared"]["get"]["responses"]
+    assert "400" not in declared_responses
+    assert declared_responses["422"] == {
+        "content": {
+            "application/problem+json": {
+                "schema": {"$ref": "#/components/schemas/HTTPValidationError"}
+            }
+        },
+        "description": "Unprocessable Content",
     }
     hidden_responses = schema["paths"]["/hidden"]["get"]["responses"]
     assert "422" not in hidden_responses
@@ -154,8 +172,9 @@ async def test_openapi_document_keeps_declarations_at_the_validation_status(
         "description": "Rejected or Validation Error",
         "headers": REASON,
     }
-    assert "ValidationError" in schema["components"]["schemas"]
-    assert "HTTPValidationError" not in schema["components"]["schemas"]
+    components = schema["components"]["schemas"]
+    assert "ValidationError" in components
+    assert "HTTPValidationError" in components
 
 
 async def test_openapi_document_merges_validation_into_a_declared_status(

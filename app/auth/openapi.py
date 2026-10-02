@@ -31,10 +31,12 @@ def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
 
 
 def _is_generated_validation_response(response: dict[str, Any]) -> bool:
-    return any(
-        media.get("schema") == {"$ref": _GENERATED_VALIDATION_REF}
-        for media in response.get("content", {}).values()
-    )
+    return response == {
+        "description": _VALIDATION_DESCRIPTION,
+        "content": {
+            PROBLEM_JSON_MEDIA_TYPE: {"schema": {"$ref": _GENERATED_VALIDATION_REF}}
+        },
+    }
 
 
 def _add_problem_details(response: dict[str, Any]) -> None:
