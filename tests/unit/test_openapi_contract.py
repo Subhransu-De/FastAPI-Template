@@ -19,6 +19,7 @@ SNAPSHOT_PATH = Path("tests/contract/openapi.json")
 UPDATE_SNAPSHOT_ENV = "UPDATE_OPENAPI_SNAPSHOT"
 PROBLEM_REF = {"$ref": "#/components/schemas/ProblemDetails"}
 REASON = {"X-Reason": {"schema": {"type": "string"}}}
+BAD_REQUEST_REF = {"$ref": "#/components/responses/BadRequest"}
 
 
 class ValidationError(BaseModel):
@@ -110,6 +111,10 @@ async def _schema_with_validation_status(
     async def declared() -> None:
         return None
 
+    @app.get("/referenced", openapi_extra={"responses": {"400": BAD_REQUEST_REF}})
+    async def referenced(limit: int) -> None:
+        del limit
+
     @app.get("/hidden")
     async def hidden(token: Annotated[str, Header(include_in_schema=False)]) -> None:
         del token
@@ -172,6 +177,8 @@ async def test_openapi_document_keeps_declarations_at_the_validation_status(
         "description": "Rejected or Validation Error",
         "headers": REASON,
     }
+    referenced_responses = schema["paths"]["/referenced"]["get"]["responses"]
+    assert referenced_responses["400"] == BAD_REQUEST_REF
     components = schema["components"]["schemas"]
     assert "ValidationError" in components
     assert "HTTPValidationError" in components

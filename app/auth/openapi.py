@@ -75,8 +75,15 @@ def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) ->
             declared = responses.get(str(status.value))
             if declared is None:
                 declared = responses[str(status.value)] = {"description": status.phrase}
+            elif "$ref" in declared:
+                continue
             else:
-                declared["description"] += f" or {_VALIDATION_DESCRIPTION}"
+                description = declared.get("description")
+                declared["description"] = (
+                    f"{description} or {_VALIDATION_DESCRIPTION}"
+                    if description
+                    else _VALIDATION_DESCRIPTION
+                )
             _add_problem_details(declared)
     if not rewritten:
         return
