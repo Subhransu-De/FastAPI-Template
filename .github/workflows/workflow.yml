@@ -13,6 +13,7 @@ on:
       - "docker-compose*.yml"
       - ".docker/**"
       - "scenario-tests/**"
+      - "tests/**"
       - "renovate.json"
       - "sonar-project.properties"
       - ".sonarcloud.properties"
@@ -30,6 +31,7 @@ on:
       - "docker-compose*.yml"
       - ".docker/**"
       - "scenario-tests/**"
+      - "tests/**"
       - "renovate.json"
       - "sonar-project.properties"
       - ".sonarcloud.properties"
@@ -83,6 +85,16 @@ jobs:
       - name: Lint GitHub Actions workflows
         uses: raven-actions/actionlint@3d39aea434753780c3b3d4a1a31c854b4dbf49d7 # v2
 
+  typos:
+    runs-on: ubuntu-latest
+    needs: [hadolint]
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check spelling
+        uses: crate-ci/typos@00f422f3b19c57bc6338715ebfe3316d38768461 # v1.50.3
+
   dependency-audit:
     runs-on: ubuntu-latest
     needs: [hadolint]
@@ -130,7 +142,7 @@ jobs:
         run: uv sync --locked --no-build --group lint --all-packages
 
       - name: Run Ruff
-        run: make lint-ruff
+        run: make lint-ruff lint-format
 
   ty:
     runs-on: ubuntu-latest
@@ -165,10 +177,15 @@ jobs:
   test:
     runs-on: ubuntu-latest
     needs: [hadolint]
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.13", "3.14"]
+        experimental: [false]
+        include:
+          - python-version: "3.15"
+            experimental: true
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -181,18 +198,22 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --no-build --python ${{ matrix.python-version }} --group test
 
-      - name: Run unit tests
-        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest -m unit
-
-      - name: Run integration tests
-        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest -m integration
-
       - name: Run tests with coverage
-        run: uv run --locked --no-build --python ${{ matrix.python-version }} pytest --cov=app --cov-report=term-missing --cov-fail-under=80
+        run: uv run --locked --no-build --python ${{ matrix.python-version }} --group test pytest --cov --cov-report=term-missing --cov-report=xml:coverage.xml --junit-xml=junit.xml
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-reports-${{ matrix.python-version }}
+          path: |
+            junit.xml
+            coverage.xml
+          if-no-files-found: ignore
 
   build:
     runs-on: ubuntu-latest
-    needs: [actionlint, dependency-audit, ruff, ty, import-linter, test]
+    needs: [actionlint, typos, dependency-audit, ruff, ty, import-linter, test]
     permissions:
       contents: read
     strategy:

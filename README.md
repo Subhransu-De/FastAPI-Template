@@ -17,16 +17,16 @@ A production-minded FastAPI starter that gives you a clean async API, a real dat
 
 ## What It Contains
 
-| Area                    | Included                                                                                           |
-| ----------------------- | -------------------------------------------------------------------------------------------------- |
-| API                     | FastAPI application with health endpoints and protected CRUD routes for entities.                  |
-| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations run as a one-shot startup task before the API starts. |
-| Authentication          | OAuth2 authorization-code flow, JWT bearer validation, and a Keycloak-backed Docker setup.         |
-| Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.   |
-| Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.          |
-| Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                        |
-| Quality gates           | Ruff linting, Ty type checks, import-linter architecture checks, coverage enforcement, SonarCloud analysis, and Snyk security status. |
-| Dependency upkeep       | Dependabot is configured for Python, Docker, Docker Compose, and GitHub Actions updates.           |
+| Area                    | Included                                                                                                                                                                                                                                                                  |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API                     | FastAPI application built by `create_app(settings)`, liveness and readiness endpoints, protected CRUD routes for entities, and RFC 9457 Problem Details for every error.                                                                                                  |
+| Database                | PostgreSQL, SQLAlchemy async sessions, Psycopg, and Alembic migrations run as a one-shot startup task before the API starts.                                                                                                                                              |
+| Authentication          | OAuth2 authorization-code flow, JWT bearer validation into typed `AuthClaims`, role checks with `require_role`, and a Keycloak-backed Docker setup.                                                                                                                       |
+| Validation and settings | Pydantic v2 schemas and `pydantic-settings` based application, database, and auth configuration.                                                                                                                                                                          |
+| Observability           | Structured logging plus Logfire/OpenTelemetry instrumentation for FastAPI and SQLAlchemy.                                                                                                                                                                                 |
+| Local runtime           | Docker Compose stack for the API, PostgreSQL, and Keycloak.                                                                                                                                                                                                               |
+| Quality gates           | Ruff linting and formatting, ty type checks with warnings as errors, import-linter architecture checks, an AST gate against dynamic attribute access, an OpenAPI contract snapshot, `alembic check`, coverage enforcement, SonarCloud analysis, and Snyk security status. |
+| Dependency upkeep       | Dependabot is configured for Python, Docker, Docker Compose, and GitHub Actions updates.                                                                                                                                                                                  |
 
 ## Testing Strategy
 
@@ -35,7 +35,8 @@ This template keeps tests split by purpose so each feedback loop stays clear:
 - **Unit tests** cover isolated settings, auth, service, IO, logging, and exception behavior.
 - **Integration tests** exercise the API and repository with disposable PostgreSQL through Testcontainers.
 - **Scenario tests** live in `scenario-tests` and use Behave plus HTTPX against the running Docker Compose stack.
-- **Coverage checks** run with `pytest-cov`; CI currently enforces at least 80% coverage.
+- **Contract checks** compare the served OpenAPI document with `tests/contract/openapi.json` and run `alembic check` so models and migrations cannot drift apart.
+- **Coverage checks** run with `pytest-cov`; the floor in `pyproject.toml` is 90% and applies locally and in CI.
 - **Mutation testing** is configured for auth, IO, service, and repository modules, but kept outside the normal PR gate.
 
 ## Architecture
@@ -79,10 +80,15 @@ The application uses a small layered architecture:
 
 This shape is meant for teams that want a practical backend template: simple enough to understand quickly, but structured enough to grow into a real service without immediately rewriting the foundation.
 
+## Working Agreement
+
+`AGENTS.md` lists the rules the gates enforce and the checklist for adding a resource. `CONTRIBUTING.md` covers setup, hooks, and pull requests. `make check` runs the same gates as CI.
+
 ## Installation
 
 ```bash
-uv sync
+make install
+make hooks
 cp .env.example .env
 ```
 

@@ -1,20 +1,48 @@
+from collections.abc import Mapping
 from http import HTTPStatus
 
-import logfire
 from fastapi import Request
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
-from starlette.exceptions import HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, ConfigDict
 
-_PROBLEM_JSON_MEDIA_TYPE = "application/problem+json"
+PROBLEM_JSON_MEDIA_TYPE = "application/problem+json"
+
+
+class ProblemDetails(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    type: str = "about:blank"
+    title: str
+    status: int
+    detail: str | list[dict[str, object]]
+    instance: str
+
+
+def problem_response(
+    problem: ProblemDetails,
+    headers: Mapping[str, str] | None = None,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=problem.status,
+        content=problem.model_dump(mode="json"),
+        headers=headers,
+        media_type=PROBLEM_JSON_MEDIA_TYPE,
+    )
+
+
+def problem_responses(*statuses: HTTPStatus) -> dict[int | str, dict[str, object]]:
+    return {
+        status.value: {"model": ProblemDetails, "description": status.phrase}
+        for status in statuses
+    }
 
 
 class BaseError(Exception):
     def __init__(
         self,
         message: str,
-        status_code: int = 500,
-        title: str = "Internal Server Error",
+        status_code: int = HTTPStatus.INTERNAL_SERVER_ERROR,
+        title: str = HTTPStatus.INTERNAL_SERVER_ERROR.phrase,
         headers: dict[str, str] | None = None,
     ) -> None:
         self.message = message
@@ -23,71 +51,11 @@ class BaseError(Exception):
         self.headers = headers
         super().__init__(message)
 
-    def get_error(self, request: Request) -> dict:
-        return {
-            "type": f"{request.base_url}openapi.json",
-            "title": self.title,
-            "status": self.status_code,
-            "detail": self.message,
-            "instance": str(request.url),
-        }
-
-
-def base_exception_handler(request: Request, exc: Exception) -> Response:
-    match exc:
-        case RequestValidationError():
-            return JSONResponse(
-                status_code=400,
-                content={
-                    "type": f"{request.base_url}openapi.json",
-                    "title": "Bad Request",
-                    "status": 400,
-                    "detail": exc.errors(),
-                    "instance": str(request.url),
-                },
-                media_type=_PROBLEM_JSON_MEDIA_TYPE,
-            )
-        case BaseError():
-            return JSONResponse(
-                status_code=exc.status_code,
-                content=exc.get_error(request),
-                headers=exc.headers,
-                media_type=_PROBLEM_JSON_MEDIA_TYPE,
-            )
-        case HTTPException():
-            return JSONResponse(
-                status_code=exc.status_code,
-                content={
-                    "type": "about:blank",
-                    "title": _http_error_title(exc.status_code),
-                    "status": exc.status_code,
-                    "detail": exc.detail,
-                    "instance": str(request.url),
-                },
-                headers=exc.headers,
-                media_type=_PROBLEM_JSON_MEDIA_TYPE,
-            )
-        case _:
-            logfire.exception(
-                "Unhandled exception while processing {url}",
-                url=str(request.url),
-                _exc_info=exc,
-            )
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "type": "about:blank",
-                    "title": "Internal Server Error",
-                    "status": 500,
-                    "detail": "An unexpected error occurred.",
-                    "instance": str(request.url),
-                },
-                media_type=_PROBLEM_JSON_MEDIA_TYPE,
-            )
-
-
-def _http_error_title(status_code: int) -> str:
-    try:
-        return HTTPStatus(status_code).phrase
-    except ValueError:
-        return "HTTP Error"
+    def problem(self, request: Request) -> ProblemDetails:
+        return ProblemDetails(
+            type=f"{request.base_url}openapi.json",
+            title=self.title,
+            status=self.status_code,
+            detail=self.message,
+            instance=str(request.url),
+        )

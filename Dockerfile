@@ -1,6 +1,6 @@
 FROM ghcr.io/astral-sh/uv:0.12.20 AS uv
 
-FROM python:3.13-alpine AS builder
+FROM python:3.14-alpine AS builder
 
 COPY --from=uv /uv /usr/local/bin/uv
 
@@ -18,13 +18,13 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --python /usr/local/bin/python --frozen --no-build --no-dev --no-editable
 
-FROM python:3.13-alpine AS runtime
+FROM python:3.14-alpine AS runtime
 
 LABEL org.opencontainers.image.title="FastAPI Template"
 LABEL org.opencontainers.image.description="FastAPI template"
 LABEL org.opencontainers.image.vendor="Subhransu-De"
 LABEL org.opencontainers.image.source="https://github.com/Subhransu-De/fastapi-template"
-LABEL org.opencontainers.image.base.name="python:3.13-alpine"
+LABEL org.opencontainers.image.base.name="python:3.14-alpine"
 
 WORKDIR /app
 
@@ -43,6 +43,9 @@ ENV PYTHONUNBUFFERED=1
 ENV APP_HOST="0.0.0.0"
 
 EXPOSE 80
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+    CMD ["sh", "-c", "wget -qO- \"http://127.0.0.1:${PORT:-80}/health/ready\" > /dev/null"]
 
 USER app
 

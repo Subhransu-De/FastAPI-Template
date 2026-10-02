@@ -1,8 +1,7 @@
-from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 
 class EntityOrderBy(StrEnum):
@@ -18,20 +17,24 @@ class OrderDirection(StrEnum):
 
 
 class EntityCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=5000)
 
 
 class EntityUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=5000)
 
 
 class EntityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     description: str | None
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = {"from_attributes": True}
+    created_at: AwareDatetime
+    updated_at: AwareDatetime

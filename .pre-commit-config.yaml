@@ -1,0 +1,46 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --group lint ruff check --fix
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --group lint ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: ty
+        name: ty
+        entry: make lint-ty
+        language: system
+        pass_filenames: false
+        types_or: [python, pyi, toml]
+      - id: import-linter
+        name: import-linter
+        entry: make lint-imports
+        language: system
+        pass_filenames: false
+        files: ^(app/.*\.py|\.importlinter)$
+      - id: type-discipline
+        name: type discipline
+        entry: uv run --group test pytest tests/architecture -q -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        files: ^app/.*\.py$
+      - id: typos
+        name: typos
+        entry: uvx typos
+        language: system
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+        pass_filenames: false
+      - id: hadolint
+        name: hadolint
+        entry: hadolint --failure-threshold warning
+        language: system
+        files: ^Dockerfile

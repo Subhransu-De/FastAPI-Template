@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.model.entity import Entity
-from app.repository.base import BaseRepository
+from app.repository.base import Repository
 
 
-class EntityRepository(BaseRepository[Entity]):
+class EntityRepository(Repository[Entity]):
     def __init__(self, session: AsyncSession) -> None:
         super().__init__(Entity, session)

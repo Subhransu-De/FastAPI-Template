@@ -1,7 +1,6 @@
 import logging
 from unittest.mock import Mock
 
-import logfire
 import pytest
 
 from app.logger import configuration
@@ -15,10 +14,8 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 ) -> None:
     logger_names = ["uvicorn", "uvicorn.access", "uvicorn.error"]
     otel_handler = logging.NullHandler()
-    configure_otel = Mock()
 
     root = logging.getLogger()
-    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
     monkeypatch.setattr(root, "handlers", [logging.NullHandler()])
     monkeypatch.setattr(root, "level", logging.WARNING)
 
@@ -34,7 +31,6 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
 
     configuration.setup_logging(otel_handler_factory=lambda: otel_handler)
 
-    configure_otel.assert_not_called()
     assert root.handlers == [otel_handler]
     assert root.level == logging.INFO
     assert root.disabled is False
@@ -47,41 +43,32 @@ def test_setup_logging_reconfigures_uvicorn_loggers(
         assert logger.propagate is False
 
 
-def test_setup_logging_configures_otel_for_default_handler(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    configure_otel = Mock()
-    configure_logger = Mock()
-    monkeypatch.setattr(configuration, "configure_otel", configure_otel)
-    monkeypatch.setattr(configuration, "configure_logger", configure_logger)
-
-    configuration.setup_logging()
-
-    configure_otel.assert_called_once_with()
-
-
-def test_logfire_handler_uses_stock_handler_with_null_fallback() -> None:
-    handler = get_logfire_handler()
-
-    assert type(handler) is logfire.LogfireLoggingHandler
-    assert isinstance(handler.fallback, logging.NullHandler)
-
-
-def test_logfire_handler_filters_health_endpoint_access_logs() -> None:
-    record = logging.LogRecord(
+def _access_record(path: str) -> logging.LogRecord:
+    return logging.LogRecord(
         name="uvicorn.access",
         level=logging.INFO,
         pathname=__file__,
         lineno=50,
         msg='%s - "%s %s HTTP/%s" %d',
-        args=("127.0.0.1:50000", "GET", "/health", "1.1", 200),
+        args=("127.0.0.1:50000", "GET", path, "1.1", 200),
         exc_info=None,
     )
+
+
+@pytest.mark.parametrize("path", ["/health", "/health/ready", "/health?probe=1"])
+def test_logfire_handler_filters_health_endpoint_access_logs(path: str) -> None:
     handler = get_logfire_handler()
     logfire_instance = Mock()
     handler.logfire_instance = logfire_instance
 
-    handled = handler.handle(record)
+    handled = handler.handle(_access_record(path))
 
     assert handled is False
     logfire_instance.log.assert_not_called()
+
+
+def test_logfire_handler_keeps_other_access_logs() -> None:
+    handler = get_logfire_handler()
+    handler.logfire_instance = Mock()
+
+    assert handler.handle(_access_record("/entities/")) is not False

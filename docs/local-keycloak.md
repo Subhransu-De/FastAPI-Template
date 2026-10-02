@@ -23,6 +23,7 @@ The browser uses the host-facing issuer, such as `http://localhost:8080`. The AP
 
 - Keycloak administrator: `admin`; its password comes from `KEYCLOAK_ADMIN_PASSWORD`.
 - Local user: `testuser` / `testuser@example.com`.
+- Realm role `entities:write`: granted to `testuser` and to the scenario-test user. The API requires it for creating, updating and deleting entities; reads only need a valid token.
 
 `testuser` has no initial password. The local browser flow accepts the known username, skips the absent password check, and immediately requires the user to create a password. Recreating Keycloak removes that password.
 
