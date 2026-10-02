@@ -1,9 +1,12 @@
 from collections.abc import Sequence
+from http import HTTPStatus
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
+from app.auth import ENTITY_WRITE_ROLE, require_role
+from app.exceptions import problem_responses
 from app.io.entity import (
     EntityCreate,
     EntityOrderBy,
@@ -16,8 +19,16 @@ from app.service import EntityService, get_entity_service
 
 route = APIRouter(prefix="/entities", tags=["entities"])
 
+_writer = Depends(require_role(ENTITY_WRITE_ROLE))
 
-@route.post("/", status_code=201, response_model=EntityResponse)
+
+@route.post(
+    "/",
+    status_code=HTTPStatus.CREATED,
+    response_model=EntityResponse,
+    dependencies=[_writer],
+    responses=problem_responses(HTTPStatus.FORBIDDEN),
+)
 async def create_entity(
     data: EntityCreate,
     service: Annotated[EntityService, Depends(get_entity_service)],
@@ -25,7 +36,11 @@ async def create_entity(
     return await service.create(data)
 
 
-@route.get("/{entity_id}", response_model=EntityResponse)
+@route.get(
+    "/{entity_id}",
+    response_model=EntityResponse,
+    responses=problem_responses(HTTPStatus.NOT_FOUND),
+)
 async def get_entity(
     entity_id: UUID,
     service: Annotated[EntityService, Depends(get_entity_service)],
@@ -49,7 +64,12 @@ async def list_entities(
     )
 
 
-@route.put("/{entity_id}", response_model=EntityResponse)
+@route.put(
+    "/{entity_id}",
+    response_model=EntityResponse,
+    dependencies=[_writer],
+    responses=problem_responses(HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND),
+)
 async def update_entity(
     entity_id: UUID,
     data: EntityUpdate,
@@ -58,7 +78,12 @@ async def update_entity(
     return await service.update(entity_id, data)
 
 
-@route.delete("/{entity_id}", status_code=204)
+@route.delete(
+    "/{entity_id}",
+    status_code=HTTPStatus.NO_CONTENT,
+    dependencies=[_writer],
+    responses=problem_responses(HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND),
+)
 async def delete_entity(
     entity_id: UUID,
     service: Annotated[EntityService, Depends(get_entity_service)],

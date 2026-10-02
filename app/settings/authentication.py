@@ -1,8 +1,7 @@
 import asyncio
-from typing import cast
 
 import httpx
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _DISCOVERY_PATH = "/.well-known/openid-configuration"
@@ -32,9 +31,9 @@ class AuthNSettings(BaseSettings):
     internal_url: str | None = None
     client_id: str
     docs_client_id: str
-    jwks_cache_ttl_seconds: int = 300
+    jwks_cache_ttl_seconds: int = Field(default=300, gt=0)
+    jwks_refresh_cooldown_seconds: int = Field(default=30, ge=0)
 
-    # A complete override group bypasses discovery for tests and air-gapped runtimes.
     jwks_uri: str | None = None
     issuer: str | None = None
     authorization_endpoint: str | None = None
@@ -57,13 +56,18 @@ class AuthNSettings(BaseSettings):
         return self
 
     def metadata_override(self) -> OIDCMetadata | None:
-        if not self.jwks_uri:
+        if (
+            not self.jwks_uri
+            or not self.issuer
+            or not self.authorization_endpoint
+            or not self.token_endpoint
+        ):
             return None
         return OIDCMetadata(
             jwks_uri=self.jwks_uri,
-            issuer=cast("str", self.issuer),
-            authorization_endpoint=cast("str", self.authorization_endpoint),
-            token_endpoint=cast("str", self.token_endpoint),
+            issuer=self.issuer,
+            authorization_endpoint=self.authorization_endpoint,
+            token_endpoint=self.token_endpoint,
         )
 
 
@@ -170,6 +174,3 @@ async def resolve_oidc_metadata(
             attempts=attempts,
             retry_delay_seconds=retry_delay_seconds,
         )
-
-
-authn_settings = AuthNSettings()

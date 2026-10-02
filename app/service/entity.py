@@ -1,14 +1,41 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from typing import Protocol
 from uuid import UUID
+
+from sqlalchemy.orm import InstrumentedAttribute
 
 from app.exceptions import NoEntityFoundError
 from app.io.entity import EntityCreate, EntityOrderBy, EntityUpdate, OrderDirection
 from app.model.entity import Entity
-from app.repository.entity import EntityRepository
+from app.repository.base import Ordering
+
+_ORDER_COLUMNS: Mapping[EntityOrderBy, InstrumentedAttribute[object]] = {
+    EntityOrderBy.NAME: Entity.name,
+    EntityOrderBy.DESCRIPTION: Entity.description,
+    EntityOrderBy.CREATED_AT: Entity.created_at,
+    EntityOrderBy.UPDATED_AT: Entity.updated_at,
+}
+
+
+class EntityStore(Protocol):
+    async def save(self, entity: Entity) -> Entity: ...
+
+    async def find_by_id(self, entity_id: UUID) -> Entity | None: ...
+
+    async def find_all_paginated(
+        self,
+        offset: int = 0,
+        limit: int = 25,
+        ordering: Ordering | None = None,
+    ) -> Sequence[Entity]: ...
+
+    async def update(self, entity: Entity) -> Entity: ...
+
+    async def delete_by_id(self, entity_id: UUID) -> bool: ...
 
 
 class EntityService:
-    def __init__(self, repo: EntityRepository) -> None:
+    def __init__(self, repo: EntityStore) -> None:
         self.repo = repo
 
     async def create(self, data: EntityCreate) -> Entity:
@@ -28,14 +55,14 @@ class EntityService:
         order_by: EntityOrderBy = EntityOrderBy.CREATED_AT,
         order_direction: OrderDirection = OrderDirection.ASC,
     ) -> Sequence[Entity]:
-        column = getattr(Entity, order_by.value)
-        order_clause = (
-            column.desc() if order_direction is OrderDirection.DESC else column.asc()
+        ordering = Ordering(
+            column=_ORDER_COLUMNS[order_by],
+            descending=order_direction is OrderDirection.DESC,
         )
         return await self.repo.find_all_paginated(
             offset=offset,
             limit=limit,
-            order_by=order_clause,
+            ordering=ordering,
         )
 
     async def update(self, entity_id: UUID, data: EntityUpdate) -> Entity:
@@ -43,8 +70,8 @@ class EntityService:
         if entity is None:
             raise NoEntityFoundError(entity_id)
 
-        entity.apply_changes(data)
-
+        entity.name = data.name
+        entity.description = data.description
         return await self.repo.update(entity)
 
     async def delete(self, entity_id: UUID) -> None:

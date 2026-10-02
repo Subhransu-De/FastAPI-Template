@@ -1,19 +1,35 @@
-from app.settings.app import ApplicationSettings, app_settings
+from pydantic import BaseModel, ConfigDict
+
+from app.settings.app import ApplicationSettings
 from app.settings.authentication import (
     AuthNSettings,
     OIDCMetadata,
-    authn_settings,
     resolve_oidc_metadata,
 )
-from app.settings.database import DatabaseSettings, db_settings
+from app.settings.database import DatabaseSettings
+
+
+class Settings(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    app: ApplicationSettings
+    database: DatabaseSettings
+    oidc: AuthNSettings
+
+    @classmethod
+    def from_env(cls) -> "Settings":
+        return cls(
+            app=ApplicationSettings(),
+            database=DatabaseSettings(),
+            oidc=AuthNSettings(),
+        )
+
 
 __all__ = [
     "ApplicationSettings",
     "AuthNSettings",
     "DatabaseSettings",
     "OIDCMetadata",
-    "app_settings",
-    "authn_settings",
-    "db_settings",
+    "Settings",
     "resolve_oidc_metadata",
 ]

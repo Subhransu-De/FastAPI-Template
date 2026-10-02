@@ -11,6 +11,5 @@ class ApplicationSettings(BaseSettings):
     host: str = Field(default="127.0.0.1", validation_alias="APP_HOST")
     port: int = 80
     reload: bool = False
-
-
-app_settings = ApplicationSettings()
+    proxy_headers: bool = False
+    forwarded_allow_ips: str = "127.0.0.1"

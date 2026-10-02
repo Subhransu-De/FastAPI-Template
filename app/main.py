@@ -1,73 +1,104 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import TypedDict
 
 import logfire
 import uvicorn
-from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from starlette.exceptions import HTTPException
 
 from app import logger, telemetry
 from app.auth import AccessTokenValidator, OIDCOpenAPIFastAPI
-from app.database.engine import get_engine
-from app.exceptions import AuthenticationError, BaseError, base_exception_handler
+from app.database import (
+    SessionMaker,
+    create_engine,
+    create_probe_engine,
+    create_sessionmaker,
+)
+from app.exceptions import BaseError, base_exception_handler
 from app.routes import protected_route, public_route
-from app.settings import app_settings, authn_settings, resolve_oidc_metadata
+from app.settings import Settings, resolve_oidc_metadata
+
+
+class LifespanState(TypedDict):
+    sessionmaker: SessionMaker
+    probe_sessionmaker: SessionMaker
+    access_validator: AccessTokenValidator
 
 
 @asynccontextmanager
-async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncIterator[LifespanState]:
+    settings = app.settings
     logger.setup_logging()
-    oidc_metadata = await resolve_oidc_metadata(authn_settings)
-    _app.state.oidc_metadata = oidc_metadata
-    _app.state.access_token_validator = AccessTokenValidator(
-        oidc_metadata,
-        audience=authn_settings.client_id,
-        jwks_cache_ttl_seconds=authn_settings.jwks_cache_ttl_seconds,
-    )
-    _app.openapi_schema = None
-    telemetry.instrument_sqlalchemy(get_engine())
+    oidc_metadata = await resolve_oidc_metadata(settings.oidc)
+    app.oidc_metadata = oidc_metadata
+    app.openapi_schema = None
+    engine = create_engine(settings.database)
+    probe_engine = create_probe_engine(settings.database)
     logfire.info(
         "Starting up {service_name} on port {port}",
-        service_name=app_settings.app_name,
-        port=app_settings.port,
+        service_name=settings.app.app_name,
+        port=settings.app.port,
     )
     try:
-        yield
+        yield {
+            "sessionmaker": create_sessionmaker(engine),
+            "probe_sessionmaker": create_sessionmaker(probe_engine),
+            "access_validator": AccessTokenValidator(
+                oidc_metadata,
+                audience=settings.oidc.client_id,
+                jwks_cache_ttl_seconds=settings.oidc.jwks_cache_ttl_seconds,
+                jwks_refresh_cooldown_seconds=(
+                    settings.oidc.jwks_refresh_cooldown_seconds
+                ),
+            ),
+        }
     finally:
-        await get_engine().dispose()
+        await probe_engine.dispose()
+        await engine.dispose()
         logfire.info("Application shutdown")
 
 
-app = OIDCOpenAPIFastAPI(
-    title=app_settings.app_name,
-    lifespan=lifespan,
-    swagger_ui_init_oauth={
-        "clientId": authn_settings.docs_client_id,
-        "scopes": "openid",
-        "usePkceWithAuthorizationCodeGrant": True,
-    },
-)
-telemetry.instrument_fastapi(app)
+def create_app(settings: Settings) -> OIDCOpenAPIFastAPI:
+    telemetry.configure_otel(settings.app.app_name)
+    app = OIDCOpenAPIFastAPI(settings=settings, lifespan=lifespan)
+    telemetry.instrument_fastapi(app)
+    telemetry.instrument_sqlalchemy()
 
-app.add_exception_handler(AuthenticationError, base_exception_handler)
-app.add_exception_handler(BaseError, base_exception_handler)
-app.add_exception_handler(RequestValidationError, base_exception_handler)
-app.add_exception_handler(HTTPException, base_exception_handler)
-app.add_exception_handler(Exception, base_exception_handler)
+    for exception_type in (
+        BaseError,
+        RequestValidationError,
+        OperationalError,
+        PoolTimeoutError,
+        HTTPException,
+        Exception,
+    ):
+        app.add_exception_handler(exception_type, base_exception_handler)
 
-app.include_router(public_route)
-app.include_router(protected_route)
+    app.include_router(public_route)
+    app.include_router(protected_route)
+    return app
+
+
+def app_from_env() -> OIDCOpenAPIFastAPI:
+    return create_app(Settings.from_env())
 
 
 def main() -> None:
+    settings = Settings.from_env()
+    telemetry.configure_otel(settings.app.app_name)
     logger.setup_logging()
     uvicorn.run(
-        "app.main:app",
-        host=app_settings.host,
-        port=app_settings.port,
-        reload=app_settings.reload,
+        "app.main:app_from_env",
+        factory=True,
+        host=settings.app.host,
+        port=settings.app.port,
+        reload=settings.app.reload,
         log_config=None,
+        proxy_headers=settings.app.proxy_headers,
+        forwarded_allow_ips=settings.app.forwarded_allow_ips,
     )
 
 

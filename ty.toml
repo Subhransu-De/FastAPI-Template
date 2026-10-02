@@ -3,7 +3,7 @@ python-version = "3.13"
 extra-paths = ["./scenario-tests/typings"]
 
 [rules]
-division-by-zero = "warn"
+division-by-zero = "error"
 deprecated = "error"
 undefined-reveal = "error"
 unused-awaitable = "error"
@@ -11,3 +11,5 @@ redundant-cast = "error"
 redundant-final-classvar = "error"
 possibly-missing-implicit-call = "error"
 possibly-missing-submodule = "error"
+possibly-unresolved-reference = "error"
+unused-ignore-comment = "error"
