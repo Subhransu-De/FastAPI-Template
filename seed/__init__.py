@@ -86,7 +86,9 @@ def _require_conflict_keys(seeded_table: Table, rows: Sequence[Row]) -> None:
     keys += [
         frozenset(column.name for column in index.columns)
         for index in seeded_table.indexes
-        if index.unique and len(index.columns) == len(index.expressions)
+        if index.unique
+        and len(index.columns) == len(index.expressions)
+        and index.dialect_options["postgresql"]["where"] is None
     ]
     keys = [key for key in keys if key]
     for row in rows:
@@ -160,7 +162,9 @@ def _restart_past_stored_ids(
     target = before.next_value
     if stored is not None and (stored - target) * before.increment >= 0:
         steps = (stored - target) // before.increment + 1
-        target += steps * before.increment
+        advanced = target + steps * before.increment
+        if before.minimum <= advanced <= before.maximum:
+            target = advanced
     after = _sequence_position(connection, before.column, before.sequence)
     if target != after.next_value:
         connection.execute(
