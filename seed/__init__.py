@@ -122,7 +122,8 @@ def _restart_past_stored_ids(
     )
     target = before.next_value
     if stored is not None and (stored - target) * before.increment >= 0:
-        target = stored + before.increment
+        steps = (stored - target) // before.increment + 1
+        target += steps * before.increment
     after = _sequence_position(connection, before.column, before.sequence)
     if target != after.next_value:
         connection.execute(
