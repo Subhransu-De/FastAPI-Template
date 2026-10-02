@@ -1,4 +1,6 @@
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from itertools import groupby
 
 from sqlalchemy import (
     Column,
@@ -21,6 +23,14 @@ _PG_NAMESPACE = table("pg_namespace", Column("oid"), Column("nspname"))
 _PG_SEQUENCE = table("pg_sequence", Column("seqrelid"), Column("seqincrement"))
 
 
+@dataclass(frozen=True)
+class _SequencePosition:
+    column: Column[object]
+    sequence: str
+    increment: int
+    next_value: int
+
+
 def seed(connection: Connection, fixtures: Fixtures) -> dict[str, int]:
     metadata = MetaData()
     metadata.reflect(bind=connection, only=list(fixtures))
@@ -31,8 +41,10 @@ def seed(connection: Connection, fixtures: Fixtures) -> dict[str, int]:
             continue
         _reject_always_identity_values(seeded_table, rows)
         _lock_against_writers(connection, seeded_table)
+        before = _sequence_positions(connection, seeded_table)
         inserted[seeded_table.name] = _insert_rows(connection, seeded_table, rows)
-        _advance_sequences(connection, seeded_table)
+        for position in before:
+            _restart_past_stored_ids(connection, seeded_table, position)
     return inserted
 
 
@@ -57,31 +69,30 @@ def _reject_always_identity_values(seeded_table: Table, rows: Sequence[Row]) -> 
 def _insert_rows(
     connection: Connection, seeded_table: Table, rows: Sequence[Row]
 ) -> int:
-    batches: dict[frozenset[str], list[Row]] = {}
-    for row in rows:
-        batches.setdefault(frozenset(row), []).append(row)
     statement = insert(seeded_table).on_conflict_do_nothing().returning(*seeded_table.c)
     return sum(
-        len(connection.execute(statement, batch).all()) for batch in batches.values()
+        len(connection.execute(statement, list(batch)).all())
+        for _, batch in groupby(rows, key=frozenset)
     )
 
 
-def _advance_sequences(connection: Connection, seeded_table: Table) -> None:
+def _sequence_positions(
+    connection: Connection, seeded_table: Table
+) -> list[_SequencePosition]:
     table_name = connection.dialect.identifier_preparer.format_table(seeded_table)
+    positions: list[_SequencePosition] = []
     for column in seeded_table.c:
         sequence = connection.scalar(
             select(func.pg_get_serial_sequence(table_name, column.name))
         )
         if sequence is not None:
-            _advance_sequence(connection, seeded_table, column, sequence)
+            positions.append(_sequence_position(connection, column, sequence))
+    return positions
 
 
-def _advance_sequence(
-    connection: Connection,
-    seeded_table: Table,
-    column: Column[object],
-    sequence: str,
-) -> None:
+def _sequence_position(
+    connection: Connection, column: Column[object], sequence: str
+) -> _SequencePosition:
     schema, name, increment = connection.execute(
         select(
             _PG_NAMESPACE.c.nspname,
@@ -99,10 +110,21 @@ def _advance_sequence(
         select(state.c.last_value, state.c.is_called)
     ).one()
     next_value = last_value + increment if is_called else last_value
-    furthest = func.max if increment > 0 else func.min
-    stored = connection.scalar(select(furthest(column)).select_from(seeded_table))
-    if stored is None or (next_value - stored) * increment > 0:
-        return
-    connection.execute(
-        text(f"ALTER SEQUENCE {sequence} RESTART WITH {int(stored + increment)}")
+    return _SequencePosition(column, sequence, increment, next_value)
+
+
+def _restart_past_stored_ids(
+    connection: Connection, seeded_table: Table, before: _SequencePosition
+) -> None:
+    furthest = func.max if before.increment > 0 else func.min
+    stored = connection.scalar(
+        select(furthest(before.column)).select_from(seeded_table)
     )
+    target = before.next_value
+    if stored is not None and (stored - target) * before.increment >= 0:
+        target = stored + before.increment
+    after = _sequence_position(connection, before.column, before.sequence)
+    if target != after.next_value:
+        connection.execute(
+            text(f"ALTER SEQUENCE {before.sequence} RESTART WITH {int(target)}")
+        )
