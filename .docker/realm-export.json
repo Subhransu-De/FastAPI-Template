@@ -75,6 +75,7 @@
       "clientId": "fastapi-client",
       "enabled": true,
       "publicClient": false,
+      "fullScopeAllowed": false,
       "secret": "change-me",
       "implicitFlowEnabled": false,
       "standardFlowEnabled": true,
@@ -107,6 +108,7 @@
       "clientId": "fastapi-docs",
       "enabled": true,
       "publicClient": true,
+      "fullScopeAllowed": false,
       "implicitFlowEnabled": false,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
@@ -146,6 +148,20 @@
             "userinfo.token.claim": "false"
           }
         }
+      ]
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "fastapi-client",
+      "roles": [
+        "entities:write"
+      ]
+    },
+    {
+      "client": "fastapi-docs",
+      "roles": [
+        "entities:write"
       ]
     }
   ],

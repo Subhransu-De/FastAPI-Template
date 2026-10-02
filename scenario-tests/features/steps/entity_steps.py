@@ -1,3 +1,5 @@
+import json
+from base64 import urlsafe_b64decode
 from typing import Any
 
 from behave import given, then, when
@@ -17,6 +19,14 @@ def require(condition: object, message: str = "Scenario assertion failed") -> No
 def step_app_application_is_configured(context: Any) -> None:
     require(context.scenario_client is not None)
     require(bool(context.access_token))
+
+
+@then("the access token should grant only the entity write role")
+def step_access_token_grants_only_entity_write(context: Any) -> None:
+    payload = context.access_token.split(".")[1]
+    claims = json.loads(urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+    require(claims["realm_access"]["roles"] == ["entities:write"])
+    require(not claims.get("resource_access"))
 
 
 @when('I create an entity named "{name}" with description "{description}"')
