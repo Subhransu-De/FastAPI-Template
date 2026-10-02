@@ -32,6 +32,7 @@ COPY --from=builder /app/.venv /app/.venv
 
 COPY alembic.ini /app/
 COPY alembic /app/alembic
+COPY seed /app/seed
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1

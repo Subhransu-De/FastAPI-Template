@@ -1,4 +1,4 @@
-.PHONY: help install upgrade hooks lint lint-ruff lint-format lint-ty lint-imports lint-typos format check run migrate docker-up docker-down docker-down-destroy test test-unit test-integration test-cov openapi-snapshot
+.PHONY: help install upgrade hooks lint lint-ruff lint-format lint-ty lint-imports lint-typos format check run migrate seed docker-up docker-down docker-down-destroy test test-unit test-integration test-cov openapi-snapshot
 
 help:
 	@echo "Available targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make lint-imports              - Run import-linter architecture checks"
 	@echo "  make format                    - Auto-fix ruff findings and format the code"
 	@echo "  make migrate                   - Apply Alembic migrations to the configured database"
+	@echo "  make seed                      - Load fixture data; safe to run repeatedly"
 	@echo "  make run                       - Apply migrations, then start FastAPI dev server with hot reload"
 	@echo "  make docker-up                 - Start full project locally"
 	@echo "  make docker-down               - Stop full project locally"
@@ -34,13 +35,13 @@ check: lint test-unit
 lint: lint-ruff lint-format lint-ty lint-imports lint-typos
 
 lint-ruff:
-	uv run --group lint --all-packages ruff check app tests alembic scenario-tests
+	uv run --group lint --all-packages ruff check app tests alembic seed scenario-tests
 
 lint-format:
-	uv run --group lint --all-packages ruff format --check app tests alembic scenario-tests
+	uv run --group lint --all-packages ruff format --check app tests alembic seed scenario-tests
 
 lint-ty:
-	uv run --group lint --group migration --group test --all-packages ty check --error-on-warning app tests alembic scenario-tests
+	uv run --group lint --group migration --group test --all-packages ty check --error-on-warning app tests alembic seed scenario-tests
 
 lint-imports:
 	uv run --group lint --all-packages lint-imports --config .importlinter
@@ -49,8 +50,8 @@ lint-typos:
 	uvx typos
 
 format:
-	uv run --group lint --all-packages ruff check --fix app tests alembic scenario-tests
-	uv run --group lint --all-packages ruff format app tests alembic scenario-tests
+	uv run --group lint --all-packages ruff check --fix app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff format app tests alembic seed scenario-tests
 
 run:
 	@if [ ! -f .env ]; then \
@@ -63,6 +64,9 @@ run:
 
 migrate:
 	uv run --group migration --env-file .env alembic -c alembic.ini upgrade head
+
+seed:
+	uv run --group migration --env-file .env python -m seed
 
 docker-up:
 	docker compose up --build

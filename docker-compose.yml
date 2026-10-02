@@ -72,6 +72,17 @@ services:
         condition: service_healthy
     restart: "no"
 
+  seed:
+    <<: *migration-image
+    profiles: ["seed"]
+    command: ["python", "-m", "seed"]
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/fastapi_db
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+
   app:
     <<: *app-image
     ports:

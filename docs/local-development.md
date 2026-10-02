@@ -47,6 +47,10 @@ PostgreSQL data survives a normal `docker compose down`. Removing volumes resets
 docker compose down -v
 ```
 
+## Seed data
+
+Seeding is a separate command and never runs on application startup. `make seed` loads the rows in `seed/fixtures.py` into the database from `.env`. In the Compose stack, run `docker compose run --rm seed`. Rows that already exist are kept as they are, so running the command again changes nothing. After inserting explicit IDs, the command moves each serial or identity sequence past the highest ID, so the next insert gets a new one.
+
 ## Isolated stacks
 
 `COMPOSE_PROJECT_NAME` separates container names, networks, volumes, and default image tags. Parallel stacks must also use distinct host ports and public URLs:
