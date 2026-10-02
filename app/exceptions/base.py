@@ -1,15 +1,25 @@
 from collections.abc import Mapping
 from http import HTTPStatus
+from typing import ClassVar
 
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, ConfigDict
+from pydantic.config import JsonDict
 
 PROBLEM_JSON_MEDIA_TYPE = "application/problem+json"
 
 
+def _omit_implied_additional_properties(schema: JsonDict) -> None:
+    schema.pop("additionalProperties", None)
+
+
 class ProblemDetails(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = ConfigDict(
+        frozen=True,
+        extra="allow",
+        json_schema_extra=_omit_implied_additional_properties,
+    )
 
     type: str = "about:blank"
     title: str
@@ -37,7 +47,13 @@ def problem_responses(*statuses: HTTPStatus) -> dict[int | str, dict[str, object
     }
 
 
+def empty_responses(*statuses: HTTPStatus) -> dict[int | str, dict[str, object]]:
+    return {status.value: {"description": status.phrase} for status in statuses}
+
+
 class BaseError(Exception):
+    has_body: ClassVar[bool] = True
+
     def __init__(
         self,
         message: str,
@@ -59,3 +75,8 @@ class BaseError(Exception):
             detail=self.message,
             instance=str(request.url),
         )
+
+    def response(self, request: Request) -> Response:
+        if not self.has_body:
+            return Response(status_code=self.status_code, headers=self.headers)
+        return problem_response(self.problem(request), self.headers)
