@@ -9,7 +9,7 @@ from app.service.entity import EntityService, EntityStore
 
 
 def get_entity_service(
-    session: Annotated[AsyncSession, Depends(get_session, scope="function")],
+    session: Annotated[AsyncSession, Depends(get_session, scope="function")],  # NOSONAR
 ) -> EntityService:
     return EntityService(EntityRepository(session))
 

@@ -59,18 +59,25 @@ def test_get_token_validator_reads_lifespan_state() -> None:
 
 
 def test_get_token_validator_fails_when_lifespan_did_not_run() -> None:
+    request = _request_with_state()
+
     with pytest.raises(MissingLifespanStateError, match="access_validator"):
-        get_token_validator(_request_with_state())
+        get_token_validator(request)
 
 
 def test_get_token_validator_rejects_unexpected_state_values() -> None:
+    request = _request_with_state(access_validator=object())
+
     with pytest.raises(MissingLifespanStateError, match="access_validator"):
-        get_token_validator(_request_with_state(access_validator=object()))
+        get_token_validator(request)
 
 
 def test_authenticate_request_requires_an_access_token() -> None:
+    request = _request_with_state()
+    validator = _StubValidator()
+
     with pytest.raises(AuthenticationError):
-        authenticate_request(_request_with_state(), None, _StubValidator())
+        authenticate_request(request, None, validator)
 
 
 def test_authenticate_request_returns_claims_and_records_telemetry() -> None:

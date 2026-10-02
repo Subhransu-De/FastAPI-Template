@@ -32,9 +32,10 @@ async def test_readiness_fails_when_the_database_is_unreachable(
     unreachable_settings: Settings,
 ) -> None:
     engine = create_engine(unreachable_settings.database)
+    sessionmaker = create_sessionmaker(engine)
     try:
         with pytest.raises(DatabaseUnavailableError):
-            await readiness(create_sessionmaker(engine))
+            await readiness(sessionmaker)
     finally:
         await engine.dispose()
 

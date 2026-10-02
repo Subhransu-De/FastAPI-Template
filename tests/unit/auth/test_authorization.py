@@ -25,8 +25,11 @@ def test_require_role_returns_claims_when_the_role_is_present() -> None:
 
 
 def test_require_role_rejects_claims_without_the_role() -> None:
+    check = require_role(ENTITY_WRITE_ROLE)
+    claims = _claims("reader")
+
     with pytest.raises(ForbiddenError) as exc_info:
-        require_role(ENTITY_WRITE_ROLE)(_claims("reader"))
+        check(claims)
 
     assert exc_info.value.status_code == 403
     assert exc_info.value.message == f"Role '{ENTITY_WRITE_ROLE}' is required"

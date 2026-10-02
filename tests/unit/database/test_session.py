@@ -22,13 +22,17 @@ async def test_get_sessionmaker_reads_lifespan_state(
 
 
 def test_get_sessionmaker_fails_when_lifespan_did_not_run() -> None:
+    request = _request_with_state()
+
     with pytest.raises(MissingLifespanStateError, match="sessionmaker"):
-        get_sessionmaker(_request_with_state())
+        get_sessionmaker(request)
 
 
 def test_get_sessionmaker_rejects_unexpected_state_values() -> None:
+    request = _request_with_state(sessionmaker=object())
+
     with pytest.raises(MissingLifespanStateError, match="sessionmaker"):
-        get_sessionmaker(_request_with_state(sessionmaker=object()))
+        get_sessionmaker(request)
 
 
 async def _count_entities(sessionmaker: SessionMaker) -> int:
@@ -57,7 +61,9 @@ async def test_get_session_rolls_back_when_the_request_fails(
 
     session = await anext(generator)
     session.add(Entity(name="Rolled back", description=None))
+    failure = RuntimeError("boom")
+
     with pytest.raises(RuntimeError, match="boom"):
-        await generator.athrow(RuntimeError("boom"))
+        await generator.athrow(failure)
 
     assert await _count_entities(sqlite_sessionmaker) == 0

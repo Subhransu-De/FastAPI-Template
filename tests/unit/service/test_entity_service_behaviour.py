@@ -74,8 +74,10 @@ async def test_get_by_id_returns_the_stored_entity(
 
 
 async def test_get_by_id_raises_not_found_when_missing(service: EntityService) -> None:
+    missing_id = uuid4()
+
     with pytest.raises(NoEntityFoundError):
-        await service.get_by_id(uuid4())
+        await service.get_by_id(missing_id)
 
 
 async def test_get_all_passes_pagination_and_default_ordering(
@@ -122,8 +124,11 @@ async def test_update_replaces_every_writable_field(
 async def test_update_raises_not_found_when_entity_does_not_exist(
     service: EntityService,
 ) -> None:
+    missing_id = uuid4()
+    update = EntityUpdate(name="Updated")
+
     with pytest.raises(NoEntityFoundError):
-        await service.update(uuid4(), EntityUpdate(name="Updated"))
+        await service.update(missing_id, update)
 
 
 async def test_delete_removes_the_entity(
@@ -138,5 +143,7 @@ async def test_delete_removes_the_entity(
 
 
 async def test_delete_raises_not_found_when_missing(service: EntityService) -> None:
+    missing_id = uuid4()
+
     with pytest.raises(NoEntityFoundError):
-        await service.delete(uuid4())
+        await service.delete(missing_id)

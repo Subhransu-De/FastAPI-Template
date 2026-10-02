@@ -25,11 +25,11 @@ jobs:
         run: uv sync --locked --no-build --group test
 
       - name: Run mutation testing
-        run: uv run --locked --with mutmut mutmut run
+        run: uv run --locked --no-build --with mutmut mutmut run
 
       - name: Summarize surviving mutants
         if: always()
-        run: uv run --locked --with mutmut mutmut results | tee mutmut-results.txt
+        run: uv run --locked --no-build --with mutmut mutmut results | tee mutmut-results.txt
 
       - name: Upload mutation report
         if: always()

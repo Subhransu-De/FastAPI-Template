@@ -33,6 +33,6 @@ async def readiness(
             sessionmaker() as session,
         ):
             await session.execute(text("SELECT 1"))
-    except (OSError, SQLAlchemyError, TimeoutError) as error:
+    except (OSError, SQLAlchemyError) as error:
         raise DatabaseUnavailableError from error
     return HealthResponse()
