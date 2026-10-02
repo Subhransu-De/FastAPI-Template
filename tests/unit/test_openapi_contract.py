@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from asgi_lifespan import LifespanManager
+from pydantic import BaseModel
 
 from app.exceptions import ErrorHandling, problem_responses
 from app.main import create_app
@@ -16,6 +17,15 @@ pytestmark = pytest.mark.unit
 SNAPSHOT_PATH = Path("tests/contract/openapi.json")
 UPDATE_SNAPSHOT_ENV = "UPDATE_OPENAPI_SNAPSHOT"
 PROBLEM_REF = {"$ref": "#/components/schemas/ProblemDetails"}
+REASON = {"X-Reason": {"schema": {"type": "string"}}}
+
+
+class ValidationError(BaseModel):
+    reason: str
+
+
+class Rejection(BaseModel):
+    code: str
 
 
 def _render(schema: dict[str, object]) -> str:
@@ -72,6 +82,16 @@ async def _schema_with_validation_status(
     async def probe() -> None:
         return None
 
+    @app.get(
+        "/probe/{item}",
+        response_model=ValidationError,
+        responses={
+            400: {"model": Rejection, "description": "Rejected", "headers": REASON},
+        },
+    )
+    async def probe_item(item: int) -> ValidationError:
+        return ValidationError(reason=str(item))
+
     async with LifespanManager(app):
         return app.openapi()
 
@@ -88,6 +108,30 @@ async def test_openapi_document_declares_the_configured_validation_status(
         "description": "Bad Request",
     }
     assert "422" in schema["paths"]["/probe"]["post"]["responses"]
+
+
+async def test_openapi_document_keeps_declarations_at_the_validation_status(
+    settings: Settings,
+) -> None:
+    schema = await _schema_with_validation_status(settings, HTTPStatus.BAD_REQUEST)
+
+    probe_responses = schema["paths"]["/probe/{item}"]["get"]["responses"]
+    assert probe_responses["400"] == {
+        "content": {
+            "application/problem+json": {
+                "schema": {
+                    "anyOf": [
+                        {"$ref": "#/components/schemas/Rejection"},
+                        PROBLEM_REF,
+                    ]
+                }
+            }
+        },
+        "description": "Rejected or Validation Error",
+        "headers": REASON,
+    }
+    assert "ValidationError" in schema["components"]["schemas"]
+    assert "HTTPValidationError" not in schema["components"]["schemas"]
 
 
 async def test_openapi_document_merges_validation_into_a_declared_status(

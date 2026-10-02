@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 from typing import Any
 
@@ -35,6 +36,27 @@ def _is_generated_validation_response(response: dict[str, Any]) -> bool:
     )
 
 
+def _add_problem_details(response: dict[str, Any]) -> None:
+    problem_ref = {"$ref": _PROBLEM_DETAILS_REF}
+    media = response.setdefault("content", {}).setdefault(PROBLEM_JSON_MEDIA_TYPE, {})
+    declared = media.get("schema")
+    if declared is None:
+        media["schema"] = problem_ref
+    elif declared != problem_ref and problem_ref not in declared.get("anyOf", []):
+        media["schema"] = {"anyOf": [declared, problem_ref]}
+
+
+def _drop_unreferenced_components(
+    schema: dict[str, Any], names: tuple[str, ...]
+) -> None:
+    components = schema.get("components", {}).get("schemas", {})
+    for name in names:
+        if name in components and f'"#/components/schemas/{name}"' not in json.dumps(
+            schema
+        ):
+            del components[name]
+
+
 def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) -> None:
     rewritten = False
     for operations in schema.get("paths", {}).values():
@@ -46,20 +68,17 @@ def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) ->
             del responses[_GENERATED_VALIDATION_STATUS]
             rewritten = True
             declared = responses.get(str(status.value))
-            responses[str(status.value)] = {
-                "description": status.phrase
-                if declared is None
-                else f"{declared['description']} or {generated['description']}",
-                "content": {
-                    PROBLEM_JSON_MEDIA_TYPE: {"schema": {"$ref": _PROBLEM_DETAILS_REF}}
-                },
-            }
+            if declared is None:
+                declared = responses[str(status.value)] = {"description": status.phrase}
+            else:
+                declared["description"] += f" or {generated['description']}"
+            _add_problem_details(declared)
     if not rewritten:
         return
-    components = schema.setdefault("components", {}).setdefault("schemas", {})
-    for name in _GENERATED_VALIDATION_SCHEMAS:
-        components.pop(name, None)
-    components.setdefault("ProblemDetails", ProblemDetails.model_json_schema())
+    _drop_unreferenced_components(schema, _GENERATED_VALIDATION_SCHEMAS)
+    schema.setdefault("components", {}).setdefault("schemas", {}).setdefault(
+        "ProblemDetails", ProblemDetails.model_json_schema()
+    )
 
 
 def _use_discovered_oidc_endpoints(
