@@ -59,6 +59,22 @@ def test_next_insert_after_explicit_ids_gets_a_new_id(connection: Connection) ->
     assert new_id == 8
 
 
+def test_rerun_keeps_a_sequence_that_is_already_ahead(connection: Connection) -> None:
+    connection.execute(text(IDENTITY_TABLE.format(name="seed_probe")))
+    seed(connection, {"seed_probe": [{"id": 1, "name": "a"}]})
+    connection.execute(
+        text("INSERT INTO seed_probe (name) SELECT 'x' FROM generate_series(1, 4)")
+    )
+    connection.execute(text("DELETE FROM seed_probe WHERE id > 1"))
+
+    seed(connection, {"seed_probe": [{"id": 1, "name": "a"}]})
+    new_id = connection.scalar(
+        text("INSERT INTO seed_probe (name) VALUES ('c') RETURNING id")
+    )
+
+    assert new_id == 6
+
+
 def test_rows_without_a_primary_key_are_rejected(connection: Connection) -> None:
     connection.execute(text(IDENTITY_TABLE.format(name="seed_probe")))
 
