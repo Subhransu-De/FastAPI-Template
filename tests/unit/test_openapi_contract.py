@@ -1,10 +1,15 @@
 import json
 import os
+from http import HTTPStatus
 from pathlib import Path
+from typing import Annotated, Any
 
 import pytest
 from asgi_lifespan import LifespanManager
+from fastapi import Header
+from pydantic import BaseModel
 
+from app.exceptions import ErrorHandling, problem_responses
 from app.main import create_app
 from app.settings import Settings
 
@@ -12,6 +17,21 @@ pytestmark = pytest.mark.unit
 
 SNAPSHOT_PATH = Path("tests/contract/openapi.json")
 UPDATE_SNAPSHOT_ENV = "UPDATE_OPENAPI_SNAPSHOT"
+PROBLEM_REF = {"$ref": "#/components/schemas/ProblemDetails"}
+REASON = {"X-Reason": {"schema": {"type": "string"}}}
+BAD_REQUEST_REF = {"$ref": "#/components/responses/BadRequest"}
+
+
+class ValidationError(BaseModel):
+    reason: str
+
+
+class HTTPValidationError(BaseModel):
+    rule: str
+
+
+class Rejection(BaseModel):
+    code: str
 
 
 def _render(schema: dict[str, object]) -> str:
@@ -57,3 +77,120 @@ async def test_openapi_document_declares_problem_details_for_error_responses(
                     continue
                 content = response["content"]["application/problem+json"]
                 assert content["schema"] == problem_ref, (path, method, status)
+
+
+async def _schema_with_validation_status(
+    settings: Settings, status: HTTPStatus
+) -> dict[str, Any]:
+    app = create_app(settings, ErrorHandling(validation_status=status))
+
+    @app.post(
+        "/probe",
+        responses={
+            **problem_responses(HTTPStatus.UNPROCESSABLE_CONTENT),
+            400: {
+                "description": "Flagged",
+                "content": {"application/json": {"schema": True}},
+            },
+        },
+    )
+    async def probe(limit: int) -> None:
+        del limit
+
+    @app.get(
+        "/probe/{item}",
+        response_model=ValidationError,
+        responses={
+            400: {"model": Rejection, "description": "Rejected", "headers": REASON},
+        },
+    )
+    async def probe_item(item: int) -> ValidationError:
+        return ValidationError(reason=str(item))
+
+    @app.get("/declared", responses={422: {"model": HTTPValidationError}})
+    async def declared() -> None:
+        return None
+
+    @app.get("/referenced", openapi_extra={"responses": {"400": BAD_REQUEST_REF}})
+    async def referenced(limit: int) -> None:
+        del limit
+
+    @app.get("/hidden")
+    async def hidden(token: Annotated[str, Header(include_in_schema=False)]) -> None:
+        del token
+
+    async with LifespanManager(app):
+        return app.openapi()
+
+
+async def test_openapi_document_declares_the_configured_validation_status(
+    settings: Settings,
+) -> None:
+    schema = await _schema_with_validation_status(settings, HTTPStatus.BAD_REQUEST)
+
+    create_responses = schema["paths"]["/entities/"]["post"]["responses"]
+    assert "422" not in create_responses
+    assert create_responses["400"] == {
+        "content": {"application/problem+json": {"schema": PROBLEM_REF}},
+        "description": "Bad Request",
+    }
+    declared_responses = schema["paths"]["/declared"]["get"]["responses"]
+    assert "400" not in declared_responses
+    assert declared_responses["422"] == {
+        "content": {
+            "application/problem+json": {
+                "schema": {"$ref": "#/components/schemas/HTTPValidationError"}
+            }
+        },
+        "description": "Unprocessable Content",
+    }
+    hidden_responses = schema["paths"]["/hidden"]["get"]["responses"]
+    assert "422" not in hidden_responses
+    assert hidden_responses["400"] == create_responses["400"]
+    probe_responses = schema["paths"]["/probe"]["post"]["responses"]
+    assert "422" in probe_responses
+    assert probe_responses["400"] == {
+        "content": {
+            "application/problem+json": {"schema": {"anyOf": [True, PROBLEM_REF]}}
+        },
+        "description": "Flagged or Validation Error",
+    }
+
+
+async def test_openapi_document_keeps_declarations_at_the_validation_status(
+    settings: Settings,
+) -> None:
+    schema = await _schema_with_validation_status(settings, HTTPStatus.BAD_REQUEST)
+
+    probe_responses = schema["paths"]["/probe/{item}"]["get"]["responses"]
+    assert probe_responses["400"] == {
+        "content": {
+            "application/problem+json": {
+                "schema": {
+                    "anyOf": [
+                        {"$ref": "#/components/schemas/Rejection"},
+                        PROBLEM_REF,
+                    ]
+                }
+            }
+        },
+        "description": "Rejected or Validation Error",
+        "headers": REASON,
+    }
+    referenced_responses = schema["paths"]["/referenced"]["get"]["responses"]
+    assert referenced_responses["400"] == BAD_REQUEST_REF
+    components = schema["components"]["schemas"]
+    assert "ValidationError" in components
+    assert "HTTPValidationError" in components
+
+
+async def test_openapi_document_merges_validation_into_a_declared_status(
+    settings: Settings,
+) -> None:
+    schema = await _schema_with_validation_status(settings, HTTPStatus.NOT_FOUND)
+
+    get_responses = schema["paths"]["/entities/{entity_id}"]["get"]["responses"]
+    assert get_responses["404"] == {
+        "content": {"application/problem+json": {"schema": PROBLEM_REF}},
+        "description": "Not Found or Validation Error",
+    }

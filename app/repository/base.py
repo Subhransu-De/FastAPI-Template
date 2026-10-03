@@ -1,12 +1,15 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from uuid import UUID
+from typing import TYPE_CHECKING, overload
 
 from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.model.base import Base
+from app.model.base import IntegerPrimaryKey, UUIDPrimaryKey
+
+if TYPE_CHECKING:
+    from uuid import UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,19 +18,33 @@ class Ordering:
     descending: bool = False
 
 
-class Repository[ModelType: Base]:
+class Repository[ModelType: UUIDPrimaryKey | IntegerPrimaryKey, KeyType]:
+    @overload
+    def __init__[UUIDModel: UUIDPrimaryKey](
+        self: "Repository[UUIDModel, UUID]",
+        model: type[UUIDModel],
+        session: AsyncSession,
+    ) -> None: ...
+
+    @overload
+    def __init__[IntegerModel: IntegerPrimaryKey](
+        self: "Repository[IntegerModel, int]",
+        model: type[IntegerModel],
+        session: AsyncSession,
+    ) -> None: ...
+
     def __init__(self, model: type[ModelType], session: AsyncSession) -> None:
         self.model = model
         self.session = session
 
-    async def find_by_id(self, entity_id: UUID) -> ModelType | None:
+    async def find_by_id(self, entity_id: KeyType) -> ModelType | None:
         return await self.session.get(self.model, entity_id)
 
     async def find_all(self) -> Sequence[ModelType]:
         result = await self.session.execute(select(self.model))
         return result.scalars().all()
 
-    async def find_all_by_id(self, ids: Sequence[UUID]) -> Sequence[ModelType]:
+    async def find_all_by_id(self, ids: Sequence[KeyType]) -> Sequence[ModelType]:
         if not ids:
             return []
         result = await self.session.execute(
@@ -75,7 +92,7 @@ class Repository[ModelType: Base]:
         await self.session.refresh(updated)
         return updated
 
-    async def exists_by_id(self, entity_id: UUID) -> bool:
+    async def exists_by_id(self, entity_id: KeyType) -> bool:
         result = await self.session.execute(
             select(func.count())
             .select_from(self.model)
@@ -83,10 +100,10 @@ class Repository[ModelType: Base]:
         )
         return result.scalar_one() > 0
 
-    async def delete_by_id(self, entity_id: UUID) -> bool:
+    async def delete_by_id(self, entity_id: KeyType) -> bool:
         return await self.delete_all_by_id([entity_id]) > 0
 
-    async def delete_all_by_id(self, ids: Sequence[UUID]) -> int:
+    async def delete_all_by_id(self, ids: Sequence[KeyType]) -> int:
         if not ids:
             return 0
         result = await self.session.execute(

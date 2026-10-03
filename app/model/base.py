@@ -1,14 +1,12 @@
 from uuid import UUID as PYUUID
 from uuid import uuid4
 
-from sqlalchemy import MetaData
+from sqlalchemy import Identity, Integer, MetaData
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import UUID
 
 
 class Base(DeclarativeBase):
-    id: Mapped[PYUUID] = mapped_column(UUID(), primary_key=True, default=uuid4)
-
     metadata = MetaData(
         naming_convention={
             "ix": "ix_%(column_0_label)s",
@@ -18,3 +16,11 @@ class Base(DeclarativeBase):
             "pk": "pk_%(table_name)s",
         }
     )
+
+
+class UUIDPrimaryKey:
+    id: Mapped[PYUUID] = mapped_column(UUID(), primary_key=True, default=uuid4)
+
+
+class IntegerPrimaryKey:
+    id: Mapped[int] = mapped_column(Integer(), Identity(), primary_key=True)

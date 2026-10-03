@@ -14,7 +14,6 @@ protected_route = APIRouter(
     dependencies=[Depends(authenticate_request)],
     responses=problem_responses(
         HTTPStatus.UNAUTHORIZED,
-        HTTPStatus.UNPROCESSABLE_CONTENT,
         HTTPStatus.SERVICE_UNAVAILABLE,
     ),
 )

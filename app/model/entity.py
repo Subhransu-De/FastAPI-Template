@@ -3,10 +3,10 @@ from datetime import datetime
 from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.model.base import Base
+from app.model.base import Base, UUIDPrimaryKey
 
 
-class Entity(Base):
+class Entity(UUIDPrimaryKey, Base):
     __tablename__ = "entities"
 
     name: Mapped[str] = mapped_column(String(255), nullable=False)
