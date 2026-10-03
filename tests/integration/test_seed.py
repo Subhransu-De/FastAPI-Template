@@ -115,6 +115,34 @@ def test_rows_are_inserted_in_fixture_order(connection: Connection) -> None:
     assert inserted == {"seed_probe": 3}
 
 
+def test_tables_in_other_schemas_are_not_seeded(connection: Connection) -> None:
+    connection.execute(text("CREATE SCHEMA seed_other"))
+    connection.execute(
+        text("CREATE TABLE seed_other.seed_probe (id integer PRIMARY KEY, name text)")
+    )
+    connection.execute(
+        text("CREATE TABLE seed_probe (id integer PRIMARY KEY, name text)")
+    )
+    connection.execute(
+        text(
+            "CREATE TABLE seed_child (id integer PRIMARY KEY, "
+            "other_id integer REFERENCES seed_other.seed_probe (id))"
+        )
+    )
+
+    inserted = seed(
+        connection,
+        {
+            "seed_probe": [{"id": 1, "name": "public"}],
+            "seed_child": [{"id": 1, "other_id": None}],
+        },
+    )
+    other_rows = connection.scalar(text("SELECT count(*) FROM seed_other.seed_probe"))
+
+    assert inserted == {"seed_probe": 1, "seed_child": 1}
+    assert other_rows == 0
+
+
 def test_rolled_back_seed_leaves_the_sequence_alone(test_postgres_url: str) -> None:
     engine = create_engine(test_postgres_url)
     try:

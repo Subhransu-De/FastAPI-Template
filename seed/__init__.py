@@ -14,7 +14,7 @@ def seed(connection: Connection, fixtures: Fixtures) -> dict[str, int]:
     inserted: dict[str, int] = {}
     for seeded_table in metadata.sorted_tables:
         rows = fixtures.get(seeded_table.name)
-        if not rows:
+        if seeded_table.schema is not None or not rows:
             continue
         _require_primary_keys(seeded_table, rows)
         _lock_against_writers(connection, seeded_table)
