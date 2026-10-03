@@ -3,6 +3,7 @@ Feature: Entity endpoint scenarios
 
   Scenario: Manage an entity through protected endpoints
     Given the Scenario Tests application is configured
+    Then the access token should grant only the entity write role
     When I create an entity named "Scenario entity" with description "Created by Scenario Tests"
     Then the entity creation should succeed
     When I fetch the created entity

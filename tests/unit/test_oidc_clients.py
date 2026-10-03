@@ -43,6 +43,29 @@ def test_swagger_oidc_client_is_public_pkce_with_api_audience(
 
 
 @pytest.mark.parametrize("realm_path", _REALM_PATHS)
+@pytest.mark.parametrize("client_id", ["fastapi-client", "fastapi-docs"])
+def test_api_client_scopes_allow_only_the_entity_write_role(
+    realm_path: Path,
+    client_id: str,
+) -> None:
+    realm = _load_realm(realm_path)
+    clients = realm["clients"]
+    scope_mappings = realm["scopeMappings"]
+    assert isinstance(clients, list)
+    assert isinstance(scope_mappings, list)
+
+    clients_by_id = {client["clientId"]: client for client in clients}
+    assert clients_by_id[client_id]["fullScopeAllowed"] is False
+    mapped_roles = {
+        role
+        for mapping in scope_mappings
+        if mapping["client"] == client_id
+        for role in mapping["roles"]
+    }
+    assert mapped_roles == {ENTITY_WRITE_ROLE}
+
+
+@pytest.mark.parametrize("realm_path", _REALM_PATHS)
 def test_realm_grants_the_entity_write_role_to_local_users(realm_path: Path) -> None:
     realm = _load_realm(realm_path)
     roles = realm["roles"]
