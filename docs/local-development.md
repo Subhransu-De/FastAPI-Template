@@ -47,6 +47,10 @@ PostgreSQL data survives a normal `docker compose down`. Removing volumes resets
 docker compose down -v
 ```
 
+## Seed data
+
+Seeding is a separate command and never runs on application startup. `make seed` loads the rows in `seed/fixtures.py` into the database from `.env`. In the Compose stack, run `docker compose run --rm seed`. Every fixture row sets its primary key. A row whose primary key already exists is left as it is, so running the command again changes nothing. For an integer identity key, the command then moves the sequence past the highest stored ID if it is not already past it, so the next insert gets a new one. This assumes the ascending, step-1 sequence that SQLAlchemy's `Identity()` creates.
+
 ## Isolated stacks
 
 `COMPOSE_PROJECT_NAME` separates container names, networks, volumes, and default image tags. Parallel stacks must also use distinct host ports and public URLs:

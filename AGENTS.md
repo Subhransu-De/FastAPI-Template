@@ -9,6 +9,7 @@ This file is for anyone changing this repository, human or agent. It states the 
 | `make install`          | Installs every dependency group.                                        |
 | `make hooks`            | Installs the pre-commit hooks so `make check` runs before each commit.  |
 | `make check`            | Runs every lint gate and the unit tests. Green here means green in CI.  |
+| `make seed`             | Loads `seed/fixtures.py`. A second run changes nothing.                 |
 | `make test-integration` | Runs the Postgres tests in a disposable container. Needs Docker.        |
 | `make test-cov`         | Runs all tests with the coverage floor from `pyproject.toml`.           |
 | `make openapi-snapshot` | Regenerates `tests/contract/openapi.json` after an intended API change. |
