@@ -89,6 +89,19 @@ source_paths = [
     "app/service",
     "app/repository",
 ]
+also_copy = [
+    "app/__init__.py",
+    "app/main.py",
+    "app/telemetry.py",
+    "app/database/",
+    "app/exceptions/",
+    "app/logger/",
+    "app/model/",
+    "app/routes/",
+    "app/settings/",
+    "alembic/",
+    "alembic.ini",
+]
 pytest_add_cli_args_test_selection = [
     "tests/unit/auth",
     "tests/unit/io",
