@@ -72,7 +72,7 @@ def create_app(
         lifespan=lifespan,
         validation_status=error_handling.validation_status,
     )
-    telemetry.instrument_fastapi(app)
+    app.add_middleware(telemetry.ServerSpanMiddleware)
     telemetry.instrument_sqlalchemy()
 
     for exception_type in (
