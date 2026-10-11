@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TypedDict
 
@@ -29,7 +29,7 @@ class LifespanState(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncIterator[LifespanState]:
+async def lifespan(app: OIDCOpenAPIFastAPI) -> AsyncGenerator[LifespanState]:
     settings = app.settings
     logger.setup_logging()
     oidc_metadata = await resolve_oidc_metadata(settings.oidc)

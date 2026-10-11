@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncGenerator, Iterator
 from contextlib import asynccontextmanager
 
 import httpx
@@ -30,7 +30,7 @@ async def _client(
     server: HTTPServer,
     *,
     refresh_cooldown_seconds: int,
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> AsyncGenerator[httpx.AsyncClient]:
     settings = build_settings(
         database_url=database_url,
         jwks_uri=f"http://127.0.0.1:{server.port}/jwks",
