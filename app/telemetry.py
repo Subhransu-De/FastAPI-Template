@@ -8,7 +8,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 
 HEALTH_ENDPOINT_PATHS: tuple[str, ...] = ("/health", "/health/ready")
 
-_SERVER_SPAN_KEY = context.create_key("app.server_span")
+_SERVER_SPAN_KEY = "app.telemetry.server_span"
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,7 +60,11 @@ class ServerSpanMiddleware:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         span = trace.get_current_span()
-        if scope["type"] not in ("http", "websocket") or not span.is_recording():
+        if (
+            scope["type"] not in ("http", "websocket")
+            or _is_health_probe(scope)
+            or not span.is_recording()
+        ):
             await self.app(scope, receive, send)
             return
         if client := scope.get("client"):

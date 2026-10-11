@@ -111,3 +111,18 @@ async def test_native_telemetry_skips_health_probes(capfire: CaptureLogfire) -> 
         for span in capfire.exporter.exported_spans_as_dict()
         if span["attributes"].get("logfire.span_type") == "span"
     ]
+
+
+async def test_excluded_probe_leaves_the_callers_span_untouched(
+    capfire: CaptureLogfire,
+) -> None:
+    with logfire.span("caller"):
+        response = await _get(_instrumented_app(), "/health")
+
+    assert response.status_code == 200
+    (caller,) = [
+        span
+        for span in capfire.exporter.exported_spans_as_dict()
+        if span["name"] == "caller"
+    ]
+    assert "client.address" not in caller["attributes"]
