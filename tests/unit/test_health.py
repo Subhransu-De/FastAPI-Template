@@ -1,3 +1,7 @@
+import threading
+from collections.abc import AsyncGenerator
+
+import anyio
 import httpx
 import pytest
 from asgi_lifespan import LifespanManager
@@ -13,9 +17,19 @@ from tests.support import UNREACHABLE_DATABASE_URL, build_settings
 pytestmark = pytest.mark.unit
 
 
+def _join_aiosqlite_workers() -> None:
+    for thread in threading.enumerate():
+        if thread.name.endswith("(_connection_worker_thread)"):
+            thread.join(timeout=5)
+
+
 @pytest.fixture
-def unreachable_settings() -> Settings:
-    return build_settings(database_url=UNREACHABLE_DATABASE_URL)
+async def unreachable_settings() -> AsyncGenerator[Settings]:
+    yield build_settings(database_url=UNREACHABLE_DATABASE_URL)
+    # A failed aiosqlite connect stops its worker thread without waiting for it
+    # (omnilib/aiosqlite#394). If this test's event loop closes first, the thread
+    # raises "Event loop is closed" and pytest blames whichever test runs next.
+    await anyio.to_thread.run_sync(_join_aiosqlite_workers)
 
 
 async def test_health_reports_the_application_is_up() -> None:
