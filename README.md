@@ -9,6 +9,7 @@
 
 ![FastAPI](https://img.shields.io/badge/FastAPI-%3E%3D0.138.1-009688?style=flat&logo=fastapi&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-%3E%3D3.13-3776AB?style=flat&logo=python&logoColor=white)
+![Python versions](https://img.shields.io/badge/Python%20versions-3.13%20%7C%203.14%20%7C%203.15-3776AB?style=flat&logo=python&logoColor=white)
 ![Pydantic](https://img.shields.io/badge/Pydantic-%3E%3D2.13.4-E92063?style=flat&logo=pydantic&logoColor=white)
 ![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-%3E%3D2.0.51-D71F00?style=flat)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?style=flat&logo=postgresql&logoColor=white)
