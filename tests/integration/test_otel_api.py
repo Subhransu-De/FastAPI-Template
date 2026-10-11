@@ -37,9 +37,9 @@ async def test_entity_api_requests_emit_otel_records(
     ]
     actual_requests = [
         (
-            span["attributes"].get("http.method"),
+            span["attributes"].get("http.request.method"),
             span["attributes"].get("http.route"),
-            span["attributes"].get("http.status_code"),
+            span["attributes"].get("http.response.status_code"),
         )
         for span in request_records
     ]
@@ -51,10 +51,10 @@ async def test_entity_api_requests_emit_otel_records(
     post_record = next(
         span
         for span in request_records
-        if span["attributes"].get("http.method") == "POST"
+        if span["attributes"].get("http.request.method") == "POST"
         and span["attributes"].get("http.route") == "/entities/"
     )
-    assert post_record["attributes"].get("client.ip") == "127.0.0.1"
+    assert post_record["attributes"].get("client.address") == "127.0.0.1"
     assert post_record["attributes"].get("oidc.client_id") == TEST_CLIENT_ID
     assert post_record["attributes"].get("oidc.audience") == TEST_CLIENT_ID
     assert post_record["attributes"].get("oidc.issuer") == TEST_ISSUER

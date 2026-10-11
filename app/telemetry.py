@@ -1,20 +1,14 @@
-import re
 from dataclasses import dataclass
 from functools import cache
 
 import logfire
-from fastapi import FastAPI, Request, WebSocket
 from fastapi.telemetry import TelemetryConfig
-from opentelemetry import trace
-from starlette.types import Scope
+from opentelemetry import context, trace
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 HEALTH_ENDPOINT_PATHS: tuple[str, ...] = ("/health", "/health/ready")
 
-_FASTAPI_EXCLUDED_URLS = (
-    ".*(?:"
-    + "|".join(re.escape(path) for path in HEALTH_ENDPOINT_PATHS)
-    + r")(?:\?.*)?$"
-)
+_SERVER_SPAN_KEY = "app.telemetry.server_span"
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,8 +27,13 @@ def configure_otel(service_name: str) -> None:
     )
 
 
+def _server_span() -> trace.Span:
+    span = context.get_value(_SERVER_SPAN_KEY)
+    return span if isinstance(span, trace.Span) else trace.get_current_span()
+
+
 def record_auth_attributes(attributes: AuthAttributes) -> None:
-    span = trace.get_current_span()
+    span = _server_span()
     if not span.is_recording():
         return
     if attributes.client_id:
@@ -48,25 +47,33 @@ def record_auth_attributes(attributes: AuthAttributes) -> None:
     span.set_attribute("oidc.issuer", attributes.issuer)
 
 
-def _request_attributes_mapper(
-    request: Request | WebSocket,
-    attributes: dict[str, object],
-) -> dict[str, object]:
-    mapped_attributes: dict[str, object] = {}
-    if errors := attributes.get("errors"):
-        mapped_attributes["errors"] = errors
+class ServerSpanMiddleware:
+    """Tag FastAPI's request span and keep it reachable from dependencies.
 
-    if request.client is not None:
-        mapped_attributes["client.ip"] = request.client.host
-    return mapped_attributes
+    FastAPI starts the server span outside the middleware stack and runs
+    dependencies inside a `fastapi.dependencies` child span, so request-level
+    attributes must be set on the span that is current here.
+    """
 
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
 
-def instrument_fastapi(app: FastAPI) -> None:
-    logfire.instrument_fastapi(
-        app,
-        request_attributes_mapper=_request_attributes_mapper,
-        excluded_urls=_FASTAPI_EXCLUDED_URLS,
-    )
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        span = trace.get_current_span()
+        if (
+            scope["type"] not in ("http", "websocket")
+            or _is_health_probe(scope)
+            or not span.is_recording()
+        ):
+            await self.app(scope, receive, send)
+            return
+        if client := scope.get("client"):
+            span.set_attribute("client.address", client[0])
+        token = context.attach(context.set_value(_SERVER_SPAN_KEY, span))
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            context.detach(token)
 
 
 @cache
