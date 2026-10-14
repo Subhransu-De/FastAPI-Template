@@ -1,8 +1,8 @@
 import logging
+import os
 
 from sqlalchemy import create_engine, pool
 
-from app.settings import DatabaseSettings
 from seed import seed
 from seed.fixtures import FIXTURES
 
@@ -11,8 +11,11 @@ logger = logging.getLogger("seed")
 
 def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    database = DatabaseSettings()
-    engine = create_engine(database.url, poolclass=pool.NullPool)
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        msg = "DATABASE_URL must be set to seed the database"
+        raise RuntimeError(msg)
+    engine = create_engine(database_url, poolclass=pool.NullPool)
     try:
         with engine.begin() as connection:
             inserted = seed(connection, FIXTURES)

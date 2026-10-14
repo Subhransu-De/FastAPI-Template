@@ -7,6 +7,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from pydantic import BaseModel
 
+from app.exceptions import ProblemDetails
 from tests.integration.conftest import (
     TokenClaimOverrides,
     TokenFactory,
@@ -23,14 +24,6 @@ class RequestOptions(TypedDict, total=False):
     json: dict[str, str]
 
 
-class ProblemBody(BaseModel):
-    type: str
-    title: str
-    status: int
-    instance: str
-    detail: str | list[dict[str, object]]
-
-
 class ValidationErrorItem(BaseModel):
     loc: tuple[str | int, ...]
 
@@ -40,10 +33,10 @@ def _assert_problem_details(
     *,
     status_code: int,
     title: str,
-) -> ProblemBody:
+) -> ProblemDetails:
     assert response.status_code == status_code
     assert response.headers["content-type"] == "application/problem+json"
-    body = ProblemBody.model_validate_json(response.content)
+    body = ProblemDetails.model_validate_json(response.content)
     assert body.title == title
     assert body.status == status_code
     assert body.type.endswith("/openapi.json")
