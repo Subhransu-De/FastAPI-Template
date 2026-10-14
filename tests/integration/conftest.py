@@ -3,9 +3,9 @@ import hashlib
 import hmac
 import json
 import time
-from collections.abc import AsyncGenerator, Callable, Iterator, Sequence
+from collections.abc import AsyncGenerator, Iterator
 from os import environ
-from typing import Any
+from typing import Protocol, TypedDict, Unpack
 
 import httpx
 import jwt as pyjwt
@@ -36,6 +36,18 @@ from tests.support import TEST_CLIENT_ID, TEST_ISSUER, build_settings
 TEST_KID = "test-key-id"
 
 WithAuth = pytest.mark.with_auth
+
+
+class TokenClaimOverrides(TypedDict, total=False):
+    audience: str
+    issuer: str
+    expires_in_seconds: int
+    not_before_in_seconds: int
+    roles: tuple[str, ...]
+
+
+class TokenFactory(Protocol):
+    def __call__(self, **claims: Unpack[TokenClaimOverrides]) -> str: ...
 
 
 @pytest.fixture(scope="session")
@@ -140,7 +152,7 @@ def token_claims(
     issuer: str = TEST_ISSUER,
     expires_in_seconds: int = 3600,
     not_before_in_seconds: int = 0,
-    roles: Sequence[str] = (ENTITY_WRITE_ROLE,),
+    roles: tuple[str, ...] = (ENTITY_WRITE_ROLE,),
 ) -> dict[str, object]:
     now = int(time.time())
     return {
@@ -159,7 +171,7 @@ def make_test_token(
     private_key: RSAPrivateKey,
     *,
     kid: str = TEST_KID,
-    **claims: Any,
+    **claims: Unpack[TokenClaimOverrides],
 ) -> str:
     return pyjwt.encode(
         token_claims(**claims),
@@ -169,7 +181,7 @@ def make_test_token(
     )
 
 
-def make_unsigned_token(**claims: Any) -> str:
+def make_unsigned_token(**claims: Unpack[TokenClaimOverrides]) -> str:
     return pyjwt.encode(
         token_claims(**claims),
         key="",
@@ -196,8 +208,8 @@ def make_hs256_token_signed_with_public_key(private_key: RSAPrivateKey) -> str:
 
 
 @pytest.fixture
-def token_factory(signing_private_key: RSAPrivateKey) -> Callable[..., str]:
-    def factory(**claims: Any) -> str:
+def token_factory(signing_private_key: RSAPrivateKey) -> TokenFactory:
+    def factory(**claims: Unpack[TokenClaimOverrides]) -> str:
         return make_test_token(signing_private_key, **claims)
 
     return factory

@@ -10,6 +10,8 @@ from app.auth.dependencies import OIDC_SCHEME_NAME
 from app.exceptions import PROBLEM_JSON_MEDIA_TYPE, ProblemDetails
 from app.settings import OIDCMetadata, Settings
 
+type OpenAPIDocument = dict[str, Any]
+
 _JSON_MEDIA_TYPE = "application/json"
 _ERROR_STATUS_PREFIXES = ("4", "5")
 _GENERATED_VALIDATION_STATUS = str(HTTPStatus.UNPROCESSABLE_CONTENT.value)
@@ -19,7 +21,7 @@ _PROBLEM_DETAILS_REF = "#/components/schemas/ProblemDetails"
 _VALIDATION_DESCRIPTION = "Validation Error"
 
 
-def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
+def _use_problem_json_for_error_responses(schema: OpenAPIDocument) -> None:
     for operations in schema.get("paths", {}).values():
         for operation in operations.values():
             for status, response in operation.get("responses", {}).items():
@@ -30,7 +32,7 @@ def _use_problem_json_for_error_responses(schema: dict[str, Any]) -> None:
                     content[PROBLEM_JSON_MEDIA_TYPE] = content.pop(_JSON_MEDIA_TYPE)
 
 
-def _is_generated_validation_response(response: dict[str, Any]) -> bool:
+def _is_generated_validation_response(response: OpenAPIDocument) -> bool:
     return response == {
         "description": _VALIDATION_DESCRIPTION,
         "content": {
@@ -39,7 +41,7 @@ def _is_generated_validation_response(response: dict[str, Any]) -> bool:
     }
 
 
-def _add_problem_details(response: dict[str, Any]) -> None:
+def _add_problem_details(response: OpenAPIDocument) -> None:
     problem_ref = {"$ref": _PROBLEM_DETAILS_REF}
     media = response.setdefault("content", {}).setdefault(PROBLEM_JSON_MEDIA_TYPE, {})
     declared = media.get("schema")
@@ -51,7 +53,7 @@ def _add_problem_details(response: dict[str, Any]) -> None:
 
 
 def _drop_unreferenced_components(
-    schema: dict[str, Any], names: tuple[str, ...]
+    schema: OpenAPIDocument, names: tuple[str, ...]
 ) -> None:
     components = schema.get("components", {}).get("schemas", {})
     for name in names:
@@ -61,7 +63,7 @@ def _drop_unreferenced_components(
             del components[name]
 
 
-def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) -> None:
+def _declare_validation_responses(schema: OpenAPIDocument, status: HTTPStatus) -> None:
     rewritten = False
     for operations in schema.get("paths", {}).values():
         for operation in operations.values():
@@ -94,7 +96,7 @@ def _declare_validation_responses(schema: dict[str, Any], status: HTTPStatus) ->
 
 
 def _use_discovered_oidc_endpoints(
-    schema: dict[str, Any],
+    schema: OpenAPIDocument,
     metadata: OIDCMetadata,
 ) -> None:
     try:
@@ -129,7 +131,7 @@ class OIDCOpenAPIFastAPI(FastAPI):
         self.validation_status = validation_status
         self.oidc_metadata: OIDCMetadata | None = None
 
-    def openapi(self) -> dict[str, Any]:
+    def openapi(self) -> OpenAPIDocument:
         if self.openapi_schema is not None:
             return self.openapi_schema
         schema = super().openapi()

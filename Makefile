@@ -35,10 +35,10 @@ check: lint test-unit
 lint: lint-ruff lint-format lint-ty lint-imports lint-typos
 
 lint-ruff:
-	uv run --group lint --all-packages ruff check app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff check app tests alembic seed scenario-tests .docker
 
 lint-format:
-	uv run --group lint --all-packages ruff format --check app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff format --check app tests alembic seed scenario-tests .docker
 
 lint-ty:
 	uv run --group lint --group migration --group test --all-packages ty check --error-on-warning app tests alembic seed scenario-tests
@@ -50,8 +50,8 @@ lint-typos:
 	uvx typos
 
 format:
-	uv run --group lint --all-packages ruff check --fix app tests alembic seed scenario-tests
-	uv run --group lint --all-packages ruff format app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff check --fix app tests alembic seed scenario-tests .docker
+	uv run --group lint --all-packages ruff format app tests alembic seed scenario-tests .docker
 
 run:
 	@if [ ! -f .env ]; then \
@@ -90,4 +90,4 @@ test-cov:
 	uv run --group test pytest --cov --cov-report=term-missing
 
 openapi-snapshot:
-	UPDATE_OPENAPI_SNAPSHOT=1 uv run --group test pytest tests/unit/test_openapi_contract.py -q
+	uv run --group test pytest tests/unit/test_openapi_contract.py -q --update-openapi-snapshot

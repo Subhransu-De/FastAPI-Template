@@ -1,4 +1,3 @@
-target-version = "py313"
 line-length = 88
 
 [lint]
@@ -12,7 +11,6 @@ select = [
     "B",
     "A",
     "SIM",
-    "TCH",
     "RUF",
     "FAST",
     "ASYNC",
@@ -54,18 +52,23 @@ ignore = [
     "E501",
     "TRY003",
     "COM812",
-    "ANN401",
 ]
 
 [lint.per-file-ignores]
 "tests/**" = ["S101", "ARG001", "PLC0415", "PLR2004", "SLF001"]
 "alembic/**" = ["ERA001", "ANN", "INP"]
+"app/auth/openapi.py" = ["ANN401", "TID251"]
 
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
 [lint.flake8-tidy-imports.banned-api]
 "__future__.annotations".msg = "Python 3.13+ does not need `from __future__ import annotations`."
+"builtins.getattr".msg = "Use direct attribute access or a typed mapping."
+"builtins.setattr".msg = "Use direct attribute assignment."
+"builtins.hasattr".msg = "Use direct attribute access or isinstance narrowing."
+"typing.Any".msg = "Use object or a precise type. app/auth/openapi.py is the only allowed exception."
+"typing.TYPE_CHECKING".msg = "Import plainly. An import cycle means the shared types need their own module."
 
 [lint.flake8-quotes]
 inline-quotes = "double"
