@@ -1,11 +1,11 @@
-import json
 from http import HTTPStatus
-from typing import cast, override
+from typing import override
 
 import pytest
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import Response
+from pydantic import TypeAdapter
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from starlette.exceptions import HTTPException
@@ -27,7 +27,7 @@ pytestmark = pytest.mark.unit
 def load_json_body(response: Response) -> dict[str, object]:
     body = response.body
     raw_body = body.tobytes() if isinstance(body, memoryview) else body
-    return cast("dict[str, object]", json.loads(raw_body))
+    return TypeAdapter(dict[str, object]).validate_json(raw_body)
 
 
 def make_request(path: str = "/entities") -> Request:
@@ -95,7 +95,7 @@ def test_handler_maps_validation_errors_to_unprocessable_content() -> None:
     assert body["title"] == "Unprocessable Content"
     assert body["status"] == 422
     assert body["instance"] == "https://testserver/entities"
-    detail = cast("list[dict[str, object]]", body["detail"])
+    detail = TypeAdapter(list[dict[str, object]]).validate_python(body["detail"])
     assert detail[0]["type"] == "missing"
     assert detail[0]["loc"] == ["body", "name"]
 

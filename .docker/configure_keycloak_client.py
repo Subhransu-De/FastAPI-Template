@@ -4,7 +4,6 @@
 import logging
 import os
 import time
-from typing import Any
 
 import httpx
 
@@ -42,7 +41,7 @@ def _get_keycloak_client_representation(
     client: httpx.Client,
     realm: str,
     client_id: str,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     response = client.get(
         f"/admin/realms/{realm}/clients",
         params={"clientId": client_id},
@@ -68,9 +67,7 @@ def configure_keycloak_client() -> None:
             realm,
             client_id,
         )
-        representation["redirectUris"] = [
-            f"{app_public_url}/docs/oauth2-redirect"
-        ]
+        representation["redirectUris"] = [f"{app_public_url}/docs/oauth2-redirect"]
         representation["webOrigins"] = [app_public_url]
         response = client.put(
             f"/admin/realms/{realm}/clients/{representation['id']}",

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Self
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -8,6 +9,10 @@ _DISCOVERY_PATH = "/.well-known/openid-configuration"
 _DISCOVERY_ATTEMPTS = 3
 _DISCOVERY_RETRY_DELAY_SECONDS = 0.25
 _DISCOVERY_TIMEOUT = httpx.Timeout(5.0, connect=2.0)
+
+
+class OIDCDiscoveryError(RuntimeError):
+    pass
 
 
 class OIDCMetadata(BaseModel):
@@ -40,7 +45,7 @@ class AuthNSettings(BaseSettings):
     token_endpoint: str | None = None
 
     @model_validator(mode="after")
-    def _validate_endpoint_overrides(self) -> "AuthNSettings":
+    def _validate_endpoint_overrides(self) -> Self:
         overrides = (
             self.jwks_uri,
             self.issuer,
@@ -77,7 +82,7 @@ def _replace_url_base(url: str, source_base: str, target_base: str) -> str:
     if url == source:
         return target
     if url.startswith(f"{source}/"):
-        return f"{target}{url[len(source) :]}"
+        return f"{target}{url.removeprefix(source)}"
     return url
 
 
@@ -145,7 +150,7 @@ async def _discover_oidc_metadata(
                 await asyncio.sleep(retry_delay_seconds * attempt)
 
     message = f"OIDC discovery failed after {attempts} attempts: {discovery_url}"
-    raise RuntimeError(message) from last_error
+    raise OIDCDiscoveryError(message) from last_error
 
 
 async def resolve_oidc_metadata(
@@ -155,7 +160,8 @@ async def resolve_oidc_metadata(
     attempts: int = _DISCOVERY_ATTEMPTS,
     retry_delay_seconds: float = _DISCOVERY_RETRY_DELAY_SECONDS,
 ) -> OIDCMetadata:
-    if override := settings.metadata_override():
+    override = settings.metadata_override()
+    if override is not None:
         return override
     if attempts < 1:
         message = "OIDC discovery attempts must be at least 1"

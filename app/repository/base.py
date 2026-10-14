@@ -1,15 +1,13 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, overload
+from typing import overload
+from uuid import UUID
 
 from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.model.base import IntegerPrimaryKey, UUIDPrimaryKey
-
-if TYPE_CHECKING:
-    from uuid import UUID
 
 
 @dataclass(frozen=True, slots=True)
@@ -54,6 +52,7 @@ class Repository[ModelType: UUIDPrimaryKey | IntegerPrimaryKey, KeyType]:
 
     async def find_all_paginated(
         self,
+        *,
         offset: int = 0,
         limit: int = 25,
         ordering: Ordering | None = None,

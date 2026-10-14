@@ -1,11 +1,20 @@
 import time
-from typing import Any
+from http import HTTPStatus
 
 import httpx
+from pydantic import BaseModel, TypeAdapter
 
 from app.config import ScenarioTestSettings
 
-HTTP_OK = 200
+
+class TokenResponse(BaseModel):
+    access_token: str = ""
+
+
+class EntityBody(BaseModel):
+    id: str
+    name: str
+    description: str | None
 
 
 class ScenarioTestClient:
@@ -26,7 +35,7 @@ class ScenarioTestClient:
         for _ in range(attempts):
             try:
                 response = self.client.get(self.settings.health_endpoint)
-                if response.status_code == HTTP_OK:
+                if response.status_code == HTTPStatus.OK:
                     return
             except httpx.HTTPError as exc:
                 last_error = exc
@@ -52,7 +61,7 @@ class ScenarioTestClient:
         )
         response.raise_for_status()
 
-        access_token = response.json().get("access_token")
+        access_token = TokenResponse.model_validate_json(response.content).access_token
         if not access_token:
             message = "Keycloak did not return an access token"
             raise RuntimeError(message)
@@ -87,5 +96,9 @@ class ScenarioTestClient:
         return self.client.delete(f"/entities/{entity_id}")
 
     @staticmethod
-    def response_json(response: httpx.Response) -> Any:
-        return response.json()
+    def entity_from(response: httpx.Response) -> EntityBody:
+        return EntityBody.model_validate_json(response.content)
+
+    @staticmethod
+    def entities_from(response: httpx.Response) -> list[EntityBody]:
+        return TypeAdapter(list[EntityBody]).validate_json(response.content)
