@@ -63,30 +63,40 @@ def _drop_unreferenced_components(
             del components[name]
 
 
+def _merged_validation_description(declared: OpenAPIDocument) -> str:
+    description = declared.get("description")
+    if not description:
+        return _VALIDATION_DESCRIPTION
+    return f"{description} or {_VALIDATION_DESCRIPTION}"
+
+
+def _declare_operation_validation_response(
+    operation: OpenAPIDocument, status: HTTPStatus
+) -> bool:
+    responses = operation.setdefault("responses", {})
+    generated = responses.get(_GENERATED_VALIDATION_STATUS)
+    if generated is not None and _is_generated_validation_response(generated):
+        del responses[_GENERATED_VALIDATION_STATUS]
+    elif not operation.get("parameters") and "requestBody" not in operation:
+        return False
+
+    declared = responses.get(str(status.value))
+    if declared is None:
+        declared = responses[str(status.value)] = {"description": status.phrase}
+    elif "$ref" in declared:
+        return True
+    else:
+        declared["description"] = _merged_validation_description(declared)
+    _add_problem_details(declared)
+    return True
+
+
 def _declare_validation_responses(schema: OpenAPIDocument, status: HTTPStatus) -> None:
     rewritten = False
     for operations in schema.get("paths", {}).values():
         for operation in operations.values():
-            responses = operation.setdefault("responses", {})
-            generated = responses.get(_GENERATED_VALIDATION_STATUS)
-            if generated is not None and _is_generated_validation_response(generated):
-                del responses[_GENERATED_VALIDATION_STATUS]
-            elif not operation.get("parameters") and "requestBody" not in operation:
-                continue
-            rewritten = True
-            declared = responses.get(str(status.value))
-            if declared is None:
-                declared = responses[str(status.value)] = {"description": status.phrase}
-            elif "$ref" in declared:
-                continue
-            else:
-                description = declared.get("description")
-                declared["description"] = (
-                    f"{description} or {_VALIDATION_DESCRIPTION}"
-                    if description
-                    else _VALIDATION_DESCRIPTION
-                )
-            _add_problem_details(declared)
+            if _declare_operation_validation_response(operation, status):
+                rewritten = True
     if not rewritten:
         return
     _drop_unreferenced_components(schema, _GENERATED_VALIDATION_SCHEMAS)
