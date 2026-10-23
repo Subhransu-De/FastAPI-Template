@@ -1,9 +1,16 @@
-import asyncio
 from typing import Self
 
 import httpx
+import logfire
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from tenacity import (
+    AsyncRetrying,
+    RetryCallState,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 _DISCOVERY_PATH = "/.well-known/openid-configuration"
 _DISCOVERY_ATTEMPTS = 3
@@ -127,6 +134,27 @@ def _validate_discovered_metadata(
     return _normalize_discovered_endpoints(metadata, settings)
 
 
+def _log_retry(retry_state: RetryCallState) -> None:
+    error = retry_state.outcome.exception() if retry_state.outcome else None
+    logfire.warn(
+        "OIDC discovery attempt {attempt} failed; retrying in {delay_seconds}s",
+        attempt=retry_state.attempt_number,
+        delay_seconds=retry_state.upcoming_sleep,
+        error=repr(error),
+    )
+
+
+async def _fetch_oidc_metadata(
+    client: httpx.AsyncClient,
+    discovery_url: str,
+    settings: AuthNSettings,
+) -> OIDCMetadata:
+    response = await client.get(discovery_url)
+    response.raise_for_status()
+    metadata = OIDCMetadata.model_validate(response.json())
+    return _validate_discovered_metadata(metadata, settings)
+
+
 async def _discover_oidc_metadata(
     settings: AuthNSettings,
     client: httpx.AsyncClient,
@@ -136,21 +164,19 @@ async def _discover_oidc_metadata(
 ) -> OIDCMetadata:
     discovery_base = settings.internal_url or settings.issuer_url
     discovery_url = f"{discovery_base.rstrip('/')}{_DISCOVERY_PATH}"
-    last_error: Exception | None = None
+    retrying = AsyncRetrying(
+        stop=stop_after_attempt(attempts),
+        wait=wait_exponential(multiplier=retry_delay_seconds),
+        retry=retry_if_exception_type((httpx.HTTPError, ValueError)),
+        before_sleep=_log_retry,
+        reraise=True,
+    )
 
-    for attempt in range(1, attempts + 1):
-        try:
-            response = await client.get(discovery_url)
-            response.raise_for_status()
-            metadata = OIDCMetadata.model_validate(response.json())
-            return _validate_discovered_metadata(metadata, settings)
-        except (httpx.HTTPError, ValueError) as exc:
-            last_error = exc
-            if attempt < attempts:
-                await asyncio.sleep(retry_delay_seconds * attempt)
-
-    message = f"OIDC discovery failed after {attempts} attempts: {discovery_url}"
-    raise OIDCDiscoveryError(message) from last_error
+    try:
+        return await retrying(_fetch_oidc_metadata, client, discovery_url, settings)
+    except (httpx.HTTPError, ValueError) as exc:
+        message = f"OIDC discovery failed after {attempts} attempts: {discovery_url}"
+        raise OIDCDiscoveryError(message) from exc
 
 
 async def resolve_oidc_metadata(
