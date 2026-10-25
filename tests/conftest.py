@@ -1,7 +1,7 @@
 import asyncio
 import selectors
 import sys
-from typing import Any
+from collections.abc import Callable
 
 import pytest
 
@@ -14,8 +14,19 @@ def selector_event_loop() -> asyncio.AbstractEventLoop:
     return asyncio.SelectorEventLoop(selectors.SelectSelector())
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--update-openapi-snapshot",
+        action="store_true",
+        default=False,
+        help="Regenerate tests/contract/openapi.json instead of comparing to it.",
+    )
+
+
 @pytest.fixture
-def anyio_backend() -> str | tuple[str, dict[str, Any]]:
+def anyio_backend() -> (
+    str | tuple[str, dict[str, Callable[[], asyncio.AbstractEventLoop]]]
+):
     if sys.platform == "win32":
         return "asyncio", {"loop_factory": selector_event_loop}
     return "asyncio"

@@ -1,14 +1,14 @@
 import json
-import os
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 import pytest
 from asgi_lifespan import LifespanManager
 from fastapi import Header
 from pydantic import BaseModel
 
+from app.auth import OpenAPIDocument
 from app.exceptions import ErrorHandling, problem_responses
 from app.main import create_app
 from app.settings import Settings
@@ -16,7 +16,6 @@ from app.settings import Settings
 pytestmark = pytest.mark.unit
 
 SNAPSHOT_PATH = Path("tests/contract/openapi.json")
-UPDATE_SNAPSHOT_ENV = "UPDATE_OPENAPI_SNAPSHOT"
 PROBLEM_REF = {"$ref": "#/components/schemas/ProblemDetails"}
 REASON = {"X-Reason": {"schema": {"type": "string"}}}
 BAD_REQUEST_REF = {"$ref": "#/components/responses/BadRequest"}
@@ -38,8 +37,8 @@ def _render(schema: dict[str, object]) -> str:
     return json.dumps(schema, indent=2, sort_keys=True) + "\n"
 
 
-def _assert_matches_snapshot(rendered: str) -> None:
-    if os.environ.get(UPDATE_SNAPSHOT_ENV) == "1":
+def _assert_matches_snapshot(rendered: str, *, update_snapshot: bool) -> None:
+    if update_snapshot:
         SNAPSHOT_PATH.write_text(rendered, encoding="utf-8")
 
     assert SNAPSHOT_PATH.exists(), (
@@ -52,12 +51,14 @@ def _assert_matches_snapshot(rendered: str) -> None:
 
 async def test_openapi_document_matches_the_committed_contract(
     settings: Settings,
+    request: pytest.FixtureRequest,
 ) -> None:
     app = create_app(settings)
     async with LifespanManager(app):
         rendered = _render(app.openapi())
 
-    _assert_matches_snapshot(rendered)
+    update_snapshot = request.config.getoption("--update-openapi-snapshot")
+    _assert_matches_snapshot(rendered, update_snapshot=update_snapshot)
 
 
 async def test_openapi_document_declares_problem_details_for_error_responses(
@@ -81,7 +82,7 @@ async def test_openapi_document_declares_problem_details_for_error_responses(
 
 async def _schema_with_validation_status(
     settings: Settings, status: HTTPStatus
-) -> dict[str, Any]:
+) -> OpenAPIDocument:
     app = create_app(settings, ErrorHandling(validation_status=status))
 
     @app.post(

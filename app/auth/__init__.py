@@ -5,7 +5,7 @@ from app.auth.dependencies import (
     authenticate_request,
     get_token_validator,
 )
-from app.auth.openapi import OIDCOpenAPIFastAPI
+from app.auth.openapi import OIDCOpenAPIFastAPI, OpenAPIDocument
 from app.auth.token_validator import AccessTokenValidator
 
 __all__: list[str] = [
@@ -14,6 +14,7 @@ __all__: list[str] = [
     "AccessTokenValidator",
     "AuthClaims",
     "OIDCOpenAPIFastAPI",
+    "OpenAPIDocument",
     "authenticate_request",
     "get_token_validator",
     "require_role",

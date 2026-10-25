@@ -67,7 +67,8 @@ class ServerSpanMiddleware:
         ):
             await self.app(scope, receive, send)
             return
-        if client := scope.get("client"):
+        client = scope.get("client")
+        if client:
             span.set_attribute("client.address", client[0])
         token = context.attach(context.set_value(_SERVER_SPAN_KEY, span))
         try:

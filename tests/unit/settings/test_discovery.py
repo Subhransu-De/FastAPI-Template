@@ -1,10 +1,11 @@
+import asyncio
 from collections.abc import Callable
 
 import httpx
 import pytest
+from logfire.testing import CaptureLogfire
 
 from app.settings import AuthNSettings, resolve_oidc_metadata
-from app.settings import authentication as authentication_module
 
 pytestmark = pytest.mark.unit
 
@@ -34,7 +35,7 @@ def sleeps(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     async def fake_sleep(delay: float) -> None:
         recorded.append(delay)
 
-    monkeypatch.setattr(authentication_module.asyncio, "sleep", fake_sleep)
+    monkeypatch.setattr(asyncio, "sleep", fake_sleep)
     return recorded
 
 
@@ -126,3 +127,29 @@ async def test_discovery_requires_at_least_one_attempt(
             await resolve_oidc_metadata(discovery_settings, client=client, attempts=0)
 
     assert attempts == []
+
+
+async def test_discovery_logs_a_warning_before_each_retry(
+    discovery_settings: AuthNSettings,
+    sleeps: list[float],
+    capfire: CaptureLogfire,
+) -> None:
+    client, _ = _client(
+        lambda attempt: (
+            httpx.Response(503) if attempt < 3 else httpx.Response(200, json=_DISCOVERY)
+        )
+    )
+
+    async with client:
+        await resolve_oidc_metadata(discovery_settings, client=client)
+
+    warnings = [
+        span["attributes"]
+        for span in capfire.exporter.exported_spans_as_dict()
+        if span["name"].startswith("OIDC discovery attempt")
+    ]
+    assert [(w["attempt"], w["delay_seconds"]) for w in warnings] == [
+        (1, 0.25),
+        (2, 0.5),
+    ]
+    assert all("HTTPStatusError" in w["error"] for w in warnings)

@@ -3,9 +3,9 @@ import hashlib
 import hmac
 import json
 import time
-from collections.abc import AsyncGenerator, Callable, Iterator, Sequence
+from collections.abc import AsyncGenerator, Iterator
 from os import environ
-from typing import Any
+from typing import Protocol, TypedDict, Unpack
 
 import httpx
 import jwt as pyjwt
@@ -14,12 +14,7 @@ from alembic.config import Config
 from asgi_lifespan import LifespanManager
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from jwt.algorithms import RSAAlgorithm
 from pytest_httpserver import HTTPServer
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -36,6 +31,18 @@ from tests.support import TEST_CLIENT_ID, TEST_ISSUER, build_settings
 TEST_KID = "test-key-id"
 
 WithAuth = pytest.mark.with_auth
+
+
+class TokenClaimOverrides(TypedDict, total=False):
+    audience: str
+    issuer: str
+    expires_in_seconds: int
+    not_before_in_seconds: int
+    roles: tuple[str, ...]
+
+
+class TokenFactory(Protocol):
+    def __call__(self, **claims: Unpack[TokenClaimOverrides]) -> str: ...
 
 
 @pytest.fixture(scope="session")
@@ -126,21 +133,13 @@ def _jwks_server(signing_private_key: RSAPrivateKey) -> Iterator[HTTPServer]:
     server.stop()
 
 
-def _private_pem(private_key: RSAPrivateKey) -> bytes:
-    return private_key.private_bytes(
-        encoding=Encoding.PEM,
-        format=PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=NoEncryption(),
-    )
-
-
 def token_claims(
     *,
     audience: str = TEST_CLIENT_ID,
     issuer: str = TEST_ISSUER,
     expires_in_seconds: int = 3600,
     not_before_in_seconds: int = 0,
-    roles: Sequence[str] = (ENTITY_WRITE_ROLE,),
+    roles: tuple[str, ...] = (ENTITY_WRITE_ROLE,),
 ) -> dict[str, object]:
     now = int(time.time())
     return {
@@ -159,17 +158,17 @@ def make_test_token(
     private_key: RSAPrivateKey,
     *,
     kid: str = TEST_KID,
-    **claims: Any,
+    **claims: Unpack[TokenClaimOverrides],
 ) -> str:
     return pyjwt.encode(
         token_claims(**claims),
-        _private_pem(private_key),
+        private_key,
         algorithm="RS256",
         headers={"kid": kid},
     )
 
 
-def make_unsigned_token(**claims: Any) -> str:
+def make_unsigned_token(**claims: Unpack[TokenClaimOverrides]) -> str:
     return pyjwt.encode(
         token_claims(**claims),
         key="",
@@ -196,8 +195,8 @@ def make_hs256_token_signed_with_public_key(private_key: RSAPrivateKey) -> str:
 
 
 @pytest.fixture
-def token_factory(signing_private_key: RSAPrivateKey) -> Callable[..., str]:
-    def factory(**claims: Any) -> str:
+def token_factory(signing_private_key: RSAPrivateKey) -> TokenFactory:
+    def factory(**claims: Unpack[TokenClaimOverrides]) -> str:
         return make_test_token(signing_private_key, **claims)
 
     return factory

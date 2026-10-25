@@ -1,8 +1,11 @@
+from typing import Self
+
 from pydantic import BaseModel, ConfigDict
 
 from app.settings.app import ApplicationSettings
 from app.settings.authentication import (
     AuthNSettings,
+    OIDCDiscoveryError,
     OIDCMetadata,
     resolve_oidc_metadata,
 )
@@ -17,7 +20,7 @@ class Settings(BaseModel):
     oidc: AuthNSettings
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Self:
         return cls(
             app=ApplicationSettings(),
             database=DatabaseSettings(),
@@ -29,6 +32,7 @@ __all__ = [
     "ApplicationSettings",
     "AuthNSettings",
     "DatabaseSettings",
+    "OIDCDiscoveryError",
     "OIDCMetadata",
     "Settings",
     "resolve_oidc_metadata",

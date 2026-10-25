@@ -1,12 +1,16 @@
 from collections.abc import Callable
-from typing import Any
+from typing import TypedDict
 from uuid import uuid4
 
 import httpx
 import pytest
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from pydantic import BaseModel
 
+from app.exceptions import ProblemDetails
 from tests.integration.conftest import (
+    TokenClaimOverrides,
+    TokenFactory,
     WithAuth,
     make_hs256_token_signed_with_public_key,
     make_test_token,
@@ -16,19 +20,27 @@ from tests.integration.conftest import (
 pytestmark = pytest.mark.integration
 
 
+class RequestOptions(TypedDict, total=False):
+    json: dict[str, str]
+
+
+class ValidationErrorItem(BaseModel):
+    loc: tuple[str | int, ...]
+
+
 def _assert_problem_details(
     response: httpx.Response,
     *,
     status_code: int,
     title: str,
-) -> dict[str, Any]:
+) -> ProblemDetails:
     assert response.status_code == status_code
     assert response.headers["content-type"] == "application/problem+json"
-    body = response.json()
-    assert body["title"] == title
-    assert body["status"] == status_code
-    assert body["type"].endswith("/openapi.json")
-    assert body["instance"] == str(response.request.url)
+    body = ProblemDetails.model_validate_json(response.content)
+    assert body.title == title
+    assert body.status == status_code
+    assert body.type.endswith("/openapi.json")
+    assert body.instance == str(response.request.url)
     return body
 
 
@@ -42,9 +54,9 @@ def _assert_validation_problem(
         status_code=422,
         title="Unprocessable Content",
     )
-    assert any(tuple(error["loc"]) == expected_location for error in body["detail"]), (
-        body["detail"]
-    )
+    assert isinstance(body.detail, list), body.detail
+    errors = [ValidationErrorItem.model_validate(error) for error in body.detail]
+    assert any(error.loc == expected_location for error in errors), body.detail
 
 
 def _assert_unauthorized(response: httpx.Response) -> None:
@@ -100,8 +112,8 @@ async def test_entity_routes_reject_malformed_authorization(
 )
 async def test_entity_routes_reject_invalid_token_claims(
     app_client: httpx.AsyncClient,
-    token_factory: Callable[..., str],
-    token_claims: dict[str, Any],
+    token_factory: TokenFactory,
+    token_claims: TokenClaimOverrides,
 ) -> None:
     response = await app_client.post(
         "/entities/",
@@ -162,22 +174,22 @@ async def test_entity_routes_reject_cryptographically_invalid_tokens(
 )
 async def test_write_routes_require_the_entity_write_role(
     app_client: httpx.AsyncClient,
-    token_factory: Callable[..., str],
+    token_factory: TokenFactory,
     method: str,
     path: str,
-    kwargs: dict[str, Any],
+    kwargs: RequestOptions,
 ) -> None:
     headers = {"Authorization": f"Bearer {token_factory(roles=())}"}
 
     response = await app_client.request(method, path, headers=headers, **kwargs)
 
     body = _assert_problem_details(response, status_code=403, title="Forbidden")
-    assert body["detail"] == "Role 'entities:write' is required"
+    assert body.detail == "Role 'entities:write' is required"
 
 
 async def test_read_routes_do_not_require_the_entity_write_role(
     app_client: httpx.AsyncClient,
-    token_factory: Callable[..., str],
+    token_factory: TokenFactory,
 ) -> None:
     headers = {"Authorization": f"Bearer {token_factory(roles=())}"}
 
@@ -298,7 +310,7 @@ async def test_delete_entity_removes_the_persisted_record(
 
     get_response = await app_client.get(f"/entities/{entity_id}")
     body = _assert_problem_details(get_response, status_code=404, title="Not Found")
-    assert body["detail"] == f"Entity '{entity_id}' not found"
+    assert body.detail == f"Entity '{entity_id}' not found"
 
 
 @WithAuth
@@ -314,7 +326,7 @@ async def test_missing_entity_operations_return_not_found(
     app_client: httpx.AsyncClient,
     method: str,
     path_template: str,
-    kwargs: dict[str, Any],
+    kwargs: RequestOptions,
 ) -> None:
     entity_id = uuid4()
 
@@ -323,7 +335,7 @@ async def test_missing_entity_operations_return_not_found(
     )
 
     body = _assert_problem_details(response, status_code=404, title="Not Found")
-    assert body["detail"] == f"Entity '{entity_id}' not found"
+    assert body.detail == f"Entity '{entity_id}' not found"
 
 
 @WithAuth
@@ -340,7 +352,7 @@ async def test_missing_entity_operations_return_not_found(
 )
 async def test_create_entity_rejects_invalid_payloads(
     app_client: httpx.AsyncClient,
-    payload: dict[str, Any],
+    payload: dict[str, object],
     expected_location: tuple[str, ...],
 ) -> None:
     response = await app_client.post("/entities/", json=payload)
@@ -400,7 +412,7 @@ async def test_get_entity_rejects_invalid_uuid(
 )
 async def test_update_entity_rejects_invalid_payloads(
     app_client: httpx.AsyncClient,
-    payload: dict[str, Any],
+    payload: dict[str, object],
     expected_location: tuple[str, ...],
 ) -> None:
     response = await app_client.put(f"/entities/{uuid4()}", json=payload)

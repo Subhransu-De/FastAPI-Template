@@ -1,4 +1,4 @@
-.PHONY: help install upgrade hooks lint lint-ruff lint-format lint-ty lint-imports lint-typos format check run migrate seed docker-up docker-down docker-down-destroy test test-unit test-integration test-cov openapi-snapshot
+.PHONY: help install upgrade hooks lint lint-ruff lint-format lint-ty lint-imports lint-typos format check run migrate seed docker-up docker-down docker-down-destroy test test-unit test-integration test-cov openapi-snapshot profile
 
 help:
 	@echo "Available targets:"
@@ -20,12 +20,13 @@ help:
 	@echo "  make test-integration          - Run integration tests only (needs Docker)"
 	@echo "  make test-cov                  - Run all tests with the coverage gate"
 	@echo "  make openapi-snapshot          - Regenerate tests/contract/openapi.json"
+	@echo "  make profile                   - Profile the unit tests (or PROFILE_ARGS) into profile.html"
 
 install:
-	uv sync --group lint --group migration --group test --all-packages
+	uv sync --group lint --group migration --group test --group profile --all-packages
 
 upgrade:
-	uv sync --group lint --group migration --group test --all-packages -U
+	uv sync --group lint --group migration --group test --group profile --all-packages -U
 
 hooks:
 	uvx pre-commit install --install-hooks
@@ -35,10 +36,10 @@ check: lint test-unit
 lint: lint-ruff lint-format lint-ty lint-imports lint-typos
 
 lint-ruff:
-	uv run --group lint --all-packages ruff check app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff check app tests alembic seed scenario-tests .docker
 
 lint-format:
-	uv run --group lint --all-packages ruff format --check app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff format --check app tests alembic seed scenario-tests .docker
 
 lint-ty:
 	uv run --group lint --group migration --group test --all-packages ty check --error-on-warning app tests alembic seed scenario-tests
@@ -50,8 +51,8 @@ lint-typos:
 	uvx typos
 
 format:
-	uv run --group lint --all-packages ruff check --fix app tests alembic seed scenario-tests
-	uv run --group lint --all-packages ruff format app tests alembic seed scenario-tests
+	uv run --group lint --all-packages ruff check --fix app tests alembic seed scenario-tests .docker
+	uv run --group lint --all-packages ruff format app tests alembic seed scenario-tests .docker
 
 run:
 	@if [ ! -f .env ]; then \
@@ -90,4 +91,9 @@ test-cov:
 	uv run --group test pytest --cov --cov-report=term-missing
 
 openapi-snapshot:
-	UPDATE_OPENAPI_SNAPSHOT=1 uv run --group test pytest tests/unit/test_openapi_contract.py -q
+	uv run --group test pytest tests/unit/test_openapi_contract.py -q --update-openapi-snapshot
+
+PROFILE_ARGS ?= -m unit
+
+profile:
+	uv run --group test --group profile pyinstrument -r html -o profile.html -m pytest -p no:randomly -q $(PROFILE_ARGS)

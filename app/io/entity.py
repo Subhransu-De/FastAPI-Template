@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
@@ -16,18 +17,22 @@ class OrderDirection(StrEnum):
     DESC = "desc"
 
 
+EntityName = Annotated[str, Field(min_length=1, max_length=255)]
+EntityDescription = Annotated[str | None, Field(max_length=5000)]
+
+
 class EntityCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = Field(None, max_length=5000)
+    name: EntityName
+    description: EntityDescription = None
 
 
 class EntityUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = Field(None, max_length=5000)
+    name: EntityName
+    description: EntityDescription = None
 
 
 class EntityResponse(BaseModel):

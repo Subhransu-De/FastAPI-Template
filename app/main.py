@@ -94,7 +94,7 @@ def app_from_env() -> OIDCOpenAPIFastAPI:
     return create_app(Settings.from_env())
 
 
-def main() -> None:
+def main() -> int:
     settings = Settings.from_env()
     telemetry.configure_otel(settings.app.app_name)
     logger.setup_logging()
@@ -108,7 +108,8 @@ def main() -> None:
         proxy_headers=settings.app.proxy_headers,
         forwarded_allow_ips=settings.app.forwarded_allow_ips,
     )
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

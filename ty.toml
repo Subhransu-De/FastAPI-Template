@@ -1,5 +1,4 @@
 [environment]
-python-version = "3.13"
 extra-paths = ["./scenario-tests/typings"]
 
 [rules]

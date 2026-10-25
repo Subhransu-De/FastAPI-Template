@@ -9,7 +9,7 @@ from seed.fixtures import FIXTURES
 logger = logging.getLogger("seed")
 
 
-def main() -> None:
+def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     database_url = os.environ.get("DATABASE_URL")
     if not database_url:
@@ -23,7 +23,8 @@ def main() -> None:
         engine.dispose()
     for table, count in inserted.items():
         logger.info("%s: %d new rows", table, count)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

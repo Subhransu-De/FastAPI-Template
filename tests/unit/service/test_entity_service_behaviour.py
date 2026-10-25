@@ -28,6 +28,7 @@ class InMemoryEntityStore:
 
     async def find_all_paginated(
         self,
+        *,
         offset: int = 0,
         limit: int = 25,
         ordering: Ordering | None = None,

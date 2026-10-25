@@ -200,7 +200,7 @@ jobs:
 
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-reports-${{ matrix.python-version }}
           path: |
@@ -245,7 +245,19 @@ jobs:
 
       - name: Build Lambda Web Adapter image
         if: matrix.image-name == 'app'
-        run: docker build --build-arg APP_IMAGE=fastapi-template:ci-app -f Dockerfile.lambda-web-adapter -t fastapi-template:ci-lambda .
+        run: |
+          for attempt in 1 2 3; do
+            if docker build --build-arg APP_IMAGE=fastapi-template:ci-app -f Dockerfile.lambda-web-adapter -t fastapi-template:ci-lambda . 2>&1 | tee "$RUNNER_TEMP/lambda-build.log"; then
+              exit 0
+            else
+              build_status=$?
+            fi
+            if ! grep -Fq '429 Too Many Requests' "$RUNNER_TEMP/lambda-build.log" || [ "$attempt" -eq 3 ]; then
+              exit "$build_status"
+            fi
+            echo "Registry throttled the build; retrying after $((attempt * 30)) seconds."
+            sleep "$((attempt * 30))"
+          done
 
       - name: Scan ${{ matrix.image-name }} image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
