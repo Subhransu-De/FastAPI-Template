@@ -26,6 +26,7 @@ class RequestOptions(TypedDict, total=False):
 
 class ValidationErrorItem(BaseModel):
     loc: tuple[str | int, ...]
+    type: str
 
 
 def _assert_problem_details(
@@ -48,7 +49,7 @@ def _assert_validation_problem(
     response: httpx.Response,
     *,
     expected_location: tuple[str, ...],
-) -> None:
+) -> list[ValidationErrorItem]:
     body = _assert_problem_details(
         response,
         status_code=422,
@@ -57,6 +58,7 @@ def _assert_validation_problem(
     assert isinstance(body.detail, list), body.detail
     errors = [ValidationErrorItem.model_validate(error) for error in body.detail]
     assert any(error.loc == expected_location for error in errors), body.detail
+    return errors
 
 
 def _assert_unauthorized(response: httpx.Response) -> None:
@@ -361,12 +363,33 @@ async def test_create_entity_rejects_invalid_payloads(
 
 
 @WithAuth
-async def test_create_entity_rejects_missing_body(
+@pytest.mark.parametrize("method", ["post", "put"])
+@pytest.mark.parametrize(
+    ("content", "expected_type"),
+    [("", "missing"), ("null", "model_attributes_type")],
+    ids=["missing-body", "null-body"],
+)
+async def test_entity_writes_distinguish_null_from_missing_body(
     app_client: httpx.AsyncClient,
+    method: str,
+    content: str,
+    expected_type: str,
 ) -> None:
-    response = await app_client.post("/entities/")
+    path = "/entities/"
+    if method == "put":
+        created = await app_client.post(path, json={"name": "Existing entity"})
+        assert created.status_code == 201
+        path = f"/entities/{created.json()['id']}"
 
-    _assert_validation_problem(response, expected_location=("body",))
+    response = await app_client.request(
+        method,
+        path,
+        content=content,
+        headers={"Content-Type": "application/json"},
+    )
+
+    errors = _assert_validation_problem(response, expected_location=("body",))
+    assert [error.type for error in errors] == [expected_type]
 
 
 @WithAuth
