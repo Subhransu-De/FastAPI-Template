@@ -226,3 +226,6 @@ backend.local.tf
 crash.log
 crash.*.log
 infra/modules/**/.terraform.lock.hcl
+
+# pyinstrument output from make profile
+profile.html

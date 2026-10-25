@@ -13,6 +13,7 @@ This file is for anyone changing this repository, human or agent. It states the 
 | `make test-integration` | Runs the Postgres tests in a disposable container. Needs Docker.        |
 | `make test-cov`         | Runs all tests with the coverage floor from `pyproject.toml`.           |
 | `make openapi-snapshot` | Regenerates `tests/contract/openapi.json` after an intended API change. |
+| `make profile`          | Profiles the unit tests, or `PROFILE_ARGS`, into `profile.html`.        |
 | `make format`           | Applies ruff fixes and formatting.                                      |
 
 Run `make check` before every commit. Run `make test-integration` before opening a pull request that touches the database, the models, or the migrations.
