@@ -155,6 +155,13 @@ Run tests with coverage:
 make test-cov
 ```
 
+Profile the unit tests with pyinstrument and open `profile.html` to see where the time goes. Pass `PROFILE_ARGS` to profile one test file or a test selection:
+
+```bash
+make profile
+make profile PROFILE_ARGS="tests/integration/test_entities_api.py -k create"
+```
+
 Run scenario tests against the e2e Docker Compose stack:
 
 ```bash

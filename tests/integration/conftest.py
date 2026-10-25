@@ -14,12 +14,7 @@ from alembic.config import Config
 from asgi_lifespan import LifespanManager
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from jwt.algorithms import RSAAlgorithm
 from pytest_httpserver import HTTPServer
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
@@ -138,14 +133,6 @@ def _jwks_server(signing_private_key: RSAPrivateKey) -> Iterator[HTTPServer]:
     server.stop()
 
 
-def _private_pem(private_key: RSAPrivateKey) -> bytes:
-    return private_key.private_bytes(
-        encoding=Encoding.PEM,
-        format=PrivateFormat.TraditionalOpenSSL,
-        encryption_algorithm=NoEncryption(),
-    )
-
-
 def token_claims(
     *,
     audience: str = TEST_CLIENT_ID,
@@ -175,7 +162,7 @@ def make_test_token(
 ) -> str:
     return pyjwt.encode(
         token_claims(**claims),
-        _private_pem(private_key),
+        private_key,
         algorithm="RS256",
         headers={"kid": kid},
     )
