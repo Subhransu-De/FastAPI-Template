@@ -1,19 +1,14 @@
 from collections.abc import Callable
-from typing import ParamSpec, TypeVar
 
-P = ParamSpec("P")
-R = TypeVar("R")
-StepFunction = Callable[P, R]
-
-def given(
+def given[**P, R](
     step_text: str,
     **kwargs: object,
-) -> Callable[[StepFunction[P, R]], StepFunction[P, R]]: ...
-def when(
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+def when[**P, R](
     step_text: str,
     **kwargs: object,
-) -> Callable[[StepFunction[P, R]], StepFunction[P, R]]: ...
-def then(
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
+def then[**P, R](
     step_text: str,
     **kwargs: object,
-) -> Callable[[StepFunction[P, R]], StepFunction[P, R]]: ...
+) -> Callable[[Callable[P, R]], Callable[P, R]]: ...

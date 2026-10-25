@@ -24,6 +24,7 @@ class EntityStore(Protocol):
 
     async def find_all_paginated(
         self,
+        *,
         offset: int = 0,
         limit: int = 25,
         ordering: Ordering | None = None,
@@ -50,6 +51,7 @@ class EntityService:
 
     async def get_all(
         self,
+        *,
         offset: int = 0,
         limit: int = 25,
         order_by: EntityOrderBy = EntityOrderBy.CREATED_AT,

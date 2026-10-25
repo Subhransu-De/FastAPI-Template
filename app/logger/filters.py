@@ -12,7 +12,7 @@ def _record_path(record: logging.LogRecord) -> str | None:
     if isinstance(args, tuple) and len(args) > _UVICORN_ACCESS_PATH_ARG_INDEX:
         path = args[_UVICORN_ACCESS_PATH_ARG_INDEX]
         if isinstance(path, str):
-            return path.split("?", maxsplit=1)[0]
+            return path.partition("?")[0]
 
     message = record.getMessage()
     for path in HEALTH_ENDPOINT_PATHS:

@@ -4,7 +4,7 @@ from logging import Handler, Logger
 
 from app.logger.handlers import LOG_LEVEL, get_logfire_handler
 
-LogHandlerFactory = Callable[[], Handler]
+type LogHandlerFactory = Callable[[], Handler]
 
 __all__ = ["LogHandlerFactory", "configure_logger", "setup_logging"]
 
