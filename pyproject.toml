@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.159.1",
     "httpx>=0.28.1",
-    "logfire[fastapi,psycopg,sqlalchemy]>=5.1.1",
+    "logfire[fastapi,psycopg,sqlalchemy]>=5.3.0",
     "psycopg[binary]>=3.3.6",
     "pydantic>=2.14.1",
     "pydantic-settings>=2.16.1",
