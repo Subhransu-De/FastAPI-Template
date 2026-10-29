@@ -19,7 +19,7 @@ dependencies = [
 
 [dependency-groups]
 migration = [
-    "alembic[tz]>=1.20.0",
+    "alembic[tz]>=1.20.1",
     "psycopg[binary]>=3.3.6",
 ]
 lint = [
@@ -39,7 +39,7 @@ test = [
     "asgi-lifespan>=2.1.0",
     "pytest-randomly>=3.16",
     "pytest-timeout>=2.4",
-    "hypothesis>=6.170.5",
+    "hypothesis>=6.170.11",
 ]
 profile = [
     "pyinstrument>=5.1.3",
