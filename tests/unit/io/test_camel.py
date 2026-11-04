@@ -68,6 +68,16 @@ def test_camel_model_rejects_snake_case_keys() -> None:
     }
 
 
+def test_camel_model_rejects_snake_case_keys_in_json() -> None:
+    with pytest.raises(ValidationError) as error:
+        UserUpdate.model_validate_json('{"first_name": "Ada"}')
+
+    assert {(e["type"], e["loc"]) for e in error.value.errors()} == {
+        ("missing", ("firstName",)),
+        ("extra_forbidden", ("first_name",)),
+    }
+
+
 def test_camel_response_reads_snake_case_attributes() -> None:
     user = User(user_id=uuid4(), first_name="Ada")
 
