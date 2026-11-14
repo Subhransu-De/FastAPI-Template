@@ -16,7 +16,6 @@ def create_sessionmaker(engine: AsyncEngine) -> SessionMaker:
     return async_sessionmaker(
         bind=engine,
         expire_on_commit=False,
-        autocommit=False,
         autoflush=False,
     )
 
