@@ -37,7 +37,7 @@ test = [
     "pytest-httpserver>=1.2.1",
     "testcontainers[postgres]>=4.15.0",
     "asgi-lifespan>=2.1.0",
-    "pytest-randomly>=3.16",
+    "pytest-randomly>=5.1.0",
     "pytest-timeout>=2.4",
     "hypothesis>=6.170.15",
 ]
