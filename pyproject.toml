@@ -23,7 +23,7 @@ migration = [
     "psycopg[binary]>=3.3.9",
 ]
 lint = [
-    "import-linter>=2.16",
+    "import-linter>=2.17",
     "ruff>=0.17.5",
     "ty>=0.0.104",
 ]
