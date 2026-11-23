@@ -39,7 +39,7 @@ test = [
     "asgi-lifespan>=2.1.0",
     "pytest-randomly>=5.1.0",
     "pytest-timeout>=2.4",
-    "hypothesis>=6.170.15",
+    "hypothesis>=6.170.16",
 ]
 profile = [
     "pyinstrument>=5.1.3",
