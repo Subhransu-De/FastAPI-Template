@@ -27,7 +27,7 @@ _writer = Depends(require_role(ENTITY_WRITE_ROLE))
     status_code=HTTPStatus.CREATED,
     response_model=EntityResponse,
     dependencies=[_writer],
-    responses=problem_responses(HTTPStatus.FORBIDDEN),
+    responses=problem_responses(HTTPStatus.FORBIDDEN, HTTPStatus.CONTENT_TOO_LARGE),
 )
 async def create_entity(
     data: EntityCreate,
@@ -68,7 +68,9 @@ async def list_entities(
     "/{entity_id}",
     response_model=EntityResponse,
     dependencies=[_writer],
-    responses=problem_responses(HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND),
+    responses=problem_responses(
+        HTTPStatus.FORBIDDEN, HTTPStatus.NOT_FOUND, HTTPStatus.CONTENT_TOO_LARGE
+    ),
 )
 async def update_entity(
     entity_id: UUID,

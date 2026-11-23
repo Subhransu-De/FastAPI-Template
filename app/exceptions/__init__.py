@@ -6,6 +6,7 @@ from app.exceptions.base import (
     problem_response,
     problem_responses,
 )
+from app.exceptions.body_limit import DeclaredBodyLimitMiddleware
 from app.exceptions.exceptions import (
     AuthenticationError,
     DatabaseUnavailableError,
@@ -24,6 +25,7 @@ __all__: list[str] = [
     "AuthenticationError",
     "BaseError",
     "DatabaseUnavailableError",
+    "DeclaredBodyLimitMiddleware",
     "ErrorHandling",
     "ForbiddenError",
     "MissingLifespanStateError",
