@@ -1,8 +1,11 @@
+from collections.abc import AsyncIterator
+from typing import Literal
 from unittest.mock import Mock
 
 import httpx
 import pytest
 from asgi_lifespan import LifespanManager
+from logfire.testing import CaptureLogfire
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -57,6 +60,77 @@ async def test_requests_reach_the_lifespan_owned_validator(
     assert response.status_code == 401
     assert response.headers["WWW-Authenticate"] == "Bearer"
     assert response.json()["title"] == "Unauthorized"
+
+
+_BODY_LIMIT = 16
+
+type Transfer = Literal["content-length", "chunked"]
+
+
+async def _chunks(body: bytes) -> AsyncIterator[bytes]:
+    for offset in range(0, len(body), 4):
+        yield body[offset : offset + 4]
+
+
+async def _post_entity_body(
+    settings: Settings, body: bytes, transfer: Transfer = "content-length"
+) -> httpx.Response:
+    limited = settings.model_copy(
+        update={"app": settings.app.model_copy(update={"max_body_size": _BODY_LIMIT})}
+    )
+    app = create_app(limited)
+
+    async with LifespanManager(app) as manager:
+        transport = httpx.ASGITransport(app=manager.app)
+        async with httpx.AsyncClient(
+            transport=transport, base_url="https://testserver"
+        ) as client:
+            return await client.post(
+                "/entities/",
+                content=_chunks(body) if transfer == "chunked" else body,
+                headers={"Content-Type": "application/json"},
+            )
+
+
+@pytest.mark.parametrize("transfer", ["content-length", "chunked"])
+async def test_oversized_request_bodies_become_content_too_large_problems(
+    settings: Settings,
+    transfer: Transfer,
+) -> None:
+    response = await _post_entity_body(settings, b"x" * (_BODY_LIMIT + 1), transfer)
+
+    assert response.status_code == 413
+    assert response.headers["content-type"] == "application/problem+json"
+    assert response.json() == {
+        "type": "about:blank",
+        "title": "Content Too Large",
+        "status": 413,
+        "detail": "Content Too Large",
+        "instance": "https://testserver/entities/",
+    }
+
+
+async def test_declared_oversized_bodies_are_rejected_inside_the_request_span(
+    settings: Settings,
+    capfire: CaptureLogfire,
+) -> None:
+    await _post_entity_body(settings, b"x" * (_BODY_LIMIT + 1))
+
+    statuses = [
+        span["attributes"].get("http.response.status_code")
+        for span in capfire.exporter.exported_spans_as_dict()
+    ]
+    assert 413 in statuses
+
+
+@pytest.mark.parametrize("transfer", ["content-length", "chunked"])
+async def test_request_bodies_within_the_limit_reach_request_validation(
+    settings: Settings,
+    transfer: Transfer,
+) -> None:
+    response = await _post_entity_body(settings, b"x" * _BODY_LIMIT, transfer)
+
+    assert response.status_code == 422
 
 
 async def _probe(

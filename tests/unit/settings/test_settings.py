@@ -77,6 +77,40 @@ def test_application_settings_proxy_settings_come_from_env(
     assert settings.forwarded_allow_ips == "10.0.0.0/8"
 
 
+def test_application_settings_limit_request_bodies_to_one_mebibyte() -> None:
+    settings = ApplicationSettings(_env_file=None)
+
+    assert settings.max_body_size == 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param("2048", 2048, id="bytes"),
+        pytest.param("null", None, id="unlimited"),
+    ],
+)
+def test_application_settings_max_body_size_uses_app_max_body_size_env(
+    monkeypatch: pytest.MonkeyPatch,
+    value: str,
+    expected: int | None,
+) -> None:
+    monkeypatch.setenv("APP_MAX_BODY_SIZE", value)
+
+    settings = ApplicationSettings(_env_file=None)
+
+    assert settings.max_body_size == expected
+
+
+def test_application_settings_reject_a_negative_max_body_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_MAX_BODY_SIZE", "-1")
+
+    with pytest.raises(ValidationError):
+        ApplicationSettings(_env_file=None)
+
+
 def test_database_settings_requires_url(monkeypatch: pytest.MonkeyPatch) -> None:
     _set_env(monkeypatch, {})
 

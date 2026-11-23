@@ -3,11 +3,15 @@ from http import HTTPStatus
 from typing import Any
 
 from fastapi import FastAPI
-from starlette.types import Lifespan
+from starlette.types import ASGIApp, Lifespan
 
 from app import telemetry
 from app.auth.dependencies import OIDC_SCHEME_NAME
-from app.exceptions import PROBLEM_JSON_MEDIA_TYPE, ProblemDetails
+from app.exceptions import (
+    PROBLEM_JSON_MEDIA_TYPE,
+    DeclaredBodyLimitMiddleware,
+    ProblemDetails,
+)
 from app.settings import OIDCMetadata, Settings
 
 type OpenAPIDocument = dict[str, Any]
@@ -131,6 +135,7 @@ class OIDCOpenAPIFastAPI(FastAPI):
             title=settings.app.app_name,
             lifespan=lifespan,
             telemetry=telemetry.native_telemetry_config(),
+            max_body_size=settings.app.max_body_size,
             swagger_ui_init_oauth={
                 "clientId": settings.oidc.docs_client_id,
                 "scopes": "openid",
@@ -140,6 +145,11 @@ class OIDCOpenAPIFastAPI(FastAPI):
         self.settings = settings
         self.validation_status = validation_status
         self.oidc_metadata: OIDCMetadata | None = None
+
+    def build_middleware_stack(self) -> ASGIApp:
+        return DeclaredBodyLimitMiddleware(
+            super().build_middleware_stack(), self.max_body_size
+        )
 
     def openapi(self) -> OpenAPIDocument:
         if self.openapi_schema is not None:

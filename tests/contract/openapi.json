@@ -341,6 +341,16 @@
             },
             "description": "Forbidden"
           },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Content Too Large"
+          },
           "422": {
             "content": {
               "application/problem+json": {
@@ -593,6 +603,16 @@
               }
             },
             "description": "Not Found"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "Content Too Large"
           },
           "422": {
             "content": {

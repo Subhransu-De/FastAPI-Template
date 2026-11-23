@@ -6,14 +6,15 @@
 
 ## Application
 
-| Key                   | Required by | Meaning                                                                                                   |
-| --------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
-| `APP_NAME`            | Optional    | Name shown in FastAPI metadata.                                                                           |
-| `APP_HOST`            | Optional    | Host interface for a host-run API. Default: `127.0.0.1`.                                                  |
-| `PORT`                | Optional    | API listening port. Default: `80`.                                                                        |
-| `RELOAD`              | Optional    | Enables Uvicorn reload for host development. Default: `False`.                                            |
-| `PROXY_HEADERS`       | Optional    | Makes Uvicorn honour `X-Forwarded-*` headers from trusted proxies. Default: `False`.                      |
-| `FORWARDED_ALLOW_IPS` | Optional    | Proxies whose forwarded headers are trusted; Uvicorn syntax, `*` trusts every peer. Default: `127.0.0.1`. |
+| Key                   | Required by | Meaning                                                                                                                                         |
+| --------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `APP_NAME`            | Optional    | Name shown in FastAPI metadata.                                                                                                                 |
+| `APP_HOST`            | Optional    | Host interface for a host-run API. Default: `127.0.0.1`.                                                                                        |
+| `PORT`                | Optional    | API listening port. Default: `80`.                                                                                                              |
+| `RELOAD`              | Optional    | Enables Uvicorn reload for host development. Default: `False`.                                                                                  |
+| `PROXY_HEADERS`       | Optional    | Makes Uvicorn honour `X-Forwarded-*` headers from trusted proxies. Default: `False`.                                                            |
+| `FORWARDED_ALLOW_IPS` | Optional    | Proxies whose forwarded headers are trusted; Uvicorn syntax, `*` trusts every peer. Default: `127.0.0.1`.                                       |
+| `APP_MAX_BODY_SIZE`   | Optional    | Largest accepted request body in bytes. Larger bodies get a 413 Problem Details response. `null` removes the limit. Default: `1048576` (1 MiB). |
 
 ## Compose
 
