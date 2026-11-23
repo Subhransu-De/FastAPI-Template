@@ -40,4 +40,8 @@ class DeclaredBodyLimitMiddleware:
         if self.max_body_size is None:
             return False
         declared = Headers(scope=scope).get("content-length", "")
-        return declared.isdigit() and int(declared) > self.max_body_size
+        return (
+            declared.isascii()
+            and declared.isdigit()
+            and int(declared) > self.max_body_size
+        )
