@@ -89,6 +89,7 @@ services:
       - "${APP_PORT:-80}:80"
     environment:
       APP_HOST: 0.0.0.0
+      APP_MAX_BODY_SIZE: ${APP_MAX_BODY_SIZE:-1048576}
       DATABASE_URL: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/fastapi_db
       OIDC_ISSUER_URL: ${OIDC_PUBLIC_URL:-http://localhost:8080}/realms/fastapi-realm
       OIDC_INTERNAL_URL: http://keycloak:8080/realms/fastapi-realm
